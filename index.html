@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grades and Attendance</title>
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #1B1B18;
+    --ink: #EDEAE0;
+    --muted: #9A968A;
+    --line: #38372F;
+    --accent: #9CB185;
+    --accent-soft: #2A2E24;
+    --serif: 'Fraunces', Georgia, serif;
+    --sans: 'Inter', -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.6;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 640px);
+    gap: 64px;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 72px 32px 120px;
+  }
+
+  /* Sidebar */
+  nav {
+    position: sticky;
+    top: 72px;
+    align-self: start;
+  }
+
+  nav .label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 14px;
+    letter-spacing: 0.02em;
+  }
+
+  nav > ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  nav > ul > li { margin-bottom: 14px; }
+
+  nav .big-link {
+    display: block;
+    font-family: var(--serif);
+    font-size: 15px;
+    color: var(--ink);
+    text-decoration: none;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 6px;
+  }
+
+  nav .big-link:hover,
+  nav .big-link:focus-visible { color: var(--accent); }
+
+  nav ul.sub-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-left: 2px solid var(--line);
+  }
+
+  nav ul.sub-list li a {
+    display: block;
+    padding: 5px 0 5px 16px;
+    margin-left: -2px;
+    border-left: 2px solid transparent;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13.5px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+
+  nav ul.sub-list li a:hover,
+  nav ul.sub-list li a:focus-visible {
+    color: var(--ink);
+    border-left-color: var(--accent);
+  }
+
+  /* Main content */
+  main { min-width: 0; }
+
+  .featured {
+    background: var(--accent-soft);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin-bottom: 56px;
+  }
+
+  .featured-row {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    padding: 8px 0;
+  }
+
+  .featured-row + .featured-row {
+    border-top: 1px solid var(--line);
+  }
+
+  .featured-label {
+    font-family: var(--serif);
+    font-size: 15px;
+    color: var(--accent);
+    width: 90px;
+    flex-shrink: 0;
+  }
+
+  .featured-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+  }
+
+  .featured-links a {
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .featured-links a:hover,
+  .featured-links a:focus-visible {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .big-section {
+    margin-bottom: 72px;
+  }
+
+  .big-section h1 {
+    font-family: var(--serif);
+    font-size: 32px;
+    font-weight: 500;
+    margin: 0 0 8px;
+    scroll-margin-top: 72px;
+  }
+
+  .big-section > .rule {
+    height: 1px;
+    background: var(--line);
+    margin-bottom: 36px;
+  }
+
+  section {
+    margin-bottom: 48px;
+    scroll-margin-top: 72px;
+  }
+
+  section h2 {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 500;
+    margin: 0 0 16px;
+  }
+
+  .note-body {
+    font-size: 15.5px;
+    color: #D8D4C7;
+  }
+
+  .note-body[contenteditable]:empty::before {
+    content: attr(data-placeholder);
+    color: #6B685D;
+  }
+
+  .note-body ul {
+    margin: 0 0 16px;
+    padding-left: 20px;
+  }
+
+  .note-body li { margin-bottom: 6px; }
+
+  .note-body li[contenteditable]:empty::before {
+    content: attr(data-placeholder);
+    color: #6B685D;
+  }
+
+  .note-body p[contenteditable]:empty::before {
+    content: attr(data-placeholder);
+    color: #6B685D;
+  }
+
+  [contenteditable]:focus { outline: none; background: #262620; }
+
+  @media (max-width: 760px) {
+    .layout { grid-template-columns: 1fr; padding: 40px 20px 80px; }
+    nav { position: static; border-bottom: 1px solid var(--line); padding-bottom: 20px; margin-bottom: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <nav aria-label="Section list">
+    <ul id="toc"></ul>
+  </nav>
+
+  <main id="sections">
+
+    <div class="featured">
+      <div class="featured-row"><span class="featured-label">proxy</span><span class="featured-links"><a href="#b1-s5">invisiproxy</a><a href="#b1-s3">dogeub</a><a href="#b1-s1">truffled</a><a href="#b1-s4">overcloaked</a></span></div>
+      <div class="featured-row"><span class="featured-label">webport games</span><span class="featured-links"><a href="#b1-s2">gn-math</a><a href="#b1-s1">truffled</a></span></div>
+      
+      <div class="featured-row"><span class="featured-label">works with geforce now</span><span class="featured-links"><a href="#b1-s3">dogeub</a></span></div>
+      
+      <div class="featured-row"><span class="featured-label">turn off blocksi</span><span class="featured-links"><a href="#b2-s1">ExtPrint3r</a></span></div>
+    </div>
+
+    <div class="big-section" id="b1">
+      <h1>proxies/games</h1>
+      <div class="rule"></div>
+
+      <section id="b1-s1">
+        <h2>⭐️truffled</h2>
+        <div class="note-body">
+          <ul>
+            <li contenteditable data-placeholder="Key point">proxy</li>
+            <li contenteditable data-placeholder="Key point">webport games (super large library) (balatro)</li>
+            <li contenteditable data-placeholder="Key point">about:blank option (click pop out button)</li>
+            <li contenteditable data-placeholder="Key point">turn off ads in settings</li>
+          </ul>
+          <a href="https://truf.remiosenifoundation.org/">✅link 1</a>
+          <a href="https://snoopy.shared2.eu">link 2</a>
+          <a href="https://snoopy.pagostepeapulco.gob.mx/">link 3</a>
+          <a href="https://snoopy.hemma.org/">link 4</a>
+          <a href="https://snoopy.patelmortgage.com/">link 5</a>
+          <a href="https://bins.verymad.net/">link 6</a>
+		  <a href="https://bite.svmblocker.com/">link 7</a>
+        </div>
+      </section>
+
+      <section id="b1-s2">
+        <h2>⭐️gn-math</h2>
+        <div class="note-body">
+          <ul>
+            <li contenteditable data-placeholder="Key point">lots of webport games</li>
+            <li contenteditable data-placeholder="Key point">about:blank option</li>
+          </ul>
+          <a href="https://a2174-99533489.cluster40.canvas-user-content.com/users/2174~344930/files/2174~99533489/my%20files/gnmath.html?download=1&inline=1&sf_verifier=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJ1c2VyX2lkIjoiMjE3NDAwMDAwMDAzNDQ5MzAiLCJhdHRhY2htZW50X2lkIjoiMjE3NDAwMDAwOTk1MzM0ODkiLCJwZXJtaXNzaW9uIjpbInJlYWQiLCJkb3dubG9hZCJdLCJyb290X2FjY291bnRfaWQiOiIyMTc0MDAwMDAwMDAwMDAwMSIsIm9hdXRoX2hvc3QiOiJrYXR5aXNkLmluc3RydWN0dXJlLmNvbSIsInJldHVybl91cmwiOm51bGwsImZhbGxiYWNrX3VybCI6Imh0dHBzOi8va2F0eWlzZC5pbnN0cnVjdHVyZS5jb20vZmlsZXMvOTk1MzM0ODkvZG93bmxvYWQ_dmVyaWZpZXI9OTE4ZU5iaVdzR2dmMnN6c05KV2hLWTJRQ1RDTk4wZExJNkhiVDJZM1x1MDAyNmZhbGxiYWNrX3RzPTE3ODAxMTE3MzkiLCJqdGkiOiI3YThhYTJlZC0xMTc3LTQ3NWMtOTJiYS1hM2QzZDA0YmEzOTAiLCJleHAiOjE3ODAxMTIwMzl9.ctQD2ZCAPjhFE_i2GRc8dUkSDbHZesVgkLQko3R_0FQoalLYWu9BNwIWyBG_6gaR5VLjsswqieSxtWJoNfrv-Q&verifier=918eNbiWsGgf2szsNJWhKY2QCTCNN0dLI6HbT2Y3">✅link 1</a>
+        </div>
+      </section>
+
+      <section id="b1-s3">
+        <h2>⭐️dogeub</h2>
+        <div class="note-body">
+          <ul>
+            <li contenteditable data-placeholder="Key point">proxy</li>
+            <li contenteditable data-placeholder="Key point">games</li>
+            <li contenteditable data-placeholder="Key point">ads (but not that bad)</li>
+            <li contenteditable data-placeholder="Key point">about:blank option</li>
+            <li contenteditable data-placeholder="Key point">known to be mostly reliable</li>
+            <li contenteditable data-placeholder="Key point">pop out tab to seperate tab</li>
+            <li contenteditable data-placeholder="Key point">⭐️works with geforce now</li>
+          </ul>
+           <a href="https://history.worksheets.krepche.com/">✅link 1</a>
+           <a href="https://a.doge.celoai.org/">link 2</a>
+           <a href="https://use.superpollo-ec.com/">link 3</a>
+           <a href="https://edu.ronginbari.com/">link 4</a>
+           
+        </div>
+      </section>
+
+      <section id="b1-s4">
+        <h2>⭐️overcloaked</h2>
+        <div class="note-body">
+          <ul>
+            <li contenteditable data-placeholder="Key point">proxy</li>
+            <li contenteditable data-placeholder="Key point">u can play gn-math games in here</li>
+            <li contenteditable data-placeholder="Key point">⭐️hidden from search history</li>
+          </ul>
+           <a href="https://edu.1776arms.com">✅link 1</a>
+<p>extra links: https://edu.hotelesenmontilla.es
+https://edu.nickbdonnelly.com
+https://edu.notinthearchives.net
+https://edu2.notinthearchives.net
+https://edu.271828.org
+https://edu.alora-one.com
+https://edu.alwaysabroad.com
+https://edu2.ayresinn.com
+https://edu.bassmanbenny.com
+https://edu2.auraria.org
+https://edu.celsolobo.com
+https://edu.coadautodoor.com
+https://edu2.fizicamedicala.ro
+https://edu2.recycle.cl
+https://edu.abogadosenlinares.cl
+https://edu.andrewblack.co
+https://edu.banditcalls.com
+https://edu.bayself.com.tr
+https://edu.belyfit.cl
+https://edu.adhikarisabin.com.np
+https://edu.broshan.com.np
+https://edu.inducort.com
+https://edu.martinpascal.cl
+https://edu.nanc.com.np
+</p>
+        </div>
+      </section>
+
+      <section id="b1-s5">
+        <h2>⭐️invisiproxy</h2>
+        <div class="note-body">
+          <ul>
+            <li contenteditable data-placeholder="Key point">proxy</li>
+            <li contenteditable data-placeholder="Key point">lots of support for websites</li>
+            <li contenteditable data-placeholder="Key point">highly trusted</li>
+            <li contenteditable data-placeholder="Key point">many settings to mess with</li>
+            <li contenteditable data-placeholder="Key point">no ads</li>
+          </ul>
+           <a href="https://justinhurleyphotography.com/">✅link 1</a>
+           <a href="https://guidetocoachingsports.com/">link 2</a>
+           <a href="https://brennaquillenphotography.com/">link 3</a>
+           <a href="https://firsttire.org/">link 4</a>
+           <a href="https://oralcancer-screening.org/">link 5</a>
+           <a href="https://exemptpaint.space/">link 6</a>
+           <a href="https://innovationroom.space/">link 7</a>
+        </div>
+      </section>
+
+
+
+      <section id="b1-s6">
+        <h2>interstellar</h2>
+        <div class="note-body">
+          <ul>
+            <li contenteditable data-placeholder="Key point">proxy</li>
+            <li contenteditable data-placeholder="Key point">pop out to seperate tab</li>
+            <li contenteditable data-placeholder="Key point">automatic about:blank</li>
+            <li contenteditable data-placeholder="Key point">⭐️works with geforce now</li>
+            <li contenteditable data-placeholder="Key point">no links</li>
+          </ul>
+           <a href=""></a> <!-- link 1 -->
+        </div>
+      </section>
+
+      <section id="b1-s7">
+        <h2>frogies arcade - nowgg.fun</h2>
+        <div class="note-body">
+          <ul>
+            <li contenteditable data-placeholder="Key point">cloud gaming</li>
+            <li contenteditable data-placeholder="Key point">now.gg bypass</li>
+            <li contenteditable data-placeholder="Key point">very inconsistent, not reliable but sometimes works</li>
+            <li contenteditable data-placeholder="Key point">links are blocked</li>
+            <li contenteditable data-placeholder="Key point">you can visit thru proxy</li>
+
+          </ul>
+           <a href="https://nowgg.fun">link 1</a>
+           <a href="https://nowgg.lol">link 2</a>
+        </div>
+      </section>
+
+      <section id="b1-s8">
+        <h2>astra</h2>
+        <div class="note-body">
+          <ul>
+            <li contenteditable data-placeholder="Key point">currently down</li>
+            <li contenteditable data-placeholder="Key point">will have mobile games like brawl stars and clash</li>
+            <li contenteditable data-placeholder="Key point">cloud gaming</li>
+            <li contenteditable data-placeholder="Key point">coming back soon</li>
+          </ul>
+           <a href=""></a> <!-- link 1 -->
+        </div>
+      </section>
+
+      
+    </div>
+
+    <div class="big-section" id="b2">
+      <h1>exploits/bypasses</h1>
+      <div class="rule"></div>
+
+      <section id="b2-s1">
+        <h2>⭐ExtPrint3r</h2>
+        <div class="note-body">
+          <ul>
+            <li contenteditable data-placeholder="Key point">takes like 2-3 minutes to do</li>
+            <li contenteditable data-placeholder="Key point">i’m still trying to figure out how to make this consistent
+</li>
+          </ul>
+          <p>1. click <a href="https://meatlover6447.github.io/educationyay/ext.html">here</a></p>
+          <p>2. click “Click here to load it anyway”</p>
+          <p>3. click “Disable” under blocksi</p>
+          <p>4. highlight the extension url, copy it, open it in a new tab</p>
+          <p>5. on the extension tab, click the toggle switch next to 'Allow access to file URLs'</p>
+          <p>6. go back to the ExtPrint3r tab</p>
+          <p>- remember all of step 7, your chromebook will be laggy while doing this</p>
+          <p>7. click 'The Print3r', press ctrl+tab, and then spam the spacebar for 5 seconds. </p>
+          <p>next, press ctrl+w and wait until the print dialog shows up and press cancel</p>
+          <p>8. profit </p>
+          <p>(your chromebook will be laggy for a bit at first, you may need to do it twice)</p>
+          <br>
+          <p>turn blocksi back on by restarting your chromebook</p>
+        </div>
+      </section>
+
+      <section id="b2-s2">
+        <h2>Section 7</h2>
+        <div class="note-body">
+          <ul>
+            <li contenteditable data-placeholder="Key point">Key point one</li>
+            <li contenteditable data-placeholder="Key point">Key point two</li>
+          </ul>
+          <p contenteditable data-placeholder="Write your definition or explanatory text here…"></p>
+        </div>
+      </section>
+
+      <section id="b2-s3">
+        <h2>Section 8</h2>
+        <div class="note-body">
+          <ul>
+            <li contenteditable data-placeholder="Key point">Key point one</li>
+            <li contenteditable data-placeholder="Key point">Key point two</li>
+          </ul>
+          <p contenteditable data-placeholder="Write your definition or explanatory text here…"></p>
+        </div>
+      </section>
+
+      <section id="b2-s4">
+        <h2>Section 9</h2>
+        <div class="note-body">
+          <ul>
+            <li contenteditable data-placeholder="Key point">Key point one</li>
+            <li contenteditable data-placeholder="Key point">Key point two</li>
+          </ul>
+          <p contenteditable data-placeholder="Write your definition or explanatory text here…"></p>
+        </div>
+      </section>
+
+      <section id="b2-s5">
+        <h2>Section 10</h2>
+        <div class="note-body">
+          <ul>
+            <li contenteditable data-placeholder="Key point">Key point one</li>
+            <li contenteditable data-placeholder="Key point">Key point two</li>
+          </ul>
+          <p contenteditable data-placeholder="Write your definition or explanatory text here…"></p>
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+</div>
+
+<script>
+  function buildToc() {
+    const toc = document.getElementById('toc');
+    toc.innerHTML = '';
+    document.querySelectorAll('#sections .big-section').forEach(big => {
+      const h1 = big.querySelector('h1');
+      const li = document.createElement('li');
+
+      const a = document.createElement('a');
+      a.href = '#' + big.id;
+      a.className = 'big-link';
+      a.textContent = h1 ? h1.textContent : 'Untitled';
+      li.appendChild(a);
+
+      const subList = document.createElement('ul');
+      subList.className = 'sub-list';
+      big.querySelectorAll('section').forEach(sec => {
+        const h2 = sec.querySelector('h2');
+        const subLi = document.createElement('li');
+        const subA = document.createElement('a');
+        subA.href = '#' + sec.id;
+        subA.textContent = h2 ? h2.textContent : 'Untitled section';
+        subLi.appendChild(subA);
+        subList.appendChild(subLi);
+      });
+      li.appendChild(subList);
+
+      toc.appendChild(li);
+    });
+  }
+
+  buildToc();
+</script>
+
+</body>
+</html>
