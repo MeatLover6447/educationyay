@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Undertale Save Manager</title>
+  <style>
+    body { background: #000; color: #fff; font-family: monospace; padding: 20px; text-align: center; }
+    textarea { background: #111; color: #0f0; border: 2px solid #fff; padding: 10px; width: 80%; font-family: monospace; }
+    button { background: #fff; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    button:hover { background: #ff0; }
+  </style>
+</head>
+<body>
+  <h1>UNDERTALE WEB SAVE MANAGER</h1>
+  <p>Your save data is loaded below. Edit the values, then click save.</p>
+  
+  <textarea id="box" rows="20">Loading save data...</textarea>
+  <br>
+  <button onclick="saveData()">SAVE CHANGES TO BROWSER</button>
+
+  <script>
+    // Web ports usually use 'file0' or 'undertale' as the storage key
+    var saveKey = localStorage.getItem('file0') ? 'file0' : (localStorage.getItem('undertale') ? 'undertale' : 'file0');
+    
+    // Load the data into the box
+    document.getElementById('box').value = localStorage.getItem(saveKey) || "No save data found. Make sure you have saved at least once in-game!";
+
+    function saveData() {
+        localStorage.setItem(saveKey, document.getElementById('box').value);
+        alert("Save updated successfully! You can now close this tab, return to Undertale, and reload the page.");
+    }
+  </script>
+</body>
+</html>
