@@ -252,9 +252,52 @@ function status(m,c=""){const e=document.getElementById("status");e.textContent=
 function bytesToText(x){try{if(x instanceof Uint8Array)return new TextDecoder().decode(x);if(x&&x.buffer)return new TextDecoder().decode(new Uint8Array(x.buffer,x.byteOffset,x.byteLength));if(Array.isArray(x))return new TextDecoder().decode(new Uint8Array(x))}catch(e){}return null}
 function textToBytes(x){return new TextEncoder().encode(x)}
 function openDb(){status("Connecting to IndexedDB...");const r=indexedDB.open(DB_NAME);r.onsuccess=e=>{db=e.target.result;if(!db.objectStoreNames.contains(STORE_NAME))return status("FILE_DATA store not found.","err");status("Connected. Loading files...","ok");listFiles()};r.onerror=e=>status("Could not open database: "+(e.target.error?.message||"unknown"),"err");r.onupgradeneeded=e=>{try{e.target.transaction.abort()}catch(x){}status("No existing save database on this origin.","err")}}
-function listFiles(){if(!db)return status("Connect first.","err");const r=db.transaction(STORE_NAME,"readonly").objectStore(STORE_NAME).openCursor(),el=document.getElementById("fileList");el.innerHTML="";records={};r.onsuccess=e=>{const c=e.target.result;if(!c)return status(Object.keys(records).length+" file record(s) found.","ok");records[c.key]=c.value;const d=document.createElement("div");d.className="file";d.textContent=c.key;d.onclick=()=>selectFile(c.key);el.appendChild(d);c.continue()}}
-function selectFile(k){const r=db.transaction(STORE_NAME,"readonly").objectStore(STORE_NAME).get(k);r.onsuccess=e=>{currentKey=k;currentRecord=e.target.result;document.querySelectorAll(".file").forEach(x=>x.classList.toggle("selected",x.textContent===k));const t=bytesToText(currentRecord.contents);document.getElementById("box").value=t===null?"(binary data)":t;document.getElementById("fileInfo").innerHTML='<span class="badge">FILE: '+esc(k)+'</span><span class="badge">'+(t===null?"binary":t.length+" chars")+"</span>";status("Loaded "+k,"ok");if(String(k).toLowerCase()==="file0")detectStats()}}
-function isFile0(){return currentKey&&String(currentKey).toLowerCase()==="file0"}
+
+/* FIX: the cursor object is reused by the browser, so `c.key` inside the
+   onclick closure always ended up being the LAST record. Capture the key
+   per record instead. */
+function listFiles(){
+  if(!db)return status("Connect first.","err");
+  const el=document.getElementById("fileList");
+  el.innerHTML="";records={};
+  const found=[];
+  const r=db.transaction(STORE_NAME,"readonly").objectStore(STORE_NAME).openCursor();
+  r.onsuccess=e=>{
+    const c=e.target.result;
+    if(!c){
+      if(!found.length)return status("No save records found in FILE_DATA.","err");
+      return status(found.length+" file record(s) found.","ok");
+    }
+    const key=c.key;                 // <-- captured per iteration
+    records[key]=c.value;
+    const d=document.createElement("div");
+    d.className="file";
+    d.textContent=key;
+    d.dataset.filename=String(key);
+    d.onclick=()=>selectFile(key);
+    el.appendChild(d);
+    found.push(key);
+    c.continue();
+  };
+  r.onerror=e=>status("Could not read files: "+(e.target.error?.message||"unknown"),"err");
+}
+
+function selectFile(k){
+  if(!db)return status("Connect first.","err");
+  const r=db.transaction(STORE_NAME,"readonly").objectStore(STORE_NAME).get(k);
+  r.onsuccess=e=>{
+    if(e.target.result===undefined)return status("Record "+k+" not found.","err");
+    currentKey=k;currentRecord=e.target.result;
+    document.querySelectorAll("#fileList .file").forEach(x=>x.classList.toggle("selected",x.dataset.filename===String(k)));
+    const t=bytesToText(currentRecord.contents);
+    document.getElementById("box").value=t===null?"(binary data)":t;
+    document.getElementById("fileInfo").innerHTML='<span class="badge">FILE: '+esc(k)+'</span><span class="badge">'+(t===null?"binary":t.length+" chars")+"</span>";
+    status("Loaded "+k,"ok");
+    if(isFile0())detectStats();
+  };
+  r.onerror=e=>status("Could not load "+k+": "+(e.target.error?.message||"unknown"),"err");
+}
+function isFile0(){return !!currentKey&&/(^|\/)file0$/i.test(String(currentKey))}
 function arr(){return document.getElementById("box").value.replace(/\r/g,"").split("\n")}
 function getLine(n){const a=arr();return n>=1&&n<=a.length?a[n-1]:""}
 function setLine(n,v){const a=arr();if(n<1||n>a.length)return false;a[n-1]=String(v);document.getElementById("box").value=a.join("\n");return true}
@@ -278,8 +321,8 @@ function applyLine(){const n=Number(document.getElementById("lineNumber").value)
 function showLineMap(){document.getElementById("lineMap").textContent="1 Name | 2 LV | 3 HP | 4 Max HP | 10 EXP | 11 GOLD | 12 Kills | 13/15/17/19/21/23/25/27 Inventory | 36 FUN | 37 Hard Mode | 39 Disable Encounters | 381 Undyne status | 383 Fought Undyne | 541 True Pacifist | 547 Song | 548 Room | 549 Time."}
 function reloadSelected(){if(currentKey)selectFile(currentKey)}
 function download(n,t){const a=document.createElement("a"),u=URL.createObjectURL(new Blob([t],{type:"text/plain"}));a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(u)}
-function backupCurrent(){if(!currentKey)return status("No file selected.","err");download(String(currentKey)+"-backup.txt",document.getElementById("box").value);status("Backup downloaded.","ok")}
-function backupAll(){for(const k in records){const t=bytesToText(records[k].contents);if(t!==null)download(String(k)+"-backup.txt",t)}status("Backups requested.","ok")}
+function backupCurrent(){if(!currentKey)return status("No file selected.","err");download(String(currentKey).replace(/[\/\\]/g,"_")+"-backup.txt",document.getElementById("box").value);status("Backup downloaded.","ok")}
+function backupAll(){for(const k in records){const t=bytesToText(records[k].contents);if(t!==null)download(String(k).replace(/[\/\\]/g,"_")+"-backup.txt",t)}status("Backups requested.","ok")}
 function writeChanges(){if(!currentKey||!currentRecord)return status("No file selected.","err");if(!confirm("Overwrite "+currentKey+" in IndexedDB? Make sure you have a backup."))return;const rec=Object.assign({},currentRecord,{contents:textToBytes(document.getElementById("box").value),timestamp:new Date()});const r=db.transaction(STORE_NAME,"readwrite").objectStore(STORE_NAME).put(rec,currentKey);r.onsuccess=()=>{currentRecord=rec;records[currentKey]=rec;status("Wrote "+currentKey+". Reload the game after the write completes.","ok")};r.onerror=e=>status("Write failed: "+(e.target.error?.message||"unknown"),"err")}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 buildInv();
@@ -287,32 +330,26 @@ buildInv();
 
 <script>
 const ROOM_DB = {"4": "Ruins - Start", "5": "Ruins - Flowey", "6": "Ruins - Entrance [SAVE]", "7": "Ruins - Toriel stepping puzzle", "8": "Ruins - Switch puzzle", "9": "Ruins - Dummy room", "10": "Ruins - Spike puzzle", "11": "Ruins - Long hallway", "12": "Ruins - Leaf pile [SAVE]", "13": "Ruins - Candy pillar", "14": "Ruins - Forced drop trap", "15": "Ruins - First rock puzzle", "16": "Ruins - Trapdoor corridor", "17": "Ruins - Talking rock", "18": "Ruins - Mouse hole [SAVE]", "19": "Ruins - Napstablook", "20": "Ruins - Spider bake sale", "21": "Ruins - Froggit room", "22": "Ruins - Hidden switch", "23": "Ruins - Three pillars 1", "24": "Ruins - Three pillars 2", "25": "Ruins - Three pillars 3", "26": "Ruins - Three pillars 4", "27": "Ruins - Pillar pit", "28": "Ruins - Three-way split", "29": "Ruins - Toriel gossip", "30": "Ruins - Toy Knife room", "31": "Ruins - Home [SAVE]", "32": "Toriel's Home - Entrance", "33": "Toriel's Home - Library", "34": "Toriel's Home - Hallway", "35": "Toriel's Home - Room", "36": "Toriel's Home - Your Room", "37": "Toriel's Home - Kitchen", "38": "Toriel Basement 1", "39": "Toriel Basement 2", "40": "Toriel Basement 3", "41": "Toriel - Boss Room", "42": "Toriel Basement - Flowey hallway", "43": "Toriel Basement - Flowey", "44": "Snowdin - Ruins Exit", "45": "Snowdin - Dark path", "46": "Snowdin - Box Road [SAVE]", "47": "Snowdin - Fishing rod", "48": "Snowdin - Papyrus station", "49": "Snowdin - Lesser Dog", "50": "Snowdin - Signpost", "51": "Snowdin - Snowman", "52": "Snowdin - Electrical maze", "53": "Snowdin - Snowball game", "54": "Snowdin - Dog house", "55": "Snowdin - Monster Kid puzzle", "56": "Snowdin - Spaghetti [SAVE]", "57": "Snowdin - Dog couple", "58": "Snowdin - X/O puzzle 1", "59": "Snowdin - X/O puzzle 2", "60": "Snowdin - Step puzzle", "61": "Snowdin - Dog house [SAVE]", "62": "Snowdin - Sans/Papyrus snow sculpture", "63": "Snowdin - Ice X/O", "64": "Snowdin - Teleporting Sans", "65": "Snowdin - Ice cave entrance", "66": "Snowdin - Greater Dog", "67": "Snowdin - Papyrus attack puzzle", "68": "Snowdin - Town [SAVE]", "69": "Snowdin - Ice Wolf", "70": "Snowdin - River Person", "71": "Snowdin - Inn", "73": "Snowdin - Grillby's", "74": "Snowdin - Library", "81": "Papyrus - Battle", "82": "Waterfall - Entrance", "83": "Waterfall - Checkpoint [SAVE]", "84": "Waterfall - Falling rocks", "86": "Waterfall - Hallway [SAVE]", "87": "Waterfall - Bridge flowers", "88": "Waterfall - Vertical bridge flowers", "90": "Waterfall - Telescope", "91": "Waterfall - River Person", "92": "Waterfall - Undyne chase 1", "93": "Waterfall - Grass after Undyne chase", "94": "Waterfall - Crystal [SAVE]", "95": "Waterfall - Sans telescope", "96": "Waterfall - Nice Cream", "97": "Waterfall - Split path", "98": "Waterfall - Ballet Shoes", "99": "Waterfall - Bird", "100": "Waterfall - Onion", "101": "Waterfall - Artifact", "102": "Waterfall - Piano", "103": "Waterfall - Artifact", "104": "Waterfall - Statue", "105": "Waterfall - Umbrella", "106": "Waterfall - Rain path 1", "107": "Waterfall - Rain path 2", "108": "Waterfall - Palace view", "109": "Waterfall - Umbrella return", "110": "Waterfall - Bridge [SAVE]", "111": "Waterfall - Undyne bridge chase", "112": "Waterfall - Bridge fall", "113": "Waterfall - Garbage flower", "114": "Waterfall - Trash Zone [SAVE]", "115": "Waterfall - Mad Dummy", "116": "Waterfall - Quiet Area [SAVE]", "117": "Waterfall - Undyne House entrance", "119": "Waterfall - Napstablook house", "124": "Waterfall - Gerson shop", "125": "Waterfall - River Person", "126": "Waterfall - Two waterfalls", "127": "Waterfall - Mushroom maze", "128": "Waterfall - Temmie Village [SAVE]", "129": "Waterfall - Dark maze", "130": "Waterfall - Behind you", "131": "Waterfall - Echo flowers", "132": "Waterfall - Cave bridge", "133": "Waterfall - Cave exit", "134": "Undyne - Arena", "135": "Undyne - Arena +1", "136": "Hotland welcome", "137": "Hotland - Entrance", "138": "Hotland - Water cooler", "139": "Hotland - Laboratory Entrance [SAVE]", "140": "Hotland - River Person", "141": "Hotland - Lab", "142": "Hotland - Lab 2F", "143": "Hotland - Lab Exit", "144": "Hotland - Conveyor 1", "145": "Hotland - Magma Chamber [SAVE]", "146": "Hotland - Burnt Pan", "147": "Hotland - Laser 1", "148": "Hotland - Puzzle Door 1", "149": "Hotland - Left puzzle entrance", "150": "Hotland - Left puzzle", "151": "Hotland - Right puzzle entrance", "152": "Hotland - Right puzzle", "153": "Hotland - Ship puzzle bridge", "154": "Hotland - Kitchen", "155": "CORE - View [SAVE]", "156": "CORE - Elevator R1", "157": "CORE - Elevator R2", "158": "Hotland - Hot Dog stand", "159": "Hotland - Art Club entrance", "160": "Hotland - So Sorry", "161": "Hotland - Stained Apron", "162": "Hotland - Conveyor switch", "163": "Hotland - Ship puzzle", "164": "Hotland - Bad Opinion Zone [SAVE]", "165": "Hotland - Guards", "166": "Hotland - Mettaton news", "167": "CORE - Upper view", "168": "CORE - Elevator L2", "169": "CORE - Elevator L3", "170": "Hotland - Spider bake sale", "171": "CORE - F3 puzzle door", "172": "CORE - F3 south entrance", "173": "CORE - F3 south puzzle", "174": "CORE - F3 north entrance", "175": "CORE - F3 north puzzle", "176": "Hotland - Spider Entrance [SAVE]", "177": "Hotland - Spider Room", "178": "Hotland - Mettaton poster", "179": "Hotland - Theater stage", "180": "Hotland - Step puzzle 2", "181": "Hotland - Nice Cream 2", "182": "Hotland - Hotel entrance", "183": "Hotland - Hotel Lobby [SAVE]", "184": "Hotland - Hotel restaurant", "185": "Hotland - Hotel hallway", "186": "Hotland - Hotel alley", "187": "CORE - Elevator R3", "188": "CORE - Entrance", "189": "CORE - Elevator", "190": "CORE - Cave", "191": "CORE - North elevator", "192": "CORE - Laser puzzle", "193": "CORE - Crossroads", "194": "CORE - Dead end", "195": "CORE - Energy laser puzzle", "196": "CORE - Branch [SAVE]", "197": "CORE - Ice storage", "198": "CORE - West puzzle entrance", "199": "CORE - West entrance +1", "200": "CORE - West entrance +2", "201": "CORE - South trash can", "202": "CORE - End 3", "203": "CORE - End 4", "204": "CORE - Lost", "205": "CORE - West puzzle", "206": "CORE - Burger trash can", "207": "CORE - 100G trash can", "208": "CORE - Final bridge", "209": "CORE - End 1", "210": "CORE - End [SAVE]", "211": "CORE - Mettaton room", "212": "CORE - Final elevator entrance", "214": "Hotland - Elevator L1", "215": "CORE - Elevator entrance", "216": "Castle - Elevator [SAVE]", "217": "Castle - Other elevator", "218": "Castle - Dark path", "219": "New Home [SAVE]", "220": "New Home - Entrance", "221": "New Home - Library", "222": "New Home - Hallway", "223": "New Home - Asgore room", "224": "New Home - Your room", "225": "New Home - Kitchen", "226": "New Home - Basement 1", "227": "New Home - Basement 2", "228": "New Home - Basement 3", "229": "New Home - Basement 4", "230": "New Home - Elevator", "231": "Last Corridor [SAVE]", "232": "Throne Entrance [SAVE]", "233": "Throne Entrance - Downstairs", "234": "Throne Entrance - Coffin", "235": "Throne Room [SAVE]", "236": "The End [SAVE]", "237": "Barrier", "241": "Outside", "242": "Lab Elevator", "243": "True Lab - Elevator", "244": "True Lab - Elevator Entrance", "245": "True Lab - South Hall", "246": "True Lab [SAVE]", "247": "True Lab - West Hall 1", "248": "True Lab - West Drop", "249": "True Lab - Red Keyhole", "250": "True Lab - North Hall 1", "251": "True Lab - Bedroom [SAVE]", "252": "True Lab - North/South Hall", "253": "True Lab - Blue Keyhole", "254": "True Lab - North Hall 2", "255": "True Lab - Green Key", "256": "True Lab - Determination extractor", "257": "True Lab - Yellow Keyhole + TV", "258": "True Lab - Fridge", "259": "True Lab - Green Keyhole", "260": "True Lab - Fan", "261": "True Lab - Elevator 2", "262": "True Lab - Power hallway", "263": "True Lab - Power room", "265": "Snowdin - Ice Cave 1", "331": "Asriel Room"};
+
 let sessionOriginal = null;
 let sessionChanges = [];
 
+/* Reads the live editor text so it always matches what WRITE will save. */
 function file0Text(){
-  try {
-    if(typeof selectedFile !== "undefined" && selectedFile && selectedFile.contents) return selectedFile.contents;
-    if(typeof currentFile !== "undefined" && currentFile && currentFile.contents) return currentFile.contents;
-  } catch(e){}
-  return null;
+  if(typeof currentKey === "undefined" || !currentKey) return null;
+  if(!/(^|\/)file0$/i.test(String(currentKey))) return null;
+  const ta = document.getElementById("box");
+  return ta ? ta.value : null;
 }
-function linesOf(t){ return String(t||"").replace(/\r/g,"").split("\n"); }
-function getLine(t,n){ const a=linesOf(t); return a[n-1] ?? ""; }
-function setLine(t,n,v){
-  const a=linesOf(t); while(a.length<n)a.push("");
-  a[n-1]=String(v);
-  return a.join("\n");
-}
-function numLine(t,n,d=0){ const x=parseInt(getLine(t,n),10); return Number.isFinite(x)?x:d; }
 
-function currentFileIsFile0(){
-  const t=file0Text(); return t && (typeof selectedFile==="undefined" || !selectedFile.name || selectedFile.name==="file0");
-}
+function linesOf(t){ return String(t||"").replace(/\r/g,"").split("\n"); }
+function textLine(t,n){ const a=linesOf(t); return a[n-1] ?? ""; }
+function textSetLine(t,n,v){ const a=linesOf(t); while(a.length<n) a.push(""); a[n-1]=String(v); return a.join("\n"); }
+function numLine(t,n,d=0){ const x=parseInt(textLine(t,n),10); return Number.isFinite(x)?x:d; }
 
 function rememberOriginal(){
   const t=file0Text();
-  if(t && sessionOriginal===null) sessionOriginal=t;
+  if(t!==null && sessionOriginal===null) sessionOriginal=t;
 }
 function recordChange(label,before,after){
   if(before===after) return;
@@ -324,41 +361,38 @@ function replaceCurrentText(newText,label="Edit"){
   const old=file0Text();
   if(old===null){ alert("Select file0 first."); return false; }
   rememberOriginal();
-  // Prefer the existing raw textarea/editor hooks.
-  if(typeof rawText !== "undefined") rawText.value=newText;
-  const ta=document.querySelector('textarea');
+  const ta=document.getElementById("box");
   if(ta) ta.value=newText;
-  try { if(typeof selectedFile!=="undefined" && selectedFile) selectedFile.contents=newText; } catch(e){}
+  if(typeof currentRecord!=="undefined" && currentRecord) currentRecord.contents=textToBytes(newText);
   recordChange(label,old,newText);
-  if(typeof populateFields==="function") populateFields(newText);
-  if(typeof refreshUI==="function") refreshUI();
+  if(typeof detectStats==="function") detectStats();
   analyzeRun();
   return true;
 }
 
 function checkpoint(name,room){
   const t=file0Text();
-  if(!t){alert("Select file0 first.");return;}
-  const nt=setLine(t,548,room);
-  replaceCurrentText(nt,`Teleport → ${name} (room ${room})`);
-  const sel=document.getElementById("roomSelect"); if(sel) sel.value=room;
-  showRoom();
+  if(t===null){ alert("Select file0 first."); return; }
+  replaceCurrentText(textSetLine(t,548,room),`Teleport → ${name} (room ${room})`);
+  const sel=document.getElementById("roomSelect");
+  if(sel) sel.value=room;
+  if(typeof showRoom==="function") showRoom();
 }
 
 function applySelectedFlag(){
   const n=parseInt(document.getElementById("bossFlagSelect").value,10);
   const v=document.getElementById("bossFlagValue").value.trim();
-  if(!n || v===""){alert("Choose a flag and enter a value.");return;}
-  const t=file0Text(); if(!t){alert("Select file0 first.");return;}
-  replaceCurrentText(setLine(t,n,v),`Set line ${n} = ${v}`);
+  if(!n || v===""){ alert("Choose a flag and enter a value."); return; }
+  const t=file0Text();
+  if(t===null){ alert("Select file0 first."); return; }
+  replaceCurrentText(textSetLine(t,n,v),`Set line ${n} = ${v}`);
 }
 
 function detectRoute(t){
-  const lv=numLine(t,2), exp=numLine(t,10), kills=numLine(t,12), fun=numLine(t,36);
-  const hard=numLine(t,37), tp=numLine(t,541), room=numLine(t,548);
-  const noEnc=numLine(t,39);
-  if(noEnc!==0 || kills>=20 && lv>=15) return "Likely Genocide";
-  if(tp!==0 || room>=243 && room<=263) return "Likely Pacifist / True Lab";
+  const lv=numLine(t,2), exp=numLine(t,10), kills=numLine(t,12);
+  const tp=numLine(t,541), room=numLine(t,548), noEnc=numLine(t,39);
+  if(noEnc!==0 || (kills>=20 && lv>=15)) return "Likely Genocide";
+  if(tp!==0 || (room>=243 && room<=263)) return "Likely Pacifist / True Lab";
   if(lv<=2 && kills===0 && exp<100) return "Low-kill / Pacifist-leaning";
   if(kills===0) return "No-kill / Pacifist-leaning";
   return "Neutral / Mixed";
@@ -366,10 +400,10 @@ function detectRoute(t){
 
 function analyzeRun(){
   const t=file0Text();
-  if(!t){return;}
+  if(t===null) return;
   rememberOriginal();
   const lv=numLine(t,2), exp=numLine(t,10), hp=numLine(t,3), maxhp=numLine(t,4);
-  const gold=numLine(t,11), kills=numLine(t,12), fun=getLine(t,36), room=getLine(t,548), time=getLine(t,549);
+  const gold=numLine(t,11), kills=numLine(t,12), fun=textLine(t,36), room=textLine(t,548), time=textLine(t,549);
   document.getElementById("routeLabel").textContent=detectRoute(t);
   document.getElementById("currentRoomLabel").textContent=(ROOM_DB[parseInt(room,10)]||`Room ${room}`);
   document.getElementById("lvExpLabel").textContent=`${lv} / ${exp}`;
@@ -377,87 +411,51 @@ function analyzeRun(){
   document.getElementById("funLabel").textContent=fun||"0";
   document.getElementById("timeLabel").textContent=time||"0";
   document.getElementById("analysisBox").textContent =
-    `Name: ${getLine(t,1)}\nLV ${lv} | HP ${hp}/${maxhp} | EXP ${exp} | GOLD ${gold} | Kills ${kills}\n`+
+    `Name: ${textLine(t,1)}\nLV ${lv} | HP ${hp}/${maxhp} | EXP ${exp} | GOLD ${gold} | Kills ${kills}\n`+
     `Room ${room}: ${ROOM_DB[parseInt(room,10)]||"Unknown room"}\n`+
-    `Flags: Undyne status=${getLine(t,381)||0}, fought Undyne=${getLine(t,383)||0}, plot-over=${getLine(t,541)||0}, no encounters=${getLine(t,39)||0}, hard mode=${getLine(t,37)||0}\n`+
+    `Flags: Undyne status=${textLine(t,381)||0}, fought Undyne=${textLine(t,383)||0}, plot-over=${textLine(t,541)||0}, no encounters=${textLine(t,39)||0}, hard mode=${textLine(t,37)||0}\n`+
     `Route read: ${detectRoute(t)}`;
 }
 
 function makeSnapshot(){
-  const t=file0Text(); if(!t){alert("Select file0 first.");return;}
+  const t=file0Text(); if(t===null){ alert("Select file0 first."); return; }
   const blob=new Blob([t],{type:"text/plain"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
   a.download="file0.snapshot."+new Date().toISOString().replace(/[:.]/g,"-")+".txt"; a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 function undoChanges(){
-  if(sessionOriginal===null){alert("No session edits to undo.");return;}
+  if(sessionOriginal===null){ alert("No session edits to undo."); return; }
   replaceCurrentText(sessionOriginal,"UNDO → restore session snapshot");
   sessionChanges=[];
   document.getElementById("changeLog").textContent="Session changes undone.";
 }
 function previewChanges(){
   const t=file0Text();
-  if(!t){alert("Select file0 first.");return;}
+  if(t===null){ alert("Select file0 first."); return; }
   const old=sessionOriginal;
-  if(old===null || old===t){alert("No changes to preview.");return;}
+  if(old===null || old===t){ alert("No changes to preview."); return; }
   const A=linesOf(old), B=linesOf(t), out=[];
   const n=Math.max(A.length,B.length);
   for(let i=0;i<n;i++) if(A[i]!==B[i]) out.push(`Line ${i+1}: ${A[i]??""}  →  ${B[i]??""}`);
   alert(out.length?out.join("\n"):"No differences.");
 }
+
 function filterRooms(){
   const q=document.getElementById("roomSearch").value.toLowerCase().trim();
   const box=document.getElementById("roomBrowser"); if(!box)return;
-  const rows=Object.entries(ROOM_DB).filter(([id,name])=>!q || id.includes(q)||name.toLowerCase().includes(q));
-  box.innerHTML=rows.map(([id,name])=>`<div class="roomItem" onclick="checkpoint(${JSON.stringify(name)},'${id}')"><span class="rid">${id}</span><span class="rname">${name}</span><span>TP ›</span></div>`).join("") || `<div class="roomItem">No rooms found.</div>`;
+  const rows=Object.entries(ROOM_DB).filter(([id,name])=>!q || id.includes(q) || name.toLowerCase().includes(q));
+  box.innerHTML = rows.map(([id,name])=>
+    `<div class="roomItem" data-room="${esc(id)}" data-name="${esc(name)}">`+
+    `<span class="rid">${esc(id)}</span><span class="rname">${esc(name)}</span><span>TP ›</span></div>`
+  ).join("") || `<div class="roomItem">No rooms found.</div>`;
 }
-document.addEventListener("DOMContentLoaded",()=>{filterRooms();});
-</script>
-
-
-<script>
-/* v2.1 file-list fix: make every IndexedDB save record selectable. */
-(function(){
-  function getNameFromRow(row){
-    if(!row) return "";
-    if(row.dataset && (row.dataset.filename || row.dataset.file)) return row.dataset.filename || row.dataset.file;
-    const el=row.querySelector("[data-filename],[data-file]");
-    if(el) return el.dataset.filename || el.dataset.file || "";
-    const txt=(row.textContent||"").trim();
-    const known=["file0","undertale.ini","decomp_vars.ini","trophies.ini"];
-    for(const n of known) if(txt.includes(n)) return n;
-    return "";
-  }
-
-  document.addEventListener("click", function(e){
-    const row=e.target.closest("[data-filename],[data-file],.file-row,.fileItem,.file-item,.save-file,.file");
-    if(!row) return;
-    const name=getNameFromRow(row);
-    if(!name) return;
-
-    // Give the original editor's handler first chance if it has one.
-    // Then explicitly invoke the common selection function if available.
-    setTimeout(function(){
-      try{
-        if(typeof selectFile==="function") selectFile(name);
-        else if(typeof openFile==="function") openFile(name);
-        else if(typeof loadFile==="function") loadFile(name);
-      }catch(err){ console.warn("File selection fallback:",err); }
-
-      document.querySelectorAll(".file-row,.fileItem,.file-item,.save-file,.file").forEach(x=>x.classList.remove("selected-file"));
-      row.classList.add("selected-file");
-    },0);
-  }, true);
-
-  // Visual fallback for lists generated dynamically.
-  const style=document.createElement("style");
-  style.textContent=`
-    .file-row,.fileItem,.file-item,.save-file,.file{cursor:pointer !important;user-select:none}
-    .selected-file{outline:1px solid #0f0 !important;background:#111 !important}
-  `;
-  document.head.appendChild(style);
-})();
+document.getElementById("roomBrowser").addEventListener("click",e=>{
+  const it=e.target.closest(".roomItem");
+  if(!it || !it.dataset.room) return;
+  checkpoint(it.dataset.name, it.dataset.room);
+});
+document.addEventListener("DOMContentLoaded",()=>{ filterRooms(); });
 </script>
 </body>
 </html>
