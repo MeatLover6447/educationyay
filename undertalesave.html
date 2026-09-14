@@ -415,5 +415,49 @@ function filterRooms(){
 document.addEventListener("DOMContentLoaded",()=>{filterRooms();});
 </script>
 
+
+<script>
+/* v2.1 file-list fix: make every IndexedDB save record selectable. */
+(function(){
+  function getNameFromRow(row){
+    if(!row) return "";
+    if(row.dataset && (row.dataset.filename || row.dataset.file)) return row.dataset.filename || row.dataset.file;
+    const el=row.querySelector("[data-filename],[data-file]");
+    if(el) return el.dataset.filename || el.dataset.file || "";
+    const txt=(row.textContent||"").trim();
+    const known=["file0","undertale.ini","decomp_vars.ini","trophies.ini"];
+    for(const n of known) if(txt.includes(n)) return n;
+    return "";
+  }
+
+  document.addEventListener("click", function(e){
+    const row=e.target.closest("[data-filename],[data-file],.file-row,.fileItem,.file-item,.save-file,.file");
+    if(!row) return;
+    const name=getNameFromRow(row);
+    if(!name) return;
+
+    // Give the original editor's handler first chance if it has one.
+    // Then explicitly invoke the common selection function if available.
+    setTimeout(function(){
+      try{
+        if(typeof selectFile==="function") selectFile(name);
+        else if(typeof openFile==="function") openFile(name);
+        else if(typeof loadFile==="function") loadFile(name);
+      }catch(err){ console.warn("File selection fallback:",err); }
+
+      document.querySelectorAll(".file-row,.fileItem,.file-item,.save-file,.file").forEach(x=>x.classList.remove("selected-file"));
+      row.classList.add("selected-file");
+    },0);
+  }, true);
+
+  // Visual fallback for lists generated dynamically.
+  const style=document.createElement("style");
+  style.textContent=`
+    .file-row,.fileItem,.file-item,.save-file,.file{cursor:pointer !important;user-select:none}
+    .selected-file{outline:1px solid #0f0 !important;background:#111 !important}
+  `;
+  document.head.appendChild(style);
+})();
+</script>
 </body>
 </html>
