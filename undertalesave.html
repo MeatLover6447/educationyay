@@ -12,16 +12,11 @@ button{font:inherit;background:#eee;color:#000;border:0;padding:8px 12px;cursor:
 button:hover{background:#ff0}
 button.go{background:#0f0}
 button.warnbtn{background:#f90}
-button.preset-btn{background:#1e3a1e;color:#0f0;text-align:left;padding:10px 12px;width:100%;margin:0;font-size:12px;line-height:1.4}
-button.preset-btn:hover{background:#2e5a2e;color:#fff}
-button.preset-btn b{color:#9f9;display:block}
-button.preset-btn i{color:#888;font-style:normal;font-size:11px}
 button:disabled{opacity:.35;cursor:default}
 button:disabled:hover{background:#eee}
 input,select{font:inherit;background:#111;color:#0f0;border:1px solid #555;padding:6px;width:100%;box-sizing:border-box}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
 .grid.wide{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
-.preset-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}
 label{display:block;font-size:11px;color:#999;margin-bottom:3px}
 #files div{padding:8px;border-bottom:1px solid #222;cursor:pointer}
 #files div:hover{background:#181818}
@@ -31,6 +26,10 @@ label{display:block;font-size:11px;color:#999;margin-bottom:3px}
 .tiny{font-size:11px;color:#777;line-height:1.5;margin-top:8px}
 .flash{animation:fl .9s ease-out}
 @keyframes fl{0%{background:#0a3}100%{background:#000}}
+.ftm-link{display:inline-block;padding:10px 14px;background:#fff;color:#000;font-weight:bold;text-decoration:none;border:2px solid #fff;margin-top:8px;transition:background .15s,color .15s}
+.ftm-link:hover{background:#0f0;border-color:#0f0;color:#000}
+.ftm-link::before{content:"▶ ";color:#f00}
+hr{border:0;border-top:1px solid #222;margin:14px 0}
 </style>
 </head>
 <body>
@@ -54,39 +53,21 @@ label{display:block;font-size:11px;color:#999;margin-bottom:3px}
     <b>Import</b> replaces the selected file, or creates a new record using the imported file's name if none is selected.
     <b>Export</b> downloads exactly the bytes currently stored in IndexedDB.
   </div>
-</div>
-
-<div class="box">
-  <h2>Quick presets</h2>
-  <div class="preset-grid">
-    <button class="preset-btn" onclick="applyPreset('pacifist_final')">
-      <b>True Pacifist — Final Boss</b>
-      <i>LV 1 · 20/20 · 0 kills · room 235</i>
-    </button>
-    <button class="preset-btn" onclick="applyPreset('genocide_sans')">
-      <b>Genocide — Sans</b>
-      <i>LV 19 · 92/92 · 20 kills · room 231</i>
-    </button>
-    <button class="preset-btn" onclick="applyPreset('genocide_undyne')">
-      <b>Genocide — Undyne the Undying</b>
-      <i>LV 10 · 99/99 · 18 kills · room 134</i>
-    </button>
-  </div>
-  <div class="tiny">
-    If no save file is loaded, applying a preset creates a fresh <b>file0</b> from scratch with the preset's values filled in.
-    Nothing is written to the database until you click WRITE.
+  <hr>
+  <div style="font-size:12px;color:#bbb;line-height:1.6">
+    Looking for more save file presets — Ruins, Snowdin, Hotland, a pacifist run paused before Asgore, a genocide run at Sans, and more?<br>
+    <a class="ftm-link"
+       href="https://crumblingstatue.github.io/FloweysTimeMachine/"
+       target="_blank"
+       rel="noopener noreferrer">
+      Click here for save file presets that you can import
+    </a>
   </div>
 </div>
 
 <div class="box" id="statsBox">
   <h2>Player stats <span id="statSource" style="color:#666;font-size:11px"></span></h2>
   <div class="grid" id="statGrid"></div>
-</div>
-
-<div class="box" id="flagsBox">
-  <h2>Story flags <span id="flagSource" style="color:#666;font-size:11px"></span></h2>
-  <div class="grid" id="flagGrid"></div>
-  <div class="tiny">Raw line values. Presets write to these too (Undyne status 381, Fought Undyne 383, Pacifist completion 541).</div>
 </div>
 
 <div class="box" id="invBox">
@@ -152,41 +133,9 @@ const STAT_FIELDS = [
   { id:"time",  line:549, label:"Play time",  numeric:true  }
 ];
 
-const FLAG_FIELDS = [
-  { id:"hardmode", line:37,  label:"Hard mode (0/1)" },
-  { id:"noenc",    line:39,  label:"Disable encounters (0/1)" },
-  { id:"undyne",   line:381, label:"Undyne status (0=alive, 1=killed, 2=spared)" },
-  { id:"foughtU",  line:383, label:"Fought Undyne (0/1)" },
-  { id:"pacifist", line:541, label:"Pacifist completion (0/1/2)" }
-];
-
 const INV_LINES = [13,15,17,19,21,23,25,27];
 const ROOM_LINE = 548;
 const TOTAL_LINES = 549;
-
-const PRESETS = {
-  pacifist_final: {
-    label: "True Pacifist — Final Boss",
-    fields: { lv:1, hp:20, maxhp:20, exp:0, gold:300, kills:0, fun:0 },
-    flags:  { undyne:2, foughtU:1, pacifist:0 },
-    inv:    [11, 17, 41, 43, 0, 0, 0, 0],
-    room:   235
-  },
-  genocide_sans: {
-    label: "Genocide — Sans",
-    fields: { lv:19, hp:92, maxhp:92, exp:55000, gold:0, kills:20, fun:0 },
-    flags:  { undyne:1, foughtU:1, pacifist:0 },
-    inv:    [11, 41, 43, 0, 0, 0, 0, 0],
-    room:   231
-  },
-  genocide_undyne: {
-    label: "Genocide — Undyne the Undying",
-    fields: { lv:10, hp:99, maxhp:99, exp:4000, gold:0, kills:18, fun:0 },
-    flags:  { undyne:0, foughtU:0, pacifist:0 },
-    inv:    [11, 41, 43, 0, 0, 0, 0, 0],
-    room:   134
-  }
-};
 
 const ITEMS = [
   [0,"Empty"],[1,"Monster Candy"],[2,"Croquet Roll"],[3,"Stick"],[4,"Bandage"],
@@ -224,14 +173,6 @@ function say(m,c){ const e=$("msg"); e.textContent=m; e.className=c||""; }
     i.id = "f_" + f.id; i.type = "text"; i.autocomplete = "off";
     if(f.numeric) i.inputMode = "numeric";
     w.appendChild(l); w.appendChild(i); sg.appendChild(w);
-  }
-  const fg = $("flagGrid");
-  for(const f of FLAG_FIELDS){
-    const w = document.createElement("div");
-    const l = document.createElement("label"); l.textContent = f.label + " (line " + f.line + ")";
-    const i = document.createElement("input");
-    i.id = "f_" + f.id; i.type = "text"; i.inputMode = "numeric"; i.autocomplete = "off";
-    w.appendChild(l); w.appendChild(i); fg.appendChild(w);
   }
   const ig = $("invGrid");
   for(let i=0;i<8;i++){
@@ -273,7 +214,7 @@ function listFiles(){
     const c = e.target.result;
     if(!c){
       if(!n){ box.textContent = "(no files found)"; say("No save files found.","err"); }
-      else say(n + " file(s) found. Pick file0 or use a preset to create one.","ok");
+      else say(n + " file(s) found. Pick file0.","ok");
       return;
     }
     const k = c.key; n++;
@@ -307,7 +248,7 @@ function pick(k){
     $("write").textContent = "WRITE"; $("write").classList.remove("warnbtn");
     $("rv").textContent = "REVERT TO LOADED STATE"; $("rv").classList.remove("warnbtn");
 
-    ["statsBox","flagsBox","invBox","roomBox"].forEach(id => {
+    ["statsBox","invBox","roomBox"].forEach(id => {
       const el = $(id);
       el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
     });
@@ -386,28 +327,12 @@ function applyEdits(bytes, edits){
   return out;
 }
 
-/* ---------- template for "from scratch" ---------- */
-function makeBlankFile0(){
-  const lines = [];
-  lines.push("Chara");                    // line 1: name
-  for(let i = 2; i <= TOTAL_LINES; i++) lines.push("0");
-  return new TextEncoder().encode(lines.join("\n"));
-}
-
 /* ---------- auto-fill ---------- */
 function populateFromBytes(bytes){
   originalValues = {};
   let filled = 0, missing = 0;
 
   for(const f of STAT_FIELDS){
-    const v = readLine(bytes, f.line);
-    const val = v === null ? "" : v;
-    originalValues[f.id] = val;
-    $("f_" + f.id).value = val;
-    if(v === null) missing++; else filled++;
-  }
-
-  for(const f of FLAG_FIELDS){
     const v = readLine(bytes, f.line);
     const val = v === null ? "" : v;
     originalValues[f.id] = val;
@@ -432,7 +357,6 @@ function populateFromBytes(bytes){
   const isFile0 = /(^|\/)file0$/i.test(String(key||""));
   const hint = isFile0 ? "(file0)" : "(not file0)";
   $("statSource").textContent = hint;
-  $("flagSource").textContent = hint;
   $("invSource").textContent  = hint;
   $("roomSource").textContent = hint;
 
@@ -455,62 +379,6 @@ function resetFields(){
   if(!baseline) return;
   populateFromBytes(baseline);
   say("Fields reset to loaded values (DB not changed).","warn");
-}
-
-/* ---------- presets (now works from scratch) ---------- */
-function applyPreset(name){
-  const p = PRESETS[name];
-  if(!p) return;
-
-  // If no baseline exists, create one from a blank file0 template.
-  if(!baseline){
-    if(!confirm("No save file is loaded. Create a new file0 from scratch and apply preset: " + p.label + "?\n\nThis will create a new record in IndexedDB when you click WRITE.")) return;
-    baseline = makeBlankFile0();
-    key = "file0";
-    rec = { mode: 33206, contents: null, timestamp: new Date() };
-    contentsKind = "u8";
-    populateFromBytes(baseline);
-    say("Created blank file0 template in memory. Fill values and click WRITE to save it as a new record.","warn");
-  }
-
-  // If a file is loaded, confirm before applying.
-  if(baseline && key && !/^file0$/i.test(String(key))){
-    if(!confirm("This file is not file0. Presets are meant for file0. Continue anyway?")) return;
-  }
-
-  if(!confirm("Apply preset: " + p.label + "?\n\nThis fills in the fields below. Nothing is saved to the database until you click WRITE.")) return;
-
-  if(p.fields){
-    for(const [id, val] of Object.entries(p.fields)){
-      const el = $("f_" + id);
-      if(el) el.value = String(val);
-    }
-  }
-  if(p.flags){
-    for(const [id, val] of Object.entries(p.flags)){
-      const el = $("f_" + id);
-      if(el) el.value = String(val);
-    }
-  }
-  if(p.inv){
-    for(let i=0;i<8;i++) setInventorySelect(i, String(p.inv[i] ?? 0));
-  }
-  if(p.room !== undefined){
-    $("f_room").value = String(p.room);
-  }
-
-  ["statsBox","flagsBox","invBox","roomBox"].forEach(id => {
-    const el = $(id);
-    el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
-  });
-
-  // Enable write/reset/backup/revert buttons now that we have a baseline.
-  ["write","resetF","bk","rv"].forEach(id => $(id).disabled = false);
-  $("write").textContent = "WRITE"; $("write").classList.remove("warnbtn");
-
-  say("Preset loaded: " + p.label + "\n" +
-      (key === "file0" && !rec.contents ? "(New file0 — will be created when you click WRITE.)\n" : "") +
-      "Review the fields below, then click WRITE to commit.","warn");
 }
 
 /* ---------- write ---------- */
@@ -538,15 +406,6 @@ function writeClick(){
 function doWrite(){
   if(!baseline) return;
 
-  // If we're creating a new file0 from scratch, ensure it has the right structure.
-  let workBaseline = baseline;
-  if(!rec.contents){
-    // Rebuild baseline from the template to guarantee line count.
-    workBaseline = makeBlankFile0();
-    // Copy current field values into the template.
-    baseline = workBaseline;
-  }
-
   const edits = [];
   const changes = [];
 
@@ -561,21 +420,10 @@ function doWrite(){
       if(/[\r\n]/.test(cur)){ say("Field \"" + f.label + "\" must not contain line breaks.","err"); return; }
       var newVal = cur;
     }
-    const loc = findLine(workBaseline, f.line);
+    const loc = findLine(baseline, f.line);
     if(!loc){ say("Line " + f.line + " (" + f.label + ") is missing — refusing to write.","err"); return; }
     edits.push({ start: loc.start, end: loc.end, value: new TextEncoder().encode(newVal) });
     changes.push(f.label + ": " + old + " → " + newVal);
-  }
-
-  for(const f of FLAG_FIELDS){
-    const cur = String($("f_" + f.id).value);
-    const old = String(originalValues[f.id] ?? "");
-    if(cur === old) continue;
-    if(!/^-?\d+$/.test(cur.trim())){ say("Field \"" + f.label + "\" must be a whole number.","err"); return; }
-    const loc = findLine(workBaseline, f.line);
-    if(!loc){ say("Line " + f.line + " (" + f.label + ") is missing — refusing to write.","err"); return; }
-    edits.push({ start: loc.start, end: loc.end, value: new TextEncoder().encode(String(parseInt(cur.trim(),10))) });
-    changes.push(f.label + ": " + old + " → " + cur.trim());
   }
 
   for(let i=0;i<8;i++){
@@ -583,7 +431,7 @@ function doWrite(){
     const old = String(originalValues["inv" + i] ?? "0");
     if(cur === old) continue;
     if(!/^-?\d+$/.test(cur)){ say("Inventory slot " + (i+1) + " must be a whole number.","err"); return; }
-    const loc = findLine(workBaseline, INV_LINES[i]);
+    const loc = findLine(baseline, INV_LINES[i]);
     if(!loc){ say("Inventory line " + INV_LINES[i] + " is missing — refusing to write.","err"); return; }
     edits.push({ start: loc.start, end: loc.end, value: new TextEncoder().encode(cur) });
     changes.push("Slot " + (i+1) + ": " + old + " → " + cur);
@@ -596,7 +444,7 @@ function doWrite(){
       if(!/^\d+$/.test(cur)){ say("Room must be a whole number.","err"); return; }
       const n = parseInt(cur, 10);
       if(n < 1 || n > 400){ say("Room must be between 1 and 400.","err"); return; }
-      const loc = findLine(workBaseline, ROOM_LINE);
+      const loc = findLine(baseline, ROOM_LINE);
       if(!loc){ say("Room line " + ROOM_LINE + " is missing — refusing to write.","err"); return; }
       edits.push({ start: loc.start, end: loc.end, value: new TextEncoder().encode(String(n)) });
       changes.push("Room: " + old + " → " + n);
@@ -606,18 +454,16 @@ function doWrite(){
   if(!edits.length){ say("Nothing to write — no fields changed.","warn"); return; }
 
   let out;
-  try { out = applyEdits(workBaseline, edits); }
+  try { out = applyEdits(baseline, edits); }
   catch(err){ say("Edit failed: " + err.message,"err"); return; }
 
   const copy = {};
-  if(rec) for(const p in rec) copy[p] = rec[p];
-  else { copy.mode = 33206; }
+  for(const p in rec) copy[p] = rec[p];
   copy.contents = makeContents(out);
   copy.timestamp = new Date();
 
   const expected = {};
   for(const f of STAT_FIELDS) expected[f.line] = String($("f_" + f.id).value).trim();
-  for(const f of FLAG_FIELDS) expected[f.line] = String($("f_" + f.id).value).trim();
   for(let i=0;i<8;i++) expected[INV_LINES[i]] = String($("f_inv" + i).value);
   expected[ROOM_LINE] = String($("f_room").value).trim();
 
@@ -650,7 +496,7 @@ function verifyAfterWrite(writtenRec, expected, changes){
     rec = writtenRec;
     baseline = got.slice();
     populateFromBytes(baseline);
-    listFiles();  // refresh list so the new file0 shows up
+    listFiles();
     say("Saved and verified " + changes.length + " change(s) to " + key + ":\n" + changes.join("\n") + "\n\nLaunch Undertale and load the save.","ok");
   };
   vreq.onerror = () => say("Saved, but could not verify.","warn");
@@ -658,7 +504,7 @@ function verifyAfterWrite(writtenRec, expected, changes){
 
 /* ---------- export / import ---------- */
 function exportSave(){
-  if(!baseline || !key){ say("Select a file first, or apply a preset to create one.","err"); return; }
+  if(!baseline || !key){ say("Select a file first.","err"); return; }
   const blob = new Blob([baseline], { type: "application/octet-stream" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
