@@ -1,223 +1,205 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>Undertale IndexedDB Save Editor</title>
-  <style>
-    body { background: #000; color: #fff; font-family: monospace; padding: 20px; }
-    h1 { text-align: center; }
-    .row { margin: 12px 0; }
-    select, input[type=text] { background: #111; color: #0f0; border: 2px solid #fff; padding: 6px; font-family: monospace; width: 100%; box-sizing: border-box; }
-    textarea { background: #111; color: #0f0; border: 2px solid #fff; padding: 10px; width: 100%; height: 300px; font-family: monospace; box-sizing: border-box; }
-    button { background: #fff; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; margin: 6px 6px 0 0; }
-    button:hover { background: #ff0; }
-    .warn { color: #ff0; }
-    .ok { color: #0f0; }
-    .err { color: #f55; }
-    #status { min-height: 40px; white-space: pre-wrap; }
-    label { display: block; margin-bottom: 4px; }
-    #fileList { max-height: 160px; overflow-y: auto; border: 1px solid #444; padding: 6px; }
-    .fileEntry { padding: 4px; cursor: pointer; }
-    .fileEntry:hover { background: #222; }
-    .fileEntry.selected { background: #143; }
-  </style>
+<meta charset="utf-8">
+<title>UNDERTALE Save Editor</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#000;color:#fff;font-family:monospace;padding:18px}
+h1{text-align:center;margin:0 0 4px}.sub{text-align:center;color:#888;margin-bottom:18px}
+.layout{display:grid;grid-template-columns:240px 1fr;gap:14px;max-width:1450px;margin:auto}
+.panel{background:#080808;border:1px solid #444;padding:14px;margin-bottom:14px}
+h2{font-size:18px;margin:0 0 8px;border-bottom:1px solid #333;padding-bottom:7px}
+.desc{color:#888;font-size:12px;margin:6px 0 12px}
+button,select,input,textarea{font:inherit}button{background:#fff;color:#000;border:0;padding:9px 12px;font-weight:bold;cursor:pointer;margin:3px}button:hover{background:#ff0}
+button.green{background:#0f0}button.red{background:#f55}
+input,select{background:#111;color:#0f0;border:2px solid #555;padding:7px;width:100%}
+textarea{background:#111;color:#0f0;border:2px solid #555;padding:9px;width:100%;height:330px;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+#fileList{border:1px solid #333;max-height:430px;overflow:auto}.file{padding:8px;border-bottom:1px solid #222;cursor:pointer}
+.file:hover{background:#222}.file.selected{background:#143;color:#0f0}
+#status{white-space:pre-wrap;min-height:35px;padding:8px;margin-top:8px}.ok{color:#0f0}.err{color:#f55}.warn{color:#ff0}
+.roomInfo{background:#050505;border:1px solid #333;padding:8px;color:#aaa;margin-top:7px;min-height:38px}
+.preset{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.preset button{margin:0;text-align:left;font-size:11px}
+label{font-size:12px;color:#bbb}hr{border:0;border-top:1px solid #333;margin:15px 0}
+details{border:1px solid #333;padding:8px;margin-top:8px}summary{cursor:pointer;color:#0f0}
+.badge{display:inline-block;border:1px solid #555;padding:3px 6px;margin:2px;color:#aaa;font-size:11px}
+@media(max-width:850px){.layout{grid-template-columns:1fr}.preset,.grid3{grid-template-columns:1fr 1fr}}
+@media(max-width:500px){.grid2,.preset,.grid3{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-  <h1>UNDERTALE INDEXEDDB SAVE EDITOR</h1>
-  <p class="warn">This edits the IDBFS virtual filesystem at database "/_savedata", object store "FILE_DATA".
-  Must be run on the SAME origin as the game.</p>
+<h1>UNDERTALE SAVE EDITOR</h1>
+<div class="sub">Browser-local IndexedDB / IDBFS editor</div>
 
-  <div class="row">
-    <button onclick="openDb()">Connect &amp; List Files</button>
-  </div>
+<div class="panel">
+<div class="warn">⚠ Back up before changing anything. Changes are only prepared until WRITE is pressed.</div>
+<div id="status">Not connected.</div>
+<button onclick="openDb()">CONNECT & LOAD SAVE</button>
+<button onclick="listFiles()">REFRESH FILES</button>
+<button onclick="backupAll()">BACK UP TEXT FILES</button>
+</div>
 
-  <div class="row">
-    <label>Files found in /_savedata:</label>
-    <div id="fileList">(not connected yet)</div>
-  </div>
+<div class="layout">
+<aside>
+<div class="panel"><h2>Save files</h2><div id="fileList">(not connected)</div></div>
+<div class="panel"><h2>Current file</h2><div id="fileInfo">None selected.</div></div>
+</aside>
 
-  <div class="row">
-    <label>Contents of selected file (decoded as text, if possible):</label>
-    <textarea id="box" placeholder="Select a file above"></textarea>
-  </div>
+<main>
+<div class="panel">
+<h2>🌀 Teleport</h2>
+<div class="desc">For file0, the current room is line 548. These named destinations are based on the Undertale room-name mapping.</div>
+<select id="roomSelect" onchange="showRoom()">
+<option value="">-- choose destination --</option>
+<optgroup label="Ruins">
+<option value="6">Ruins - Entrance [SAVE]</option><option value="12">Ruins - Leaf Pile [SAVE]</option>
+<option value="18">Ruins - Mouse Hole [SAVE]</option><option value="31">Ruins - Home [SAVE]</option>
+<option value="41">Toriel - Boss Room</option>
+</optgroup>
+<optgroup label="Snowdin">
+<option value="44">Snowdin - Ruins Exit</option><option value="46">Snowdin - Box Road [SAVE]</option>
+<option value="56">Snowdin - Spaghetti [SAVE]</option><option value="61">Snowdin - Dog House [SAVE]</option>
+<option value="68">Snowdin - Town [SAVE]</option><option value="81">Papyrus - Battle</option>
+</optgroup>
+<optgroup label="Waterfall">
+<option value="83">Waterfall - Checkpoint [SAVE]</option><option value="86">Waterfall - Hallway [SAVE]</option>
+<option value="94">Waterfall - Crystal [SAVE]</option><option value="110">Waterfall - Bridge [SAVE]</option>
+<option value="114">Waterfall - Trash Zone [SAVE]</option><option value="116">Waterfall - Quiet Area [SAVE]</option>
+<option value="128">Waterfall - Temmie Village [SAVE]</option><option value="134">Waterfall - Undyne Arena</option>
+<option value="135">Waterfall - Undyne Arena + 1</option>
+</optgroup>
+<optgroup label="Hotland / CORE">
+<option value="139">Hotland - Laboratory Entrance [SAVE]</option><option value="145">Hotland - Magma Chamber [SAVE]</option>
+<option value="155">Hotland - Core View [SAVE]</option><option value="164">Hotland - Bad Opinion Zone [SAVE]</option>
+<option value="176">Hotland - Spider Entrance [SAVE]</option><option value="183">Hotland - Hotel Lobby [SAVE]</option>
+<option value="196">Hotland - Core Branch [SAVE]</option><option value="210">Hotland - Core End [SAVE]</option>
+</optgroup>
+<optgroup label="New Home / Endgame">
+<option value="216">Castle Elevator [SAVE]</option><option value="219">New Home [SAVE]</option>
+<option value="231">Last Corridor [SAVE]</option><option value="232">Throne Entrance [SAVE]</option>
+<option value="235">Throne Room [SAVE]</option><option value="236">The End [SAVE]</option>
+</optgroup>
+<optgroup label="True Laboratory">
+<option value="246">True Laboratory [SAVE]</option><option value="251">True Lab - Bedroom [SAVE]</option>
+</optgroup>
+</select>
+<div id="roomInfo" class="roomInfo">Choose a room.</div>
+<button class="green" onclick="applyRoomFromSelect()">PREPARE TELEPORT</button>
+<hr>
+<div class="grid2"><div><label>Custom Room ID</label><input id="customRoom" type="number" placeholder="e.g. 235"></div>
+<div><label>&nbsp;</label><button onclick="applyCustomRoom()">USE CUSTOM ROOM</button></div></div>
+<h3>Boss / story destinations</h3>
+<div class="preset">
+<button onclick="quickRoom(41)">Toriel arena</button><button onclick="quickRoom(81)">Papyrus battle</button>
+<button onclick="quickRoom(134)">Undyne arena</button><button onclick="quickRoom(210)">CORE end</button>
+<button onclick="quickRoom(231)">Last Corridor</button><button onclick="quickRoom(235)">Throne Room</button>
+<button onclick="quickRoom(236)">The End</button><button onclick="quickRoom(246)">True Lab</button>
+</div>
+<div class="desc warn">Warping changes the saved room; it does not by itself activate a boss encounter.</div>
+</div>
 
-  <div class="row">
-    <label>Quick Room jump (looks for a "Room" field and rewrites it):</label>
-    New room ID: <input type="text" id="roomInput" style="width:200px; display:inline-block;" placeholder="e.g. 312">
-    <button onclick="applyRoomChange()">Apply to Box Above</button>
-  </div>
+<div class="panel">
+<h2>♥ Player stats</h2>
+<div class="desc">These edit the documented file0 fields while preserving the rest of the save.</div>
+<div class="grid3">
+<div><label>Name</label><input id="name"></div><div><label>LOVE / LV</label><input id="lv" type="number"></div>
+<div><label>Current HP</label><input id="hp" type="number"></div><div><label>Max HP</label><input id="maxhp" type="number"></div>
+<div><label>EXP</label><input id="exp" type="number"></div><div><label>GOLD</label><input id="gold" type="number"></div>
+<div><label>Kills</label><input id="kills" type="number"></div><div><label>FUN</label><input id="fun" type="number"></div>
+<div><label>Play time</label><input id="time" type="number"></div>
+</div>
+<button onclick="detectStats()">DETECT CURRENT VALUES</button><button class="green" onclick="applyStats()">APPLY STATS</button>
+<div class="preset">
+<button onclick="presetStats('normal')">Normal-ish</button><button onclick="presetStats('strong')">Strong</button>
+<button onclick="presetStats('max')">Max LV / HP</button><button onclick="presetStats('rich')">9999 G</button>
+<button onclick="presetStats('noKills')">0 Kills</button><button onclick="presetStats('genocide')">LV20 / high EXP</button>
+</div>
+</div>
 
-  <div class="row">
-    <button onclick="backupToFile()">Download Backup (.txt)</button>
-    <button onclick="writeChanges()">WRITE CHANGES TO INDEXEDDB</button>
-  </div>
+<div class="panel">
+<h2>🎒 Inventory</h2>
+<div class="desc">Eight inventory slots are lines 13, 15, 17, 19, 21, 23, 25 and 27. This editor only exposes non-weapon consumable/key items.</div>
+<div id="inventory" class="grid2"></div>
+<button onclick="clearInventory()">CLEAR ALL 8 SLOTS</button><button class="green" onclick="applyInventory()">APPLY INVENTORY</button>
+<details><summary>Common item IDs</summary><div class="desc">1 Monster Candy · 2 Croquet Roll · 3 Stick · 4 Bandage · 5 Rock Candy · 7 Spider Donut · 10 Spider Cider · 11 Butterscotch Pie · 16 Snowman Piece · 17 Nice Cream · 21 Cinnamon Bun · 22 Temmie Flakes · 23 Abandoned Quiche · 26 Punch Card · 27 Annoying Dog · 28 Dog Salad · 29-34 Dog Residue · 35 Astronaut Food · 36 Instant Noodles · 40 Glamburger · 41 Sea Tea · 42 Starfait · 43 Legendary Hero · 56 Undyne's Letter · 60 Mystery Key · 61 Face Steak · 62 Hush Puppy · 63 Snail Pie · 64 Temmie Armor.</div></details>
+</div>
 
-  <div id="status"></div>
+<div class="panel">
+<h2>🚩 Story / route flags</h2>
+<div class="desc">Only documented fields are exposed here; unknown flags are left untouched.</div>
+<div class="grid2">
+<div><label>Undyne status (381)</label><select id="undyneStatus"><option value="">Don't change</option><option value="0">0</option><option value="1">1 - killed</option><option value="2">2 - spared</option></select></div>
+<div><label>Fought Undyne (383)</label><select id="foughtUndyne"><option value="">Don't change</option><option value="0">0</option><option value="1">1</option></select></div>
+<div><label>True Pacifist completion (541)</label><select id="pacifist"><option value="">Don't change</option><option value="0">0</option><option value="1">1</option><option value="2">2 - boss completed</option></select></div>
+<div><label>Disable random encounters (39)</label><select id="disableEncounters"><option value="">Don't change</option><option value="0">0</option><option value="1">1</option></select></div>
+<div><label>Hard mode (37)</label><select id="hardMode"><option value="">Don't change</option><option value="0">Off</option><option value="1">On</option></select></div>
+<div><label>FUN (36)</label><input id="flagFun" type="number" placeholder="1-100"></div>
+</div>
+<button class="green" onclick="applyFlags()">APPLY STORY FLAGS</button>
+<div class="preset">
+<button onclick="routeNeutral()">Neutral helper</button><button onclick="routePacifist()">Pacifist completion</button>
+<button onclick="routeUndyneSpared()">Undyne spared</button><button onclick="routeUndyneKilled()">Undyne killed</button>
+</div>
+<div class="desc warn">These helpers do not claim to reconstruct an entire route. They only change the documented fields shown above.</div>
+</div>
 
-  <script>
-    var DB_NAME = '/_savedata';
-    var STORE_NAME = 'FILE_DATA';
-    var db = null;
-    var currentKey = null;
-    var currentRecord = null; // raw record from IDB, e.g. {mode, timestamp, contents}
+<div class="panel">
+<h2>🔧 Raw line editor</h2>
+<div class="desc">For file0, line numbers are 1-based.</div>
+<div class="grid2"><div><label>Line number</label><input id="lineNumber" type="number"></div><div><label>New value</label><input id="lineValue"></div></div>
+<button onclick="applyLine()">CHANGE LINE IN EDITOR</button><button onclick="showLineMap()">SHOW LINE MAP</button>
+<div id="lineMap" class="desc"></div>
+</div>
 
-    function setStatus(msg, cls) {
-      var el = document.getElementById('status');
-      el.textContent = msg;
-      el.className = cls || '';
-    }
+<div class="panel">
+<h2>📝 Raw file</h2>
+<textarea id="box" placeholder="Select file0 or another text save file..."></textarea><br>
+<button onclick="reloadSelected()">RELOAD</button><button onclick="backupCurrent()">DOWNLOAD BACKUP</button>
+<button class="green" onclick="writeChanges()">WRITE CHANGES TO INDEXEDDB</button>
+</div>
+</main>
+</div>
 
-    function bytesToText(bytes) {
-      try {
-        if (bytes instanceof Uint8Array) {
-          return new TextDecoder('utf-8', { fatal: false }).decode(bytes);
-        }
-        if (bytes && bytes.buffer) {
-          return new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength));
-        }
-        if (Array.isArray(bytes)) {
-          return new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(bytes));
-        }
-      } catch (e) {}
-      return null;
-    }
-
-    function textToBytes(text) {
-      return new TextEncoder().encode(text);
-    }
-
-    function openDb() {
-      setStatus('Connecting to IndexedDB "' + DB_NAME + '"...');
-      var req = indexedDB.open(DB_NAME);
-      req.onsuccess = function(e) {
-        db = e.target.result;
-        setStatus('Connected. Object stores: ' + Array.from(db.objectStoreNames).join(', '), 'ok');
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          setStatus('Expected store "' + STORE_NAME + '" not found. Found instead: ' + Array.from(db.objectStoreNames).join(', ') + '. This build may use a different structure than standard Emscripten IDBFS.', 'err');
-          return;
-        }
-        listFiles();
-      };
-      req.onerror = function(e) {
-        setStatus('Failed to open database: ' + (e.target.error ? e.target.error.message : 'unknown error'), 'err');
-      };
-      req.onupgradeneeded = function(e) {
-        // We should NOT be creating the DB fresh - if this fires, the DB didn't exist yet on this origin.
-        setStatus('Database did not exist yet on this origin (no save data here). Aborting to avoid creating an empty one.', 'err');
-        e.target.transaction.abort();
-      };
-    }
-
-    function listFiles() {
-      var tx = db.transaction(STORE_NAME, 'readonly');
-      var store = tx.objectStore(STORE_NAME);
-      var req = store.openCursor();
-      var listEl = document.getElementById('fileList');
-      listEl.innerHTML = '';
-      var count = 0;
-      req.onsuccess = function(e) {
-        var cursor = e.target.result;
-        if (cursor) {
-          count++;
-          var key = cursor.key;
-          var val = cursor.value;
-          var div = document.createElement('div');
-          div.className = 'fileEntry';
-          div.textContent = key;
-          div.onclick = function() { selectFile(key); };
-          listEl.appendChild(div);
-          cursor.continue();
-        } else {
-          if (count === 0) {
-            listEl.textContent = '(no records found in FILE_DATA store)';
-            setStatus('Store exists but is empty. Have you saved at least once on this exact origin?', 'err');
-          } else {
-            setStatus('Listed ' + count + ' file record(s). Click one to load it.', 'ok');
-          }
-        }
-      };
-      req.onerror = function(e) {
-        setStatus('Failed to list files: ' + (e.target.error ? e.target.error.message : 'unknown error'), 'err');
-      };
-    }
-
-    function selectFile(key) {
-      var tx = db.transaction(STORE_NAME, 'readonly');
-      var store = tx.objectStore(STORE_NAME);
-      var req = store.get(key);
-      req.onsuccess = function(e) {
-        var record = e.target.result;
-        if (!record) { setStatus('Could not read record for ' + key, 'err'); return; }
-        currentKey = key;
-        currentRecord = record;
-
-        document.querySelectorAll('.fileEntry').forEach(function(el) {
-          el.classList.toggle('selected', el.textContent === key);
-        });
-
-        var text = bytesToText(record.contents);
-        if (text === null) {
-          document.getElementById('box').value = '(binary data - could not decode as text)';
-          setStatus('Loaded "' + key + '" but it does not look like text. Editing this as text may corrupt it - proceed with caution.', 'err');
-        } else {
-          document.getElementById('box').value = text;
-          setStatus('Loaded "' + key + '" (' + text.length + ' chars). Review, edit, then write changes.', 'ok');
-        }
-      };
-      req.onerror = function(e) {
-        setStatus('Failed to read record: ' + (e.target.error ? e.target.error.message : 'unknown error'), 'err');
-      };
-    }
-
-    function applyRoomChange() {
-      var box = document.getElementById('box');
-      var newRoom = document.getElementById('roomInput').value.trim();
-      if (!newRoom) { setStatus('Enter a room ID first.', 'err'); return; }
-      var text = box.value;
-      var pattern = /(room\s*[:=]\s*)([\-0-9.]+)/i;
-      if (pattern.test(text)) {
-        text = text.replace(pattern, function(match, prefix) { return prefix + newRoom; });
-        box.value = text;
-        setStatus('Replaced Room value in the box above. Review it, then WRITE CHANGES.', 'ok');
-      } else {
-        setStatus('Could not find a "Room" field automatically in this file. Try selecting a different file from the list, or edit the box by hand.', 'err');
-      }
-    }
-
-    function writeChanges() {
-      if (!currentKey || !currentRecord) { setStatus('No file selected.', 'err'); return; }
-      if (!confirm('Overwrite IndexedDB record "' + currentKey + '" with the text in the box? Make sure you downloaded a backup first.')) return;
-
-      var newContents = textToBytes(document.getElementById('box').value);
-      var newRecord = Object.assign({}, currentRecord, {
-        contents: newContents,
-        timestamp: new Date()
-      });
-
-      var tx = db.transaction(STORE_NAME, 'readwrite');
-      var store = tx.objectStore(STORE_NAME);
-      var req = store.put(newRecord, currentKey);
-      req.onsuccess = function() {
-        setStatus('Wrote changes to "' + currentKey + '". Reload the game tab and load your save.', 'ok');
-      };
-      req.onerror = function(e) {
-        setStatus('Write failed: ' + (e.target.error ? e.target.error.message : 'unknown error'), 'err');
-      };
-    }
-
-    function backupToFile() {
-      if (!currentKey) { setStatus('No file selected.', 'err'); return; }
-      var data = document.getElementById('box').value;
-      var blob = new Blob([data], { type: 'text/plain' });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url;
-      a.download = currentKey.replace(/[^a-z0-9_.-]/gi, '_') + '-backup.txt';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-  </script>
+<script>
+const DB_NAME="/_savedata",STORE_NAME="FILE_DATA";let db=null,currentKey=null,currentRecord=null,records={};
+const ROOM_NAMES={6:"Ruins - Entrance",12:"Ruins - Leaf Pile",18:"Ruins - Mouse Hole",31:"Ruins - Home",41:"Toriel - Boss Room",44:"Snowdin - Ruins Exit",46:"Snowdin - Box Road",56:"Snowdin - Spaghetti",61:"Snowdin - Dog House",68:"Snowdin - Town",81:"Papyrus - Battle",83:"Waterfall - Checkpoint",86:"Waterfall - Hallway",94:"Waterfall - Crystal",110:"Waterfall - Bridge",114:"Waterfall - Trash Zone",116:"Waterfall - Quiet Area",128:"Waterfall - Temmie Village",134:"Waterfall - Undyne Arena",135:"Waterfall - Undyne Arena + 1",139:"Hotland - Laboratory Entrance",145:"Hotland - Magma Chamber",155:"Hotland - Core View",164:"Hotland - Bad Opinion Zone",176:"Hotland - Spider Entrance",183:"Hotland - Hotel Lobby",196:"Hotland - Core Branch",210:"Hotland - Core End",216:"Castle Elevator",219:"New Home",231:"Last Corridor",232:"Throne Entrance",235:"Throne Room",236:"The End",246:"True Laboratory",251:"True Lab - Bedroom"};
+const LINE={name:1,lv:2,hp:3,maxhp:4,exp:10,gold:11,kills:12,fun:36,hard:37,enc:39,undyne:381,fought:383,pacifist:541,room:548,time:549};
+const ITEMS=[[0,"Empty"],[1,"Monster Candy"],[2,"Croquet Roll"],[3,"Stick"],[4,"Bandage"],[5,"Rock Candy"],[6,"Pumpkin Rings"],[7,"Spider Donut"],[8,"Stoic Onion"],[9,"Ghost Fruit"],[10,"Spider Cider"],[11,"Butterscotch Pie"],[12,"Faded Ribbon"],[16,"Snowman Piece"],[17,"Nice Cream"],[18,"Puppydough Icecream"],[19,"Bisicle"],[20,"Unisicle"],[21,"Cinnamon Bun"],[22,"Temmie Flakes"],[23,"Abandoned Quiche"],[24,"Old Tutu"],[25,"Ballet Shoes"],[26,"Punch Card"],[27,"Annoying Dog"],[28,"Dog Salad"],[29,"Dog Residue"],[35,"Astronaut Food"],[36,"Instant Noodles"],[37,"Crab Apple"],[38,"Hot Dog"],[39,"Hot Cat"],[40,"Glamburger"],[41,"Sea Tea"],[42,"Starfait"],[43,"Legendary Hero"],[44,"Butty Glasses"],[45,"Torn Notebook"],[46,"Stained Apron"],[47,"Burnt Pan"],[48,"Cowboy Hat"],[54,"Bad Memory"],[55,"Dream"],[56,"Undyne's Letter"],[57,"Undyne Letter EX"],[58,"Popato Chisps"],[59,"Junk Food"],[60,"Mystery Key"],[61,"Face Steak"],[62,"Hush Puppy"],[63,"Snail Pie"],[64,"Temmie Armor"]];
+function status(m,c=""){const e=document.getElementById("status");e.textContent=m;e.className=c}
+function bytesToText(x){try{if(x instanceof Uint8Array)return new TextDecoder().decode(x);if(x&&x.buffer)return new TextDecoder().decode(new Uint8Array(x.buffer,x.byteOffset,x.byteLength));if(Array.isArray(x))return new TextDecoder().decode(new Uint8Array(x))}catch(e){}return null}
+function textToBytes(x){return new TextEncoder().encode(x)}
+function openDb(){status("Connecting to IndexedDB...");const r=indexedDB.open(DB_NAME);r.onsuccess=e=>{db=e.target.result;if(!db.objectStoreNames.contains(STORE_NAME))return status("FILE_DATA store not found.","err");status("Connected. Loading files...","ok");listFiles()};r.onerror=e=>status("Could not open database: "+(e.target.error?.message||"unknown"),"err");r.onupgradeneeded=e=>{try{e.target.transaction.abort()}catch(x){}status("No existing save database on this origin.","err")}}
+function listFiles(){if(!db)return status("Connect first.","err");const r=db.transaction(STORE_NAME,"readonly").objectStore(STORE_NAME).openCursor(),el=document.getElementById("fileList");el.innerHTML="";records={};r.onsuccess=e=>{const c=e.target.result;if(!c)return status(Object.keys(records).length+" file record(s) found.","ok");records[c.key]=c.value;const d=document.createElement("div");d.className="file";d.textContent=c.key;d.onclick=()=>selectFile(c.key);el.appendChild(d);c.continue()}}
+function selectFile(k){const r=db.transaction(STORE_NAME,"readonly").objectStore(STORE_NAME).get(k);r.onsuccess=e=>{currentKey=k;currentRecord=e.target.result;document.querySelectorAll(".file").forEach(x=>x.classList.toggle("selected",x.textContent===k));const t=bytesToText(currentRecord.contents);document.getElementById("box").value=t===null?"(binary data)":t;document.getElementById("fileInfo").innerHTML='<span class="badge">FILE: '+esc(k)+'</span><span class="badge">'+(t===null?"binary":t.length+" chars")+"</span>";status("Loaded "+k,"ok");if(String(k).toLowerCase()==="file0")detectStats()}}
+function isFile0(){return currentKey&&String(currentKey).toLowerCase()==="file0"}
+function arr(){return document.getElementById("box").value.replace(/\r/g,"").split("\n")}
+function getLine(n){const a=arr();return n>=1&&n<=a.length?a[n-1]:""}
+function setLine(n,v){const a=arr();if(n<1||n>a.length)return false;a[n-1]=String(v);document.getElementById("box").value=a.join("\n");return true}
+function detectStats(){if(!isFile0())return status("Select file0 first.","err");for(const [id,n] of [["name",1],["lv",2],["hp",3],["maxhp",4],["exp",10],["gold",11],["kills",12],["fun",36],["time",549]])document.getElementById(id).value=getLine(n);document.getElementById("flagFun").value=getLine(36);for(let i=1;i<=8;i++)document.getElementById("slot"+i).value=getLine(11+i*2);document.getElementById("undyneStatus").value=getLine(381);document.getElementById("foughtUndyne").value=getLine(383);document.getElementById("pacifist").value=getLine(541);document.getElementById("disableEncounters").value=getLine(39);document.getElementById("hardMode").value=getLine(37);document.getElementById("customRoom").value=getLine(548);if(ROOM_NAMES[getLine(548)])document.getElementById("roomSelect").value=getLine(548);showRoom()}
+function applyStats(){if(!isFile0())return status("Select file0 first.","err");for(const [id,n] of [["name",1],["lv",2],["hp",3],["maxhp",4],["exp",10],["gold",11],["kills",12],["fun",36],["time",549]]){const v=document.getElementById(id).value;if(v!=="")setLine(n,v)}status("Prepared stat changes. Press WRITE.","ok")}
+function presetStats(t){const p={normal:[1,20,20,0,0,0],strong:[10,60,60,10000,500,0],max:[20,99,99,999999,99999,0],rich:[null,null,null,null,99999,null],noKills:[null,null,null,null,null,0],genocide:[20,99,99,999999,99999,999]}[t];if(!p)return;["lv","hp","maxhp","exp","gold","kills"].forEach((id,i)=>{if(p[i]!==null)document.getElementById(id).value=p[i]});applyStats()}
+function buildInv(){const e=document.getElementById("inventory");for(let i=1;i<=8;i++){const s=document.createElement("select");s.id="slot"+i;for(const [id,n] of ITEMS){const o=document.createElement("option");o.value=id;o.textContent=id+" - "+n;s.appendChild(o)}const w=document.createElement("div");w.innerHTML="<label>Slot "+i+"</label>";w.appendChild(s);e.appendChild(w)}}
+function applyInventory(){if(!isFile0())return status("Select file0 first.","err");for(let i=1;i<=8;i++)setLine(11+i*2,document.getElementById("slot"+i).value);status("Prepared inventory changes. Press WRITE.","ok")}
+function clearInventory(){for(let i=1;i<=8;i++)document.getElementById("slot"+i).value="0"}
+function showRoom(){const id=document.getElementById("roomSelect").value;document.getElementById("roomInfo").textContent=id?"Room ID "+id+" — "+(ROOM_NAMES[id]||"Unknown room"):"Choose a room."}
+function applyRoomFromSelect(){const id=document.getElementById("roomSelect").value;if(id)applyRoom(id);else status("Choose a room first.","err")}
+function quickRoom(id){document.getElementById("roomSelect").value=id;showRoom();applyRoom(id)}
+function applyCustomRoom(){const id=document.getElementById("customRoom").value.trim();if(id)applyRoom(id);else status("Enter a room ID.","err")}
+function applyRoom(id){if(!isFile0())return status("Select file0 first.","err");if(!setLine(548,id))return status("Room line 548 does not exist.","err");status("Prepared teleport to "+(ROOM_NAMES[id]||("room "+id))+". Press WRITE.","ok")}
+function applyFlags(){if(!isFile0())return status("Select file0 first.","err");for(const [id,n] of [["undyneStatus",381],["foughtUndyne",383],["pacifist",541],["disableEncounters",39],["hardMode",37],["flagFun",36]]){const v=document.getElementById(id).value;if(v!=="")setLine(n,v)}status("Prepared story flag changes. Press WRITE.","ok")}
+function routeNeutral(){document.getElementById("kills").value=0;document.getElementById("pacifist").value="0";applyStats();applyFlags()}
+function routePacifist(){document.getElementById("kills").value=0;document.getElementById("pacifist").value="2";applyStats();applyFlags()}
+function routeUndyneSpared(){document.getElementById("undyneStatus").value="2";document.getElementById("foughtUndyne").value="1";applyFlags()}
+function routeUndyneKilled(){document.getElementById("undyneStatus").value="1";document.getElementById("foughtUndyne").value="1";applyFlags()}
+function applyLine(){const n=Number(document.getElementById("lineNumber").value),v=document.getElementById("lineValue").value;if(!n||v==="")return status("Enter a line and value.","err");if(setLine(n,v))status("Changed line "+n+" in the editor. Press WRITE.","ok");else status("That line does not exist.","err")}
+function showLineMap(){document.getElementById("lineMap").textContent="1 Name | 2 LV | 3 HP | 4 Max HP | 10 EXP | 11 GOLD | 12 Kills | 13/15/17/19/21/23/25/27 Inventory | 36 FUN | 37 Hard Mode | 39 Disable Encounters | 381 Undyne status | 383 Fought Undyne | 541 True Pacifist | 547 Song | 548 Room | 549 Time."}
+function reloadSelected(){if(currentKey)selectFile(currentKey)}
+function download(n,t){const a=document.createElement("a"),u=URL.createObjectURL(new Blob([t],{type:"text/plain"}));a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(u)}
+function backupCurrent(){if(!currentKey)return status("No file selected.","err");download(String(currentKey)+"-backup.txt",document.getElementById("box").value);status("Backup downloaded.","ok")}
+function backupAll(){for(const k in records){const t=bytesToText(records[k].contents);if(t!==null)download(String(k)+"-backup.txt",t)}status("Backups requested.","ok")}
+function writeChanges(){if(!currentKey||!currentRecord)return status("No file selected.","err");if(!confirm("Overwrite "+currentKey+" in IndexedDB? Make sure you have a backup."))return;const rec=Object.assign({},currentRecord,{contents:textToBytes(document.getElementById("box").value),timestamp:new Date()});const r=db.transaction(STORE_NAME,"readwrite").objectStore(STORE_NAME).put(rec,currentKey);r.onsuccess=()=>{currentRecord=rec;records[currentKey]=rec;status("Wrote "+currentKey+". Reload the game after the write completes.","ok")};r.onerror=e=>status("Write failed: "+(e.target.error?.message||"unknown"),"err")}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+buildInv();
+</script>
 </body>
 </html>
