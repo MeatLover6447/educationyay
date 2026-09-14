@@ -2,93 +2,171 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Undertale Save Editor</title>
+  <title>Undertale IndexedDB Save Editor</title>
   <style>
     body { background: #000; color: #fff; font-family: monospace; padding: 20px; }
     h1 { text-align: center; }
     .row { margin: 12px 0; }
-    select, input[type=text] { background: #111; color: #0f0; border: 2px solid #fff; padding: 6px; font-family: monospace; }
+    select, input[type=text] { background: #111; color: #0f0; border: 2px solid #fff; padding: 6px; font-family: monospace; width: 100%; box-sizing: border-box; }
     textarea { background: #111; color: #0f0; border: 2px solid #fff; padding: 10px; width: 100%; height: 300px; font-family: monospace; box-sizing: border-box; }
     button { background: #fff; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; margin: 6px 6px 0 0; }
     button:hover { background: #ff0; }
     .warn { color: #ff0; }
     .ok { color: #0f0; }
     .err { color: #f55; }
-    #status { min-height: 20px; }
+    #status { min-height: 40px; white-space: pre-wrap; }
     label { display: block; margin-bottom: 4px; }
+    #fileList { max-height: 160px; overflow-y: auto; border: 1px solid #444; padding: 6px; }
+    .fileEntry { padding: 4px; cursor: pointer; }
+    .fileEntry:hover { background: #222; }
+    .fileEntry.selected { background: #143; }
   </style>
 </head>
 <body>
-  <h1>UNDERTALE WEB SAVE EDITOR</h1>
-  <p class="warn">This only works if this page is served from the SAME origin (same github.io username) as the game.
-  Open this via https://yourusername.github.io/... , not as a local file.</p>
+  <h1>UNDERTALE INDEXEDDB SAVE EDITOR</h1>
+  <p class="warn">This edits the IDBFS virtual filesystem at database "/_savedata", object store "FILE_DATA".
+  Must be run on the SAME origin as the game.</p>
 
   <div class="row">
-    <label>1. Pick the localStorage key that holds your save data:</label>
-    <select id="keySelect"></select>
-    <button onclick="refreshKeys()">Rescan Keys</button>
+    <button onclick="openDb()">Connect &amp; List Files</button>
   </div>
 
   <div class="row">
-    <label>2. Raw save data (INI-style text). Edit directly, or use the Room helper below:</label>
-    <textarea id="box"></textarea>
+    <label>Files found in /_savedata:</label>
+    <div id="fileList">(not connected yet)</div>
   </div>
 
   <div class="row">
-    <label>3. Quick Room jump (looks for a "Room" key anywhere in the ini and rewrites it):</label>
-    New room ID: <input type="text" id="roomInput" placeholder="e.g. 312">
-    <button onclick="applyRoomChange()">Apply Room Change to Box Above</button>
+    <label>Contents of selected file (decoded as text, if possible):</label>
+    <textarea id="box" placeholder="Select a file above"></textarea>
   </div>
 
   <div class="row">
-    <button onclick="loadSelectedKey()">Reload From Storage</button>
+    <label>Quick Room jump (looks for a "Room" field and rewrites it):</label>
+    New room ID: <input type="text" id="roomInput" style="width:200px; display:inline-block;" placeholder="e.g. 312">
+    <button onclick="applyRoomChange()">Apply to Box Above</button>
+  </div>
+
+  <div class="row">
     <button onclick="backupToFile()">Download Backup (.txt)</button>
-    <button onclick="saveData()">WRITE CHANGES TO STORAGE</button>
+    <button onclick="writeChanges()">WRITE CHANGES TO INDEXEDDB</button>
   </div>
 
   <div id="status"></div>
 
   <script>
+    var DB_NAME = '/_savedata';
+    var STORE_NAME = 'FILE_DATA';
+    var db = null;
+    var currentKey = null;
+    var currentRecord = null; // raw record from IDB, e.g. {mode, timestamp, contents}
+
     function setStatus(msg, cls) {
       var el = document.getElementById('status');
       el.textContent = msg;
       el.className = cls || '';
     }
 
-    function refreshKeys() {
-      var sel = document.getElementById('keySelect');
-      sel.innerHTML = '';
-      var keys = Object.keys(localStorage);
-      if (keys.length === 0) {
-        var opt = document.createElement('option');
-        opt.textContent = 'No localStorage keys found on this origin';
-        sel.appendChild(opt);
-        setStatus('No localStorage keys found. Make sure this page is on the same origin as the game and that you have saved at least once in-game.', 'err');
-        return;
-      }
-      keys.forEach(function(k) {
-        var opt = document.createElement('option');
-        opt.value = k;
-        var preview = (localStorage.getItem(k) || '').slice(0, 40).replace(/\n/g, ' ');
-        opt.textContent = k + '  (' + preview + (preview.length === 40 ? '...' : '') + ')';
-        sel.appendChild(opt);
-      });
-      // Try to auto-select something that looks like a save (mentions Room / file0 / undertale)
-      var guess = keys.find(function(k) {
-        var v = (localStorage.getItem(k) || '');
-        return /room/i.test(v) || /file0/i.test(k) || /undertale/i.test(k);
-      });
-      if (guess) sel.value = guess;
-      setStatus('Found ' + keys.length + ' key(s). Select one and click "Reload From Storage".', 'ok');
+    function bytesToText(bytes) {
+      try {
+        if (bytes instanceof Uint8Array) {
+          return new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+        }
+        if (bytes && bytes.buffer) {
+          return new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength));
+        }
+        if (Array.isArray(bytes)) {
+          return new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(bytes));
+        }
+      } catch (e) {}
+      return null;
     }
 
-    function loadSelectedKey() {
-      var sel = document.getElementById('keySelect');
-      var key = sel.value;
-      if (!key) { setStatus('No key selected.', 'err'); return; }
-      var data = localStorage.getItem(key);
-      document.getElementById('box').value = data || '';
-      setStatus('Loaded key "' + key + '" (' + (data ? data.length : 0) + ' chars).', 'ok');
+    function textToBytes(text) {
+      return new TextEncoder().encode(text);
+    }
+
+    function openDb() {
+      setStatus('Connecting to IndexedDB "' + DB_NAME + '"...');
+      var req = indexedDB.open(DB_NAME);
+      req.onsuccess = function(e) {
+        db = e.target.result;
+        setStatus('Connected. Object stores: ' + Array.from(db.objectStoreNames).join(', '), 'ok');
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          setStatus('Expected store "' + STORE_NAME + '" not found. Found instead: ' + Array.from(db.objectStoreNames).join(', ') + '. This build may use a different structure than standard Emscripten IDBFS.', 'err');
+          return;
+        }
+        listFiles();
+      };
+      req.onerror = function(e) {
+        setStatus('Failed to open database: ' + (e.target.error ? e.target.error.message : 'unknown error'), 'err');
+      };
+      req.onupgradeneeded = function(e) {
+        // We should NOT be creating the DB fresh - if this fires, the DB didn't exist yet on this origin.
+        setStatus('Database did not exist yet on this origin (no save data here). Aborting to avoid creating an empty one.', 'err');
+        e.target.transaction.abort();
+      };
+    }
+
+    function listFiles() {
+      var tx = db.transaction(STORE_NAME, 'readonly');
+      var store = tx.objectStore(STORE_NAME);
+      var req = store.openCursor();
+      var listEl = document.getElementById('fileList');
+      listEl.innerHTML = '';
+      var count = 0;
+      req.onsuccess = function(e) {
+        var cursor = e.target.result;
+        if (cursor) {
+          count++;
+          var key = cursor.key;
+          var val = cursor.value;
+          var div = document.createElement('div');
+          div.className = 'fileEntry';
+          div.textContent = key;
+          div.onclick = function() { selectFile(key); };
+          listEl.appendChild(div);
+          cursor.continue();
+        } else {
+          if (count === 0) {
+            listEl.textContent = '(no records found in FILE_DATA store)';
+            setStatus('Store exists but is empty. Have you saved at least once on this exact origin?', 'err');
+          } else {
+            setStatus('Listed ' + count + ' file record(s). Click one to load it.', 'ok');
+          }
+        }
+      };
+      req.onerror = function(e) {
+        setStatus('Failed to list files: ' + (e.target.error ? e.target.error.message : 'unknown error'), 'err');
+      };
+    }
+
+    function selectFile(key) {
+      var tx = db.transaction(STORE_NAME, 'readonly');
+      var store = tx.objectStore(STORE_NAME);
+      var req = store.get(key);
+      req.onsuccess = function(e) {
+        var record = e.target.result;
+        if (!record) { setStatus('Could not read record for ' + key, 'err'); return; }
+        currentKey = key;
+        currentRecord = record;
+
+        document.querySelectorAll('.fileEntry').forEach(function(el) {
+          el.classList.toggle('selected', el.textContent === key);
+        });
+
+        var text = bytesToText(record.contents);
+        if (text === null) {
+          document.getElementById('box').value = '(binary data - could not decode as text)';
+          setStatus('Loaded "' + key + '" but it does not look like text. Editing this as text may corrupt it - proceed with caution.', 'err');
+        } else {
+          document.getElementById('box').value = text;
+          setStatus('Loaded "' + key + '" (' + text.length + ' chars). Review, edit, then write changes.', 'ok');
+        }
+      };
+      req.onerror = function(e) {
+        setStatus('Failed to read record: ' + (e.target.error ? e.target.error.message : 'unknown error'), 'err');
+      };
     }
 
     function applyRoomChange() {
@@ -96,47 +174,50 @@
       var newRoom = document.getElementById('roomInput').value.trim();
       if (!newRoom) { setStatus('Enter a room ID first.', 'err'); return; }
       var text = box.value;
-
-      // Match common GameMaker ini styles: "Room=312", "Room = 312.000000", "Room: 312"
       var pattern = /(room\s*[:=]\s*)([\-0-9.]+)/i;
       if (pattern.test(text)) {
-        text = text.replace(pattern, function(match, prefix) {
-          return prefix + newRoom;
-        });
+        text = text.replace(pattern, function(match, prefix) { return prefix + newRoom; });
         box.value = text;
-        setStatus('Replaced Room value in the box above. Review it, then click WRITE CHANGES.', 'ok');
+        setStatus('Replaced Room value in the box above. Review it, then WRITE CHANGES.', 'ok');
       } else {
-        setStatus('Could not find a "Room" field automatically. Search the box manually for the room value and edit it by hand before saving.', 'err');
+        setStatus('Could not find a "Room" field automatically in this file. Try selecting a different file from the list, or edit the box by hand.', 'err');
       }
     }
 
-    function saveData() {
-      var sel = document.getElementById('keySelect');
-      var key = sel.value;
-      if (!key) { setStatus('No key selected.', 'err'); return; }
-      if (!confirm('Overwrite localStorage["' + key + '"] with the text in the box? Make sure you downloaded a backup first.')) return;
-      localStorage.setItem(key, document.getElementById('box').value);
-      setStatus('Saved to localStorage key "' + key + '". Reload the game tab and load your save.', 'ok');
+    function writeChanges() {
+      if (!currentKey || !currentRecord) { setStatus('No file selected.', 'err'); return; }
+      if (!confirm('Overwrite IndexedDB record "' + currentKey + '" with the text in the box? Make sure you downloaded a backup first.')) return;
+
+      var newContents = textToBytes(document.getElementById('box').value);
+      var newRecord = Object.assign({}, currentRecord, {
+        contents: newContents,
+        timestamp: new Date()
+      });
+
+      var tx = db.transaction(STORE_NAME, 'readwrite');
+      var store = tx.objectStore(STORE_NAME);
+      var req = store.put(newRecord, currentKey);
+      req.onsuccess = function() {
+        setStatus('Wrote changes to "' + currentKey + '". Reload the game tab and load your save.', 'ok');
+      };
+      req.onerror = function(e) {
+        setStatus('Write failed: ' + (e.target.error ? e.target.error.message : 'unknown error'), 'err');
+      };
     }
 
     function backupToFile() {
-      var sel = document.getElementById('keySelect');
-      var key = sel.value || 'save';
+      if (!currentKey) { setStatus('No file selected.', 'err'); return; }
       var data = document.getElementById('box').value;
       var blob = new Blob([data], { type: 'text/plain' });
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
       a.href = url;
-      a.download = key.replace(/[^a-z0-9_.-]/gi, '_') + '-backup.txt';
+      a.download = currentKey.replace(/[^a-z0-9_.-]/gi, '_') + '-backup.txt';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
-
-    // Auto-run on load
-    refreshKeys();
-    if (document.getElementById('keySelect').value) loadSelectedKey();
   </script>
 </body>
 </html>
