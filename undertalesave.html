@@ -1,33 +1,142 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Undertale Save Manager</title>
+  <meta charset="utf-8">
+  <title>Undertale Save Editor</title>
   <style>
-    body { background: #000; color: #fff; font-family: monospace; padding: 20px; text-align: center; }
-    textarea { background: #111; color: #0f0; border: 2px solid #fff; padding: 10px; width: 80%; font-family: monospace; }
-    button { background: #fff; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    body { background: #000; color: #fff; font-family: monospace; padding: 20px; }
+    h1 { text-align: center; }
+    .row { margin: 12px 0; }
+    select, input[type=text] { background: #111; color: #0f0; border: 2px solid #fff; padding: 6px; font-family: monospace; }
+    textarea { background: #111; color: #0f0; border: 2px solid #fff; padding: 10px; width: 100%; height: 300px; font-family: monospace; box-sizing: border-box; }
+    button { background: #fff; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; margin: 6px 6px 0 0; }
     button:hover { background: #ff0; }
+    .warn { color: #ff0; }
+    .ok { color: #0f0; }
+    .err { color: #f55; }
+    #status { min-height: 20px; }
+    label { display: block; margin-bottom: 4px; }
   </style>
 </head>
 <body>
-  <h1>UNDERTALE WEB SAVE MANAGER</h1>
-  <p>Your save data is loaded below. Edit the values, then click save.</p>
-  
-  <textarea id="box" rows="20">Loading save data...</textarea>
-  <br>
-  <button onclick="saveData()">SAVE CHANGES TO BROWSER</button>
+  <h1>UNDERTALE WEB SAVE EDITOR</h1>
+  <p class="warn">This only works if this page is served from the SAME origin (same github.io username) as the game.
+  Open this via https://yourusername.github.io/... , not as a local file.</p>
+
+  <div class="row">
+    <label>1. Pick the localStorage key that holds your save data:</label>
+    <select id="keySelect"></select>
+    <button onclick="refreshKeys()">Rescan Keys</button>
+  </div>
+
+  <div class="row">
+    <label>2. Raw save data (INI-style text). Edit directly, or use the Room helper below:</label>
+    <textarea id="box"></textarea>
+  </div>
+
+  <div class="row">
+    <label>3. Quick Room jump (looks for a "Room" key anywhere in the ini and rewrites it):</label>
+    New room ID: <input type="text" id="roomInput" placeholder="e.g. 312">
+    <button onclick="applyRoomChange()">Apply Room Change to Box Above</button>
+  </div>
+
+  <div class="row">
+    <button onclick="loadSelectedKey()">Reload From Storage</button>
+    <button onclick="backupToFile()">Download Backup (.txt)</button>
+    <button onclick="saveData()">WRITE CHANGES TO STORAGE</button>
+  </div>
+
+  <div id="status"></div>
 
   <script>
-    // Web ports usually use 'file0' or 'undertale' as the storage key
-    var saveKey = localStorage.getItem('file0') ? 'file0' : (localStorage.getItem('undertale') ? 'undertale' : 'file0');
-    
-    // Load the data into the box
-    document.getElementById('box').value = localStorage.getItem(saveKey) || "No save data found. Make sure you have saved at least once in-game!";
+    function setStatus(msg, cls) {
+      var el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = cls || '';
+    }
+
+    function refreshKeys() {
+      var sel = document.getElementById('keySelect');
+      sel.innerHTML = '';
+      var keys = Object.keys(localStorage);
+      if (keys.length === 0) {
+        var opt = document.createElement('option');
+        opt.textContent = 'No localStorage keys found on this origin';
+        sel.appendChild(opt);
+        setStatus('No localStorage keys found. Make sure this page is on the same origin as the game and that you have saved at least once in-game.', 'err');
+        return;
+      }
+      keys.forEach(function(k) {
+        var opt = document.createElement('option');
+        opt.value = k;
+        var preview = (localStorage.getItem(k) || '').slice(0, 40).replace(/\n/g, ' ');
+        opt.textContent = k + '  (' + preview + (preview.length === 40 ? '...' : '') + ')';
+        sel.appendChild(opt);
+      });
+      // Try to auto-select something that looks like a save (mentions Room / file0 / undertale)
+      var guess = keys.find(function(k) {
+        var v = (localStorage.getItem(k) || '');
+        return /room/i.test(v) || /file0/i.test(k) || /undertale/i.test(k);
+      });
+      if (guess) sel.value = guess;
+      setStatus('Found ' + keys.length + ' key(s). Select one and click "Reload From Storage".', 'ok');
+    }
+
+    function loadSelectedKey() {
+      var sel = document.getElementById('keySelect');
+      var key = sel.value;
+      if (!key) { setStatus('No key selected.', 'err'); return; }
+      var data = localStorage.getItem(key);
+      document.getElementById('box').value = data || '';
+      setStatus('Loaded key "' + key + '" (' + (data ? data.length : 0) + ' chars).', 'ok');
+    }
+
+    function applyRoomChange() {
+      var box = document.getElementById('box');
+      var newRoom = document.getElementById('roomInput').value.trim();
+      if (!newRoom) { setStatus('Enter a room ID first.', 'err'); return; }
+      var text = box.value;
+
+      // Match common GameMaker ini styles: "Room=312", "Room = 312.000000", "Room: 312"
+      var pattern = /(room\s*[:=]\s*)([\-0-9.]+)/i;
+      if (pattern.test(text)) {
+        text = text.replace(pattern, function(match, prefix) {
+          return prefix + newRoom;
+        });
+        box.value = text;
+        setStatus('Replaced Room value in the box above. Review it, then click WRITE CHANGES.', 'ok');
+      } else {
+        setStatus('Could not find a "Room" field automatically. Search the box manually for the room value and edit it by hand before saving.', 'err');
+      }
+    }
 
     function saveData() {
-        localStorage.setItem(saveKey, document.getElementById('box').value);
-        alert("Save updated successfully! You can now close this tab, return to Undertale, and reload the page.");
+      var sel = document.getElementById('keySelect');
+      var key = sel.value;
+      if (!key) { setStatus('No key selected.', 'err'); return; }
+      if (!confirm('Overwrite localStorage["' + key + '"] with the text in the box? Make sure you downloaded a backup first.')) return;
+      localStorage.setItem(key, document.getElementById('box').value);
+      setStatus('Saved to localStorage key "' + key + '". Reload the game tab and load your save.', 'ok');
     }
+
+    function backupToFile() {
+      var sel = document.getElementById('keySelect');
+      var key = sel.value || 'save';
+      var data = document.getElementById('box').value;
+      var blob = new Blob([data], { type: 'text/plain' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = key.replace(/[^a-z0-9_.-]/gi, '_') + '-backup.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Auto-run on load
+    refreshKeys();
+    if (document.getElementById('keySelect').value) loadSelectedKey();
   </script>
 </body>
 </html>
