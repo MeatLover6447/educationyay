@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Grades and Attendance</title>
+    <link
+      rel="icon"
+      type="image/png"
+      href="favicon.ico"
+    />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+      }
+
+      full-page-frame {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+
+// WORKER URL HERE (Currentley using the Default URL)
+
+  <body>
+    <full-page-frame src="https://google-classroom.sriail.workers.dev/"></full-page-frame>
+
+// WORKER URL HERE
+
+    <script>
+      class FullPageFrame extends HTMLElement {
+        connectedCallback() {
+          // Layer 1
+          const shadow1 = this.attachShadow({ mode: "closed" });
+
+          const layer1Container = document.createElement("div");
+          layer1Container.id = "layer1";
+
+          const style1 = document.createElement("style");
+          style1.textContent = `
+            #layer1 {
+              width: 100%;
+              height: 100%;
+              display: block;
+            }
+          `;
+
+          shadow1.appendChild(style1);
+          shadow1.appendChild(layer1Container);
+
+          // Layer 2
+          const shadow2 = layer1Container.attachShadow({ mode: "closed" });
+
+          const layer2Container = document.createElement("div");
+          layer2Container.id = "layer2";
+
+          const style2 = document.createElement("style");
+          style2.textContent = `
+            #layer2 {
+              width: 100%;
+              height: 100%;
+              display: block;
+            }
+          `;
+
+          shadow2.appendChild(style2);
+          shadow2.appendChild(layer2Container);
+
+          // Layer 3
+          const shadow3 = layer2Container.attachShadow({ mode: "closed" });
+
+          const layer3Container = document.createElement("div");
+          layer3Container.id = "layer3";
+
+          const style3 = document.createElement("style");
+          style3.textContent = `
+            #layer3 {
+              width: 100%;
+              height: 100%;
+              display: block;
+            }
+
+            iframe {
+              width: 100%;
+              height: 100%;
+              border: none;
+              display: block;
+              background: #fff;
+            }
+          `;
+
+          shadow3.appendChild(style3);
+          shadow3.appendChild(layer3Container);
+
+          // Create iframe
+          const iframe = document.createElement("iframe");
+          iframe.src = this.getAttribute("src");
+
+          // Allow fullscreen
+          iframe.setAttribute(
+            "allow",
+            "fullscreen; autoplay; clipboard-read; clipboard-write"
+          );
+
+          iframe.setAttribute("allowfullscreen", "");
+
+          iframe.setAttribute(
+            "sandbox",
+            [
+              "allow-scripts",
+              "allow-same-origin",
+              "allow-forms",
+              "allow-popups",
+              "allow-popups-to-escape-sandbox",
+              "allow-modals",
+              "allow-downloads",
+              "allow-presentation",
+              "allow-fullscreen"
+            ].join(" ")
+          );
+
+          iframe.setAttribute("referrerpolicy", "no-referrer");
+
+          layer3Container.appendChild(iframe);
+
+          // Send title + favicon to iframe via postMessage
+          iframe.addEventListener("load", () => {
+            try {
+              iframe.contentWindow.postMessage(
+                {
+                  type: "syncBranding",
+                  title: document.title,
+                  favicon:
+                    "https://ssl.gstatic.com/classroom/favicon.png"
+                },
+                "*"
+              );
+            } catch (e) {
+              console.warn("Brand sync failed:", e);
+            }
+          });
+
+          // Obfuscation
+          this.setAttribute("data-component", this.generateRandomId());
+          layer1Container.setAttribute(
+            "data-layer",
+            this.generateRandomId()
+          );
+          layer2Container.setAttribute(
+            "data-layer",
+            this.generateRandomId()
+          );
+          layer3Container.setAttribute(
+            "data-layer",
+            this.generateRandomId()
+          );
+        }
+
+        generateRandomId() {
+          return Math.random().toString(36).substring(2, 15);
+        }
+      }
+
+      customElements.define("full-page-frame", FullPageFrame);
+    </script>
+  </body>
+</html>
