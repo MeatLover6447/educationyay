@@ -16,7 +16,7 @@ button:disabled{opacity:.35;cursor:default}
 button:disabled:hover{background:#eee}
 input,select{font:inherit;background:#111;color:#0f0;border:1px solid #555;padding:6px;width:100%;box-sizing:border-box}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
-.grid.wide{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+.grid.wide{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
 label{display:block;font-size:11px;color:#999;margin-bottom:3px}
 #files div{padding:8px;border-bottom:1px solid #222;cursor:pointer}
 #files div:hover{background:#181818}
@@ -24,7 +24,8 @@ label{display:block;font-size:11px;color:#999;margin-bottom:3px}
 #msg{white-space:pre-wrap;min-height:20px;margin-top:6px}
 .err{color:#f55}.ok{color:#0f0}.warn{color:#ff0}
 .tiny{font-size:11px;color:#777;line-height:1.5;margin-top:8px}
-hr{border:0;border-top:1px solid #333;margin:12px 0}
+.flash{animation:fl .9s ease-out}
+@keyframes fl{0%{background:#0a3}100%{background:#000}}
 </style>
 </head>
 <body>
@@ -42,23 +43,23 @@ hr{border:0;border-top:1px solid #333;margin:12px 0}
   <div id="files" style="border:1px solid #333;max-height:180px;overflow:auto">(not connected)</div>
 </div>
 
-<div class="box">
-  <h2>Player stats</h2>
+<div class="box" id="statsBox">
+  <h2>Player stats <span id="statSource" style="color:#666;font-size:11px"></span></h2>
   <div class="grid" id="statGrid"></div>
 </div>
 
-<div class="box">
-  <h2>Inventory</h2>
+<div class="box" id="invBox">
+  <h2>Inventory <span id="invSource" style="color:#666;font-size:11px"></span></h2>
   <div class="grid wide" id="invGrid"></div>
   <div class="tiny">Slot 1 = line 13, Slot 2 = line 15, … Slot 8 = line 27.</div>
 </div>
 
-<div class="box">
-  <h2>Room</h2>
+<div class="box" id="roomBox">
+  <h2>Room <span id="roomSource" style="color:#666;font-size:11px"></span></h2>
   <div class="grid">
     <div>
       <label>Room ID (line 548)</label>
-      <input id="f_room" type="number" min="1">
+      <input id="f_room" type="text" inputmode="numeric">
     </div>
     <div>
       <label>Common rooms</label>
@@ -97,17 +98,16 @@ hr{border:0;border-top:1px solid #333;margin:12px 0}
 const DB_NAME = "/_savedata", STORE = "FILE_DATA";
 const $ = id => document.getElementById(id);
 
-// line numbers in file0
 const STAT_FIELDS = [
-  { id:"name",  line:1,   label:"Name",       type:"text"   },
-  { id:"lv",    line:2,   label:"LOVE / LV",  type:"number" },
-  { id:"hp",    line:3,   label:"Current HP", type:"number" },
-  { id:"maxhp", line:4,   label:"Max HP",     type:"number" },
-  { id:"exp",   line:10,  label:"EXP",        type:"number" },
-  { id:"gold",  line:11,  label:"GOLD",       type:"number" },
-  { id:"kills", line:12,  label:"Kills",      type:"number" },
-  { id:"fun",   line:36,  label:"FUN",        type:"number" },
-  { id:"time",  line:549, label:"Play time",  type:"number" }
+  { id:"name",  line:1,   label:"Name",       numeric:false },
+  { id:"lv",    line:2,   label:"LOVE / LV",  numeric:true  },
+  { id:"hp",    line:3,   label:"Current HP", numeric:true  },
+  { id:"maxhp", line:4,   label:"Max HP",     numeric:true  },
+  { id:"exp",   line:10,  label:"EXP",        numeric:true  },
+  { id:"gold",  line:11,  label:"GOLD",       numeric:true  },
+  { id:"kills", line:12,  label:"Kills",      numeric:true  },
+  { id:"fun",   line:36,  label:"FUN",        numeric:true  },
+  { id:"time",  line:549, label:"Play time",  numeric:true  }
 ];
 const INV_LINES = [13,15,17,19,21,23,25,27];
 const ROOM_LINE = 548;
@@ -130,10 +130,10 @@ const ITEMS = [
 let db = null;
 let key = null;
 let rec = null;
-let baseline = null;    // bytes as first loaded this session
+let baseline = null;
 let contentsKind = "u8";
-let originalValues = {}; // id -> string
-let armedWrite = false,  armedRevert = false;
+let originalValues = {};
+let armedWrite = false, armedRevert = false;
 let armTimer = null, revTimer = null;
 
 function say(m,c){ const e=$("msg"); e.textContent=m; e.className=c||""; }
@@ -143,11 +143,12 @@ function say(m,c){ const e=$("msg"); e.textContent=m; e.className=c||""; }
   const sg = $("statGrid");
   for(const f of STAT_FIELDS){
     const w = document.createElement("div");
-    const l = document.createElement("label"); l.textContent = f.label;
+    const l = document.createElement("label"); l.textContent = f.label + " (line " + f.line + ")";
     const i = document.createElement("input");
     i.id = "f_" + f.id;
-    i.type = f.type === "number" ? "number" : "text";
-    if(f.type === "number") i.step = 1;
+    i.type = "text";                    // text so any value displays
+    if(f.numeric) i.inputMode = "numeric";
+    i.autocomplete = "off";
     w.appendChild(l); w.appendChild(i); sg.appendChild(w);
   }
   const ig = $("invGrid");
@@ -216,7 +217,7 @@ function pick(k){
 
     [...$("files").children].forEach(d => d.classList.toggle("sel", d.textContent === String(k)));
 
-    populateFromBytes(baseline);
+    const summary = populateFromBytes(baseline);
 
     $("write").disabled = false;
     $("resetF").disabled = false;
@@ -226,7 +227,16 @@ function pick(k){
     $("write").textContent = "WRITE"; $("write").classList.remove("warnbtn");
     $("rv").textContent = "REVERT TO LOADED STATE"; $("rv").classList.remove("warnbtn");
 
-    say("Loaded " + k + " (" + bytes.length + " bytes).","ok");
+    // Flash boxes so you can see the fields just got filled.
+    ["statsBox","invBox","roomBox"].forEach(id => {
+      const el = $(id);
+      el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+    });
+
+    say("Loaded " + k + " — " + bytes.length + " bytes, " + summary.lineCount + " lines.\n" +
+        "Auto-filled: " + summary.filled + " field(s). " + summary.missing + " missing.\n" +
+        (summary.file0Hint ? "" : "\n⚠ This doesn't look like file0 — stats/inventory/room live in file0.\n"),
+        summary.file0Hint ? "ok" : "warn");
   };
   req.onerror = e => say("Read failed: " + (e.target.error && e.target.error.message || "unknown"),"err");
 }
@@ -250,7 +260,6 @@ function makeContents(bytes){
   return bytes;
 }
 
-/* line = 1-based, returns {start,end} of content (no line separator) */
 function findLine(bytes, n){
   let line = 1, start = 0;
   for(let i = 0; i < bytes.length; i++){
@@ -272,8 +281,12 @@ function readLine(bytes, n){
   if(!loc) return null;
   return new TextDecoder().decode(bytes.subarray(loc.start, loc.end));
 }
+function countLines(bytes){
+  let n = 1;
+  for(let i = 0; i < bytes.length; i++) if(bytes[i] === 0x0A) n++;
+  return n;
+}
 
-/* Apply a set of {start,end,value} replacements to bytes in one pass */
 function applyEdits(bytes, edits){
   edits = edits.slice().sort((a,b) => a.start - b.start);
   for(let i=1;i<edits.length;i++){
@@ -294,29 +307,48 @@ function applyEdits(bytes, edits){
   return out;
 }
 
-/* ---------- populate UI from bytes ---------- */
+/* ---------- auto-fill ---------- */
 function populateFromBytes(bytes){
   originalValues = {};
+  let filled = 0, missing = 0;
+
+  // stats
   for(const f of STAT_FIELDS){
     const v = readLine(bytes, f.line);
     const val = v === null ? "" : v;
     originalValues[f.id] = val;
     $("f_" + f.id).value = val;
+    if(v === null) missing++; else filled++;
   }
+
+  // inventory
   for(let i=0;i<8;i++){
     const v = readLine(bytes, INV_LINES[i]);
     const val = v === null ? "0" : v;
     originalValues["inv" + i] = val;
     setInventorySelect(i, val);
+    if(v === null) missing++; else filled++;
   }
+
+  // room
   const room = readLine(bytes, ROOM_LINE);
   originalValues["room"] = room === null ? "" : room;
   $("f_room").value = originalValues["room"];
+  if(room === null) missing++; else filled++;
+
+  // source hints
+  const totalLines = countLines(bytes);
+  const isFile0 = /(^|\/)file0$/i.test(String(key||""));
+  const hint = isFile0 ? "(file0)" : "(not file0)";
+  $("statSource").textContent = hint;
+  $("invSource").textContent  = hint;
+  $("roomSource").textContent = hint;
+
+  return { filled, missing, lineCount: totalLines, file0Hint: isFile0 };
 }
 
 function setInventorySelect(i, value){
   const sel = $("f_inv" + i);
-  // If the current value isn't in ITEMS, add it so we don't lose it.
   let found = false;
   for(const o of sel.options) if(o.value === value) { found = true; break; }
   if(!found){
@@ -362,18 +394,15 @@ function doWrite(){
   const edits = [];
   const changes = [];
 
-  // stats
   for(const f of STAT_FIELDS){
     const cur = String($("f_" + f.id).value);
     const old = String(originalValues[f.id] ?? "");
     if(cur === old) continue;
-    if(f.type === "number"){
+    if(f.numeric){
       if(!/^-?\d+$/.test(cur.trim())){ say("Field \"" + f.label + "\" must be a whole number.","err"); return; }
       var newVal = String(parseInt(cur.trim(), 10));
     } else {
-      if(cur.indexOf("\n") !== -1 || cur.indexOf("\r") !== -1){
-        say("Field \"" + f.label + "\" must not contain line breaks.","err"); return;
-      }
+      if(/[\r\n]/.test(cur)){ say("Field \"" + f.label + "\" must not contain line breaks.","err"); return; }
       var newVal = cur;
     }
     const loc = findLine(baseline, f.line);
@@ -382,7 +411,6 @@ function doWrite(){
     changes.push(f.label + ": " + old + " → " + newVal);
   }
 
-  // inventory
   for(let i=0;i<8;i++){
     const cur = String($("f_inv" + i).value);
     const old = String(originalValues["inv" + i] ?? "0");
@@ -394,7 +422,6 @@ function doWrite(){
     changes.push("Slot " + (i+1) + ": " + old + " → " + cur);
   }
 
-  // room
   {
     const cur = String($("f_room").value).trim();
     const old = String(originalValues["room"] ?? "");
@@ -420,13 +447,12 @@ function doWrite(){
   copy.contents = makeContents(out);
 
   const expected = {};
-  for(const f of STAT_FIELDS) expected[f.line] = String($("f_" + f.id).value);
+  for(const f of STAT_FIELDS) expected[f.line] = String($("f_" + f.id).value).trim();
   for(let i=0;i<8;i++) expected[INV_LINES[i]] = String($("f_inv" + i).value);
   expected[ROOM_LINE] = String($("f_room").value).trim();
 
-  let tx;
   try {
-    tx = db.transaction(STORE, "readwrite");
+    const tx = db.transaction(STORE, "readwrite");
     tx.onerror = e => say("Transaction failed: " + (e.target.error && e.target.error.message || "unknown"),"err");
     const req = tx.objectStore(STORE).put(copy, key);
     req.onerror = e => say("Write failed: " + (e.target.error && e.target.error.message || "unknown"),"err");
@@ -444,13 +470,13 @@ function verifyAfterWrite(writtenRec, expected, changes){
     for(const lineStr in expected){
       const line = parseInt(lineStr, 10);
       const gotVal = readLine(got, line);
-      if(gotVal !== expected[lineStr]) mismatches.push("line " + line + ": got '" + gotVal + "' expected '" + expected[lineStr] + "'");
+      if((gotVal === null ? "" : gotVal) !== expected[lineStr])
+        mismatches.push("line " + line + ": got '" + gotVal + "' expected '" + expected[lineStr] + "'");
     }
     if(mismatches.length){
       say("Write reported success but verification failed:\n" + mismatches.join("\n"),"err");
       return;
     }
-    // success
     rec = writtenRec;
     baseline = got.slice();
     populateFromBytes(baseline);
