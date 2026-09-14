@@ -2,11 +2,12 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Undertale Room Changer</title>
+<title>Undertale Save Editor</title>
 <style>
-body{margin:0;padding:20px;background:#000;color:#eee;font:14px monospace}
+body{margin:0;padding:20px;background:#000;color:#eee;font:13px monospace}
 h1{font-size:18px;margin:0 0 14px}
-.box{border:1px solid #444;padding:12px;margin-bottom:12px;max-width:640px}
+.box{border:1px solid #444;padding:12px;margin-bottom:12px;max-width:900px}
+.box h2{font-size:14px;margin:0 0 10px;color:#0f0;font-weight:normal}
 button{font:inherit;background:#eee;color:#000;border:0;padding:8px 12px;cursor:pointer;margin:2px}
 button:hover{background:#ff0}
 button.go{background:#0f0}
@@ -14,20 +15,21 @@ button.warnbtn{background:#f90}
 button:disabled{opacity:.35;cursor:default}
 button:disabled:hover{background:#eee}
 input,select{font:inherit;background:#111;color:#0f0;border:1px solid #555;padding:6px;width:100%;box-sizing:border-box}
-.row{display:flex;gap:8px;align-items:flex-end}
-.row>div{flex:1}
-label{display:block;font-size:12px;color:#999;margin-bottom:4px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.grid.wide{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+label{display:block;font-size:11px;color:#999;margin-bottom:3px}
 #files div{padding:8px;border-bottom:1px solid #222;cursor:pointer}
 #files div:hover{background:#181818}
 #files div.sel{background:#032;color:#0f0}
 #msg{white-space:pre-wrap;min-height:20px;margin-top:6px}
 .err{color:#f55}.ok{color:#0f0}.warn{color:#ff0}
-.tiny{font-size:12px;color:#777;line-height:1.5}
+.tiny{font-size:11px;color:#777;line-height:1.5;margin-top:8px}
+hr{border:0;border-top:1px solid #333;margin:12px 0}
 </style>
 </head>
 <body>
 
-<h1>UNDERTALE — ROOM CHANGER (safe)</h1>
+<h1>UNDERTALE — SAVE EDITOR</h1>
 
 <div class="box">
   <button onclick="connect()">CONNECT</button>
@@ -36,149 +38,200 @@ label{display:block;font-size:12px;color:#999;margin-bottom:4px}
 </div>
 
 <div class="box">
-  <label>Save files</label>
-  <div id="files" style="border:1px solid #333;max-height:220px;overflow:auto">(not connected)</div>
+  <h2>Save files</h2>
+  <div id="files" style="border:1px solid #333;max-height:180px;overflow:auto">(not connected)</div>
 </div>
 
 <div class="box">
-  <div class="row">
+  <h2>Player stats</h2>
+  <div class="grid" id="statGrid"></div>
+</div>
+
+<div class="box">
+  <h2>Inventory</h2>
+  <div class="grid wide" id="invGrid"></div>
+  <div class="tiny">Slot 1 = line 13, Slot 2 = line 15, … Slot 8 = line 27.</div>
+</div>
+
+<div class="box">
+  <h2>Room</h2>
+  <div class="grid">
     <div>
-      <label>Current room (line 548)</label>
-      <input id="cur" readonly value="—">
+      <label>Room ID (line 548)</label>
+      <input id="f_room" type="number" min="1">
     </div>
     <div>
-      <label>New room</label>
-      <input id="newRoom" type="number" min="1" placeholder="e.g. 68">
+      <label>Common rooms</label>
+      <select id="preset" onchange="if(this.value)document.getElementById('f_room').value=this.value">
+        <option value="">-- pick to fill --</option>
+        <option value="6">6 — Ruins Entrance</option>
+        <option value="31">31 — Ruins Home</option>
+        <option value="41">41 — Toriel Boss Room</option>
+        <option value="68">68 — Snowdin Town</option>
+        <option value="81">81 — Papyrus Battle</option>
+        <option value="94">94 — Waterfall Crystal</option>
+        <option value="134">134 — Undyne Arena</option>
+        <option value="183">183 — Hotland Hotel Lobby</option>
+        <option value="210">210 — CORE End</option>
+        <option value="231">231 — Last Corridor</option>
+        <option value="235">235 — Throne Room</option>
+        <option value="236">236 — The End</option>
+        <option value="246">246 — True Lab</option>
+      </select>
     </div>
-    <div style="flex:0 0 auto">
-      <button class="go" id="write" disabled onclick="writeClick()">WRITE</button>
-    </div>
   </div>
-  <div style="margin-top:10px">
-    <label>Common rooms</label>
-    <select id="preset" onchange="if(this.value)document.getElementById('newRoom').value=this.value">
-      <option value="">-- pick to fill the box --</option>
-      <option value="6">6 — Ruins Entrance</option>
-      <option value="31">31 — Ruins Home</option>
-      <option value="41">41 — Toriel Boss Room</option>
-      <option value="68">68 — Snowdin Town</option>
-      <option value="81">81 — Papyrus Battle</option>
-      <option value="94">94 — Waterfall Crystal</option>
-      <option value="134">134 — Undyne Arena</option>
-      <option value="183">183 — Hotland Hotel Lobby</option>
-      <option value="210">210 — CORE End</option>
-      <option value="231">231 — Last Corridor</option>
-      <option value="235">235 — Throne Room</option>
-      <option value="236">236 — The End</option>
-      <option value="246">246 — True Lab</option>
-    </select>
-  </div>
-  <div style="margin-top:10px">
-    <button onclick="downloadBackup()" id="bk" disabled>DOWNLOAD BACKUP</button>
-    <button onclick="revert()" id="rv" disabled>REVERT TO LOADED STATE</button>
-  </div>
-  <div class="tiny" style="margin-top:10px">
-    Close Undertale fully before writing. Only <b>file0</b> holds the room.
-    Rooms outside the real range will trigger the dog screen or a white screen.
+</div>
+
+<div class="box">
+  <button class="go" id="write" disabled onclick="writeClick()">WRITE</button>
+  <button id="resetF" disabled onclick="resetFields()">RESET FIELDS</button>
+  <button id="bk" disabled onclick="downloadBackup()">DOWNLOAD BACKUP</button>
+  <button id="rv" disabled onclick="revertClick()">REVERT TO LOADED STATE</button>
+  <div class="tiny">
+    Close Undertale fully before writing. Only <b>file0</b> holds these fields.
+    Written values are verified by reading the file back.
   </div>
 </div>
 
 <script>
-const DB_NAME = "/_savedata", STORE = "FILE_DATA", ROOM_LINE = 548;
+const DB_NAME = "/_savedata", STORE = "FILE_DATA";
 const $ = id => document.getElementById(id);
+
+// line numbers in file0
+const STAT_FIELDS = [
+  { id:"name",  line:1,   label:"Name",       type:"text"   },
+  { id:"lv",    line:2,   label:"LOVE / LV",  type:"number" },
+  { id:"hp",    line:3,   label:"Current HP", type:"number" },
+  { id:"maxhp", line:4,   label:"Max HP",     type:"number" },
+  { id:"exp",   line:10,  label:"EXP",        type:"number" },
+  { id:"gold",  line:11,  label:"GOLD",       type:"number" },
+  { id:"kills", line:12,  label:"Kills",      type:"number" },
+  { id:"fun",   line:36,  label:"FUN",        type:"number" },
+  { id:"time",  line:549, label:"Play time",  type:"number" }
+];
+const INV_LINES = [13,15,17,19,21,23,25,27];
+const ROOM_LINE = 548;
+
+const ITEMS = [
+  [0,"Empty"],[1,"Monster Candy"],[2,"Croquet Roll"],[3,"Stick"],[4,"Bandage"],
+  [5,"Rock Candy"],[6,"Pumpkin Rings"],[7,"Spider Donut"],[8,"Stoic Onion"],
+  [9,"Ghost Fruit"],[10,"Spider Cider"],[11,"Butterscotch Pie"],[12,"Faded Ribbon"],
+  [16,"Snowman Piece"],[17,"Nice Cream"],[18,"Puppydough Icecream"],[19,"Bisicle"],
+  [20,"Unisicle"],[21,"Cinnamon Bun"],[22,"Temmie Flakes"],[23,"Abandoned Quiche"],
+  [24,"Old Tutu"],[25,"Ballet Shoes"],[26,"Punch Card"],[27,"Annoying Dog"],
+  [28,"Dog Salad"],[29,"Dog Residue"],[35,"Astronaut Food"],[36,"Instant Noodles"],
+  [37,"Crab Apple"],[38,"Hot Dog"],[39,"Hot Cat"],[40,"Glamburger"],[41,"Sea Tea"],
+  [42,"Starfait"],[43,"Legendary Hero"],[44,"Butty Glasses"],[45,"Torn Notebook"],
+  [46,"Stained Apron"],[47,"Burnt Pan"],[48,"Cowboy Hat"],[54,"Bad Memory"],[55,"Dream"],
+  [56,"Undyne's Letter"],[57,"Undyne Letter EX"],[58,"Popato Chisps"],[59,"Junk Food"],
+  [60,"Mystery Key"],[61,"Face Steak"],[62,"Hush Puppy"],[63,"Snail Pie"],[64,"Temmie Armor"]
+];
 
 let db = null;
 let key = null;
 let rec = null;
-let pristine = null;      // exact bytes as originally loaded
+let baseline = null;    // bytes as first loaded this session
 let contentsKind = "u8";
-let armed = false;
-let armTimer = null;
+let originalValues = {}; // id -> string
+let armedWrite = false,  armedRevert = false;
+let armTimer = null, revTimer = null;
 
-function say(msg, cls){
-  const m = $("msg");
-  m.textContent = msg;
-  m.className = cls || "";
-}
+function say(m,c){ const e=$("msg"); e.textContent=m; e.className=c||""; }
 
-/* ---------- IndexedDB connect ---------- */
+/* ---------- build UI ---------- */
+(function buildUI(){
+  const sg = $("statGrid");
+  for(const f of STAT_FIELDS){
+    const w = document.createElement("div");
+    const l = document.createElement("label"); l.textContent = f.label;
+    const i = document.createElement("input");
+    i.id = "f_" + f.id;
+    i.type = f.type === "number" ? "number" : "text";
+    if(f.type === "number") i.step = 1;
+    w.appendChild(l); w.appendChild(i); sg.appendChild(w);
+  }
+  const ig = $("invGrid");
+  for(let i=0;i<8;i++){
+    const w = document.createElement("div");
+    const l = document.createElement("label"); l.textContent = "Slot " + (i+1) + " (line " + INV_LINES[i] + ")";
+    const s = document.createElement("select");
+    s.id = "f_inv" + i;
+    for(const [id,name] of ITEMS){
+      const o = document.createElement("option"); o.value = id; o.textContent = id + " — " + name; s.appendChild(o);
+    }
+    w.appendChild(l); w.appendChild(s); ig.appendChild(w);
+  }
+})();
+
+/* ---------- IndexedDB ---------- */
 function connect(){
   say("Connecting…");
   let aborted = false;
   const r = indexedDB.open(DB_NAME);
   r.onupgradeneeded = e => { aborted = true; try{ e.target.transaction.abort(); }catch(_){} };
   r.onerror = e => {
-    if(aborted) say("No Undertale save database on this browser/origin yet.\nPlay the game once here first.", "err");
-    else say("Could not open database: " + (e.target.error && e.target.error.message || "unknown"), "err");
+    if(aborted) say("No Undertale save database on this browser/origin yet.\nPlay the game once here first.","err");
+    else say("Could not open database: " + (e.target.error && e.target.error.message || "unknown"),"err");
   };
   r.onsuccess = e => {
     db = e.target.result;
-    if(!db.objectStoreNames.contains(STORE)){
-      say("Save database found, but no FILE_DATA store.", "err");
-      return;
-    }
-    say("Connected.", "ok");
+    if(!db.objectStoreNames.contains(STORE)){ say("Save database found, but no FILE_DATA store.","err"); return; }
+    say("Connected.","ok");
     listFiles();
   };
 }
 
-/* ---------- file list ---------- */
 function listFiles(){
-  if(!db){ say("Connect first.", "err"); return; }
-  const box = $("files");
-  box.innerHTML = "";
-  const r = db.transaction(STORE, "readonly").objectStore(STORE).openCursor();
+  if(!db){ say("Connect first.","err"); return; }
+  const box = $("files"); box.innerHTML = "";
+  const r = db.transaction(STORE,"readonly").objectStore(STORE).openCursor();
   let n = 0;
   r.onsuccess = e => {
     const c = e.target.result;
     if(!c){
-      if(!n){ box.textContent = "(no files found)"; say("No save files found.", "err"); }
-      else say(n + " file(s) found. Pick file0.", "ok");
+      if(!n){ box.textContent = "(no files found)"; say("No save files found.","err"); }
+      else say(n + " file(s) found. Pick file0.","ok");
       return;
     }
     const k = c.key; n++;
-    const d = document.createElement("div");
-    d.textContent = k;
+    const d = document.createElement("div"); d.textContent = k;
     d.onclick = () => pick(k);
     box.appendChild(d);
     c.continue();
   };
-  r.onerror = e => say("Could not read files: " + (e.target.error && e.target.error.message || "unknown"), "err");
+  r.onerror = e => say("Could not read files: " + (e.target.error && e.target.error.message || "unknown"),"err");
 }
 
-/* ---------- load one file ---------- */
 function pick(k){
-  const req = db.transaction(STORE, "readonly").objectStore(STORE).get(k);
+  const req = db.transaction(STORE,"readonly").objectStore(STORE).get(k);
   req.onsuccess = e => {
     const r0 = e.target.result;
-    if(!r0){ say("Could not read " + k, "err"); return; }
+    if(!r0){ say("Could not read " + k,"err"); return; }
     const bytes = toBytes(r0.contents);
-    if(!bytes){ say("Unsupported record format for " + k, "err"); return; }
+    if(!bytes){ say("Unsupported record format for " + k,"err"); return; }
 
-    key = k;
-    rec = r0;
+    key = k; rec = r0;
     contentsKind = kindOf(r0.contents);
-    pristine = bytes.slice();       // exact copy
-    armed = false;
-    clearArmTimer();
+    baseline = bytes.slice();
 
     [...$("files").children].forEach(d => d.classList.toggle("sel", d.textContent === String(k)));
 
-    const cur = readLine(bytes, ROOM_LINE);
-    $("cur").value = (cur === null ? "(line missing)" : cur);
-    $("newRoom").value = (cur === null ? "" : cur);
+    populateFromBytes(baseline);
+
     $("write").disabled = false;
+    $("resetF").disabled = false;
     $("bk").disabled = false;
     $("rv").disabled = false;
-    $("write").textContent = "WRITE";
-    $("write").classList.remove("warnbtn");
+    armedWrite = armedRevert = false;
+    $("write").textContent = "WRITE"; $("write").classList.remove("warnbtn");
+    $("rv").textContent = "REVERT TO LOADED STATE"; $("rv").classList.remove("warnbtn");
 
-    say("Loaded " + k + " (" + bytes.length + " bytes, contents kind: " + contentsKind + ").", "ok");
+    say("Loaded " + k + " (" + bytes.length + " bytes).","ok");
   };
-  req.onerror = e => say("Read failed: " + (e.target.error && e.target.error.message || "unknown"), "err");
+  req.onerror = e => say("Read failed: " + (e.target.error && e.target.error.message || "unknown"),"err");
 }
 
-/* ---------- byte helpers ---------- */
+/* ---------- bytes <-> string ---------- */
 function toBytes(x){
   if(x instanceof Uint8Array) return x;
   if(x instanceof ArrayBuffer) return new Uint8Array(x);
@@ -187,10 +240,8 @@ function toBytes(x){
   return null;
 }
 function kindOf(x){
-  if(x instanceof Uint8Array) return "u8";
   if(x instanceof ArrayBuffer) return "ab";
   if(Array.isArray(x)) return "arr";
-  if(ArrayBuffer.isView(x)) return "u8";
   return "u8";
 }
 function makeContents(bytes){
@@ -199,15 +250,14 @@ function makeContents(bytes){
   return bytes;
 }
 
-/* Find the byte range [start, end) of the Nth 1-based line's content.
-   Handles \n and \r\n. Does NOT include the line separator. */
+/* line = 1-based, returns {start,end} of content (no line separator) */
 function findLine(bytes, n){
   let line = 1, start = 0;
   for(let i = 0; i < bytes.length; i++){
     if(bytes[i] === 0x0A){
       if(line === n){
         let end = i;
-        if(end > start && bytes[end - 1] === 0x0D) end--;
+        if(end > start && bytes[end-1] === 0x0D) end--;
         return { start, end };
       }
       line++;
@@ -223,134 +273,238 @@ function readLine(bytes, n){
   return new TextDecoder().decode(bytes.subarray(loc.start, loc.end));
 }
 
-/* ---------- two-click confirm ---------- */
+/* Apply a set of {start,end,value} replacements to bytes in one pass */
+function applyEdits(bytes, edits){
+  edits = edits.slice().sort((a,b) => a.start - b.start);
+  for(let i=1;i<edits.length;i++){
+    if(edits[i].start < edits[i-1].end) throw new Error("Overlapping edits at " + edits[i].start);
+  }
+  let finalLen = bytes.length;
+  for(const e of edits) finalLen += e.value.length - (e.end - e.start);
+  const out = new Uint8Array(finalLen);
+  let src = 0, dst = 0;
+  for(const e of edits){
+    out.set(bytes.subarray(src, e.start), dst);
+    dst += e.start - src;
+    out.set(e.value, dst);
+    dst += e.value.length;
+    src = e.end;
+  }
+  out.set(bytes.subarray(src), dst);
+  return out;
+}
+
+/* ---------- populate UI from bytes ---------- */
+function populateFromBytes(bytes){
+  originalValues = {};
+  for(const f of STAT_FIELDS){
+    const v = readLine(bytes, f.line);
+    const val = v === null ? "" : v;
+    originalValues[f.id] = val;
+    $("f_" + f.id).value = val;
+  }
+  for(let i=0;i<8;i++){
+    const v = readLine(bytes, INV_LINES[i]);
+    const val = v === null ? "0" : v;
+    originalValues["inv" + i] = val;
+    setInventorySelect(i, val);
+  }
+  const room = readLine(bytes, ROOM_LINE);
+  originalValues["room"] = room === null ? "" : room;
+  $("f_room").value = originalValues["room"];
+}
+
+function setInventorySelect(i, value){
+  const sel = $("f_inv" + i);
+  // If the current value isn't in ITEMS, add it so we don't lose it.
+  let found = false;
+  for(const o of sel.options) if(o.value === value) { found = true; break; }
+  if(!found){
+    const o = document.createElement("option");
+    o.value = value;
+    o.textContent = value + " — (unknown)";
+    sel.appendChild(o);
+  }
+  sel.value = value;
+}
+
+function resetFields(){
+  if(!baseline) return;
+  populateFromBytes(baseline);
+  say("Fields reset to loaded values (DB not changed).","warn");
+}
+
+/* ---------- write ---------- */
 function writeClick(){
-  if(!armed){
-    armed = true;
+  if(!armedWrite){
+    armedWrite = true;
     $("write").textContent = "CLICK AGAIN TO CONFIRM";
     $("write").classList.add("warnbtn");
+    if(armTimer) clearTimeout(armTimer);
     armTimer = setTimeout(() => {
-      armed = false;
+      armedWrite = false;
       $("write").textContent = "WRITE";
       $("write").classList.remove("warnbtn");
     }, 4000);
-    say("Click WRITE again within 4 seconds to confirm.", "warn");
+    say("Click WRITE again within 4 seconds to confirm.","warn");
     return;
   }
-  armed = false;
-  clearArmTimer();
+  armedWrite = false;
+  if(armTimer){ clearTimeout(armTimer); armTimer = null; }
   $("write").textContent = "WRITE";
   $("write").classList.remove("warnbtn");
   doWrite();
 }
-function clearArmTimer(){ if(armTimer){ clearTimeout(armTimer); armTimer = null; } }
 
-/* ---------- write ---------- */
 function doWrite(){
-  if(!key || !rec || !pristine) return;
+  if(!key || !rec || !baseline) return;
 
-  const v = $("newRoom").value.trim();
-  if(!/^\d+$/.test(v)){ say("Room must be a whole number.", "err"); return; }
-  const n = parseInt(v, 10);
-  if(n < 1 || n > 400){ say("Room must be between 1 and 400.", "err"); return; }
+  const edits = [];
+  const changes = [];
 
-  const loc = findLine(pristine, ROOM_LINE);
-  if(!loc){ say("Line " + ROOM_LINE + " not found — refusing to write.", "err"); return; }
+  // stats
+  for(const f of STAT_FIELDS){
+    const cur = String($("f_" + f.id).value);
+    const old = String(originalValues[f.id] ?? "");
+    if(cur === old) continue;
+    if(f.type === "number"){
+      if(!/^-?\d+$/.test(cur.trim())){ say("Field \"" + f.label + "\" must be a whole number.","err"); return; }
+      var newVal = String(parseInt(cur.trim(), 10));
+    } else {
+      if(cur.indexOf("\n") !== -1 || cur.indexOf("\r") !== -1){
+        say("Field \"" + f.label + "\" must not contain line breaks.","err"); return;
+      }
+      var newVal = cur;
+    }
+    const loc = findLine(baseline, f.line);
+    if(!loc){ say("Line " + f.line + " (" + f.label + ") is missing — refusing to write.","err"); return; }
+    edits.push({ start: loc.start, end: loc.end, value: new TextEncoder().encode(newVal) });
+    changes.push(f.label + ": " + old + " → " + newVal);
+  }
 
-  const val = new TextEncoder().encode(String(n));
-  const before = pristine.subarray(0, loc.start);
-  const after  = pristine.subarray(loc.end);
-  const out = new Uint8Array(before.length + val.length + after.length);
-  out.set(before, 0);
-  out.set(val, before.length);
-  out.set(after, before.length + val.length);
+  // inventory
+  for(let i=0;i<8;i++){
+    const cur = String($("f_inv" + i).value);
+    const old = String(originalValues["inv" + i] ?? "0");
+    if(cur === old) continue;
+    if(!/^-?\d+$/.test(cur)){ say("Inventory slot " + (i+1) + " must be a whole number.","err"); return; }
+    const loc = findLine(baseline, INV_LINES[i]);
+    if(!loc){ say("Inventory line " + INV_LINES[i] + " is missing — refusing to write.","err"); return; }
+    edits.push({ start: loc.start, end: loc.end, value: new TextEncoder().encode(cur) });
+    changes.push("Slot " + (i+1) + ": " + old + " → " + cur);
+  }
+
+  // room
+  {
+    const cur = String($("f_room").value).trim();
+    const old = String(originalValues["room"] ?? "");
+    if(cur !== old){
+      if(!/^\d+$/.test(cur)){ say("Room must be a whole number.","err"); return; }
+      const n = parseInt(cur, 10);
+      if(n < 1 || n > 400){ say("Room must be between 1 and 400.","err"); return; }
+      const loc = findLine(baseline, ROOM_LINE);
+      if(!loc){ say("Room line " + ROOM_LINE + " is missing — refusing to write.","err"); return; }
+      edits.push({ start: loc.start, end: loc.end, value: new TextEncoder().encode(String(n)) });
+      changes.push("Room: " + old + " → " + n);
+    }
+  }
+
+  if(!edits.length){ say("Nothing to write — no fields changed.","warn"); return; }
+
+  let out;
+  try { out = applyEdits(baseline, edits); }
+  catch(err){ say("Edit failed: " + err.message,"err"); return; }
 
   const copy = {};
   for(const p in rec) copy[p] = rec[p];
   copy.contents = makeContents(out);
 
-  let putOk = false;
-  try {
-    const tx = db.transaction(STORE, "readwrite");
-    tx.onerror = e => say("Transaction failed: " + (e.target.error && e.target.error.message || "unknown"), "err");
-    const req = tx.objectStore(STORE).put(copy, key);
-    req.onsuccess = () => { putOk = true; verifyAfterWrite(n, out); };
-    req.onerror   = e => say("Write failed: " + (e.target.error && e.target.error.message || "unknown"), "err");
-  } catch(err){
-    say("Write threw: " + (err && err.message || err), "err");
-    return;
-  }
+  const expected = {};
+  for(const f of STAT_FIELDS) expected[f.line] = String($("f_" + f.id).value);
+  for(let i=0;i<8;i++) expected[INV_LINES[i]] = String($("f_inv" + i).value);
+  expected[ROOM_LINE] = String($("f_room").value).trim();
 
-  if(!putOk) return; // verification is triggered from onsuccess
+  let tx;
+  try {
+    tx = db.transaction(STORE, "readwrite");
+    tx.onerror = e => say("Transaction failed: " + (e.target.error && e.target.error.message || "unknown"),"err");
+    const req = tx.objectStore(STORE).put(copy, key);
+    req.onerror = e => say("Write failed: " + (e.target.error && e.target.error.message || "unknown"),"err");
+    req.onsuccess = () => verifyAfterWrite(copy, expected, changes);
+  } catch(err){
+    say("Write threw: " + (err && err.message || err),"err");
+  }
 }
 
-function verifyAfterWrite(expectedRoom, writtenBytes){
-  const vreq = db.transaction(STORE, "readonly").objectStore(STORE).get(key);
+function verifyAfterWrite(writtenRec, expected, changes){
+  const vreq = db.transaction(STORE,"readonly").objectStore(STORE).get(key);
   vreq.onsuccess = e => {
     const got = toBytes(e.target.result.contents);
-    const room = readLine(got, ROOM_LINE);
-    if(room === String(expectedRoom)){
-      pristine = got.slice();       // now this is our new baseline
-      rec = e.target.result;
-      $("cur").value = room;
-      say("Saved and verified. Room " + expectedRoom + " is now in " + key + ".\nLaunch Undertale and load the save.", "ok");
-    } else {
-      say("Write reported success but verification failed (read back: " + room + ").", "err");
+    const mismatches = [];
+    for(const lineStr in expected){
+      const line = parseInt(lineStr, 10);
+      const gotVal = readLine(got, line);
+      if(gotVal !== expected[lineStr]) mismatches.push("line " + line + ": got '" + gotVal + "' expected '" + expected[lineStr] + "'");
     }
+    if(mismatches.length){
+      say("Write reported success but verification failed:\n" + mismatches.join("\n"),"err");
+      return;
+    }
+    // success
+    rec = writtenRec;
+    baseline = got.slice();
+    populateFromBytes(baseline);
+    say("Saved and verified " + changes.length + " change(s) to " + key + ":\n" + changes.join("\n") + "\n\nLaunch Undertale and load the save.","ok");
   };
-  vreq.onerror = () => say("Saved, but could not verify.", "warn");
+  vreq.onerror = () => say("Saved, but could not verify.","warn");
 }
 
 /* ---------- backup / revert ---------- */
 function downloadBackup(){
-  if(!pristine) return;
-  const blob = new Blob([pristine], { type: "application/octet-stream" });
+  if(!baseline) return;
+  const blob = new Blob([baseline], { type: "application/octet-stream" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = String(key).replace(/[\/\\]/g, "_") + ".backup";
+  a.download = String(key).replace(/[\/\\]/g,"_") + ".backup";
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  say("Backup downloaded.", "ok");
+  say("Backup downloaded.","ok");
 }
 
-function revert(){
-  if(!pristine || !rec || !key) return;
-  if(!armed2()) return;
-  const copy = {};
-  for(const p in rec) copy[p] = rec[p];
-  copy.contents = makeContents(pristine);
-  const tx = db.transaction(STORE, "readwrite");
-  const req = tx.objectStore(STORE).put(copy, key);
-  req.onsuccess = () => {
-    rec = copy;
-    const cur = readLine(pristine, ROOM_LINE);
-    $("cur").value = (cur === null ? "(missing)" : cur);
-    $("newRoom").value = (cur === null ? "" : cur);
-    say("Reverted " + key + " to the state it had when you loaded it.", "ok");
-  };
-  req.onerror = e => say("Revert failed: " + (e.target.error && e.target.error.message || "unknown"), "err");
-}
-
-/* second two-click confirm for revert */
-let armedRevert = false, revertTimer = null;
-function armed2(){
+function revertClick(){
   if(!armedRevert){
     armedRevert = true;
     $("rv").textContent = "CLICK AGAIN TO REVERT";
     $("rv").classList.add("warnbtn");
-    revertTimer = setTimeout(() => {
+    if(revTimer) clearTimeout(revTimer);
+    revTimer = setTimeout(() => {
       armedRevert = false;
       $("rv").textContent = "REVERT TO LOADED STATE";
       $("rv").classList.remove("warnbtn");
     }, 4000);
-    say("Click REVERT again within 4 seconds to confirm.", "warn");
-    return false;
+    say("Click REVERT again within 4 seconds to confirm.","warn");
+    return;
   }
   armedRevert = false;
-  if(revertTimer){ clearTimeout(revertTimer); revertTimer = null; }
+  if(revTimer){ clearTimeout(revTimer); revTimer = null; }
   $("rv").textContent = "REVERT TO LOADED STATE";
   $("rv").classList.remove("warnbtn");
-  return true;
+  doRevert();
+}
+
+function doRevert(){
+  if(!baseline || !rec || !key) return;
+  const copy = {};
+  for(const p in rec) copy[p] = rec[p];
+  copy.contents = makeContents(baseline);
+  const tx = db.transaction(STORE,"readwrite");
+  const req = tx.objectStore(STORE).put(copy, key);
+  req.onsuccess = () => {
+    rec = copy;
+    populateFromBytes(baseline);
+    say("Reverted " + key + " to the bytes it had when you first loaded it.","ok");
+  };
+  req.onerror = e => say("Revert failed: " + (e.target.error && e.target.error.message || "unknown"),"err");
 }
 </script>
 </body>
