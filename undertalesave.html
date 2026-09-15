@@ -49,9 +49,15 @@ hr{border:0;border-top:1px solid #222;margin:14px 0}
     <button id="importBtn" disabled onclick="importSave()">📥 IMPORT SAVE FILE</button>
     <button id="exportBtn" disabled onclick="exportSave()">📤 EXPORT SAVE FILE</button>
   </div>
+  <div style="margin-top:10px;border-top:1px solid #222;padding-top:10px">
+    <button id="zipExportBtn" disabled onclick="exportAllZip()">📦 EXPORT ALL SAVES (.zip)</button>
+    <button id="zipImportBtn" disabled onclick="importAllZip()">📦 IMPORT ALL SAVES (.zip)</button>
+  </div>
   <div class="tiny">
     <b>Import</b> replaces the selected file, or creates a new record using the imported file's name if none is selected.
-    <b>Export</b> downloads exactly the bytes currently stored in IndexedDB.
+    <b>Export</b> downloads exactly the bytes currently stored in IndexedDB.<br>
+    <b>Export All</b> packs every record in the database into one .zip.
+    <b>Import All</b> restores every file from such a .zip (existing records with the same names are overwritten).
   </div>
   <hr>
   <div style="font-size:12px;color:#bbb;line-height:1.6">
@@ -201,6 +207,8 @@ function connect(){
     if(!db.objectStoreNames.contains(STORE)){ say("Save database found, but no FILE_DATA store.","err"); return; }
     say("Connected.","ok");
     $("importBtn").disabled = false;
+    $("zipExportBtn").disabled = false;
+    $("zipImportBtn").disabled = false;
     listFiles();
   };
 }
@@ -502,7 +510,7 @@ function verifyAfterWrite(writtenRec, expected, changes){
   vreq.onerror = () => say("Saved, but could not verify.","warn");
 }
 
-/* ---------- export / import ---------- */
+/* ---------- export / import (single file) ---------- */
 function exportSave(){
   if(!baseline || !key){ say("Select a file first.","err"); return; }
   const blob = new Blob([baseline], { type: "application/octet-stream" });
@@ -566,6 +574,280 @@ function importSave(){
         listFiles();
         say("Imported " + f.name + " → " + targetKey + " (" + bytes.length + " bytes).","ok");
       };
+    };
+    reader.readAsArrayBuffer(f);
+  };
+  inp.click();
+}
+
+/* ============================================================
+   ZIP support — export/import EVERY save record at once
+   (stored/deflate read, store-only write, no libraries)
+   ============================================================ */
+
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for(let n = 0; n < 256; n++){
+    let c = n;
+    for(let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+
+function crc32(u8){
+  let c = 0xFFFFFFFF;
+  for(let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+/* Build a .zip (stored, no compression) from [{name, data:Uint8Array}] */
+function makeZipBlob(entries){
+  const enc = new TextEncoder();
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+
+  for(const e of entries){
+    const nameBytes = enc.encode(e.name);
+    const data = e.data;
+    const crc = crc32(data);
+
+    const lh = new Uint8Array(30 + nameBytes.length);
+    const lv = new DataView(lh.buffer);
+    lv.setUint32(0, 0x04034b50, true);
+    lv.setUint16(4, 20, true);      // version needed
+    lv.setUint16(6, 0, true);       // flags
+    lv.setUint16(8, 0, true);       // method: store
+    lv.setUint16(10, 0, true);      // mod time
+    lv.setUint16(12, 0x21, true);   // mod date (1980-01-01)
+    lv.setUint32(14, crc, true);
+    lv.setUint32(18, data.length, true);
+    lv.setUint32(22, data.length, true);
+    lv.setUint16(26, nameBytes.length, true);
+    lv.setUint16(28, 0, true);
+    lh.set(nameBytes, 30);
+
+    localParts.push(lh, data);
+
+    const ch = new Uint8Array(46 + nameBytes.length);
+    const cv = new DataView(ch.buffer);
+    cv.setUint32(0, 0x02014b50, true);
+    cv.setUint16(4, 20, true);      // version made by
+    cv.setUint16(6, 20, true);      // version needed
+    cv.setUint16(8, 0, true);
+    cv.setUint16(10, 0, true);
+    cv.setUint16(12, 0, true);
+    cv.setUint16(14, 0x21, true);
+    cv.setUint32(16, crc, true);
+    cv.setUint32(20, data.length, true);
+    cv.setUint32(24, data.length, true);
+    cv.setUint16(28, nameBytes.length, true);
+    cv.setUint16(30, 0, true);      // extra len
+    cv.setUint16(32, 0, true);      // comment len
+    cv.setUint16(34, 0, true);      // disk start
+    cv.setUint16(36, 0, true);      // internal attrs
+    cv.setUint32(38, 0, true);      // external attrs
+    cv.setUint32(42, offset, true); // local header offset
+    ch.set(nameBytes, 46);
+    centralParts.push(ch);
+
+    offset += lh.length + data.length;
+  }
+
+  let cdSize = 0;
+  for(const c of centralParts) cdSize += c.length;
+
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0, 0x06054b50, true);
+  ev.setUint16(4, 0, true);
+  ev.setUint16(6, 0, true);
+  ev.setUint16(8, entries.length, true);
+  ev.setUint16(10, entries.length, true);
+  ev.setUint32(12, cdSize, true);
+  ev.setUint32(16, offset, true);
+  ev.setUint16(20, 0, true);
+
+  return new Blob([...localParts, ...centralParts, eocd], { type: "application/zip" });
+}
+
+async function inflateRawBytes(bytes){
+  if(typeof DecompressionStream === "undefined")
+    throw new Error("This browser cannot decompress deflated zip entries.");
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+/* Parse a .zip ArrayBuffer into [{name, data:Uint8Array}] */
+async function readZipBuffer(buffer){
+  const u8 = new Uint8Array(buffer);
+  const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+
+  let eocd = -1;
+  const minPos = Math.max(0, u8.length - 22 - 65535);
+  for(let i = u8.length - 22; i >= minPos; i--){
+    if(dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; }
+  }
+  if(eocd < 0) throw new Error("Not a zip file (no end-of-central-directory record).");
+
+  const count = dv.getUint16(eocd + 10, true);
+  let cdOff = dv.getUint32(eocd + 16, true);
+  const dec = new TextDecoder();
+  const out = [];
+
+  for(let i = 0; i < count; i++){
+    if(cdOff + 46 > u8.length || dv.getUint32(cdOff, true) !== 0x02014b50)
+      throw new Error("Corrupt zip central directory.");
+    const method = dv.getUint16(cdOff + 10, true);
+    const csize  = dv.getUint32(cdOff + 20, true);
+    const nlen   = dv.getUint16(cdOff + 28, true);
+    const elen   = dv.getUint16(cdOff + 30, true);
+    const clen   = dv.getUint16(cdOff + 32, true);
+    const lho    = dv.getUint32(cdOff + 42, true);
+    const name   = dec.decode(u8.subarray(cdOff + 46, cdOff + 46 + nlen));
+
+    if(dv.getUint32(lho, true) !== 0x04034b50)
+      throw new Error("Corrupt zip local header for " + name);
+    const lnlen = dv.getUint16(lho + 26, true);
+    const lelen = dv.getUint16(lho + 28, true);
+    const dataStart = lho + 30 + lnlen + lelen;
+    let data = u8.slice(dataStart, dataStart + csize);
+
+    if(method === 8) data = await inflateRawBytes(data);
+    else if(method !== 0) throw new Error("Unsupported compression method " + method + " for " + name);
+
+    out.push({ name, data });
+    cdOff += 46 + nlen + elen + clen;
+  }
+  return out;
+}
+
+function readAllRecords(){
+  return new Promise((resolve, reject) => {
+    const out = [];
+    let req;
+    try { req = db.transaction(STORE, "readonly").objectStore(STORE).openCursor(); }
+    catch(err){ reject(err); return; }
+    req.onsuccess = e => {
+      const c = e.target.result;
+      if(!c){ resolve(out); return; }
+      out.push({ key: String(c.key), value: c.value });
+      c.continue();
+    };
+    req.onerror = e => reject(e.target.error || new Error("cursor failed"));
+  });
+}
+
+/* Keys are normally plain names ("file0", "undertale.ini"), but make sure
+   nothing can escape into a directory or collide with a path separator. */
+function safeZipName(k){
+  return String(k).replace(/[\/\\]/g, "_").replace(/^\.+/, "_") || "unnamed";
+}
+
+async function exportAllZip(){
+  if(!db){ say("Connect first.","err"); return; }
+  let records;
+  try { records = await readAllRecords(); }
+  catch(err){ say("Could not read database: " + (err && err.message || err), "err"); return; }
+
+  const entries = [];
+  const skipped = [];
+  for(const r of records){
+    const bytes = toBytes(r.value && r.value.contents);
+    if(!bytes){ skipped.push(r.key); continue; }
+    entries.push({ name: safeZipName(r.key), data: bytes.slice() });
+  }
+
+  if(!entries.length){ say("Nothing to export — no readable save records found.","err"); return; }
+
+  const blob = makeZipBlob(entries);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+  a.download = "undertale-saves-" + stamp + ".zip";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+
+  say("Exported " + entries.length + " file(s) into a .zip:" +
+      "\n" + entries.map(e => "  " + e.name + " (" + e.data.length + " bytes)").join("\n") +
+      (skipped.length ? "\nSkipped (unreadable): " + skipped.join(", ") : ""), "ok");
+}
+
+function importAllZip(){
+  if(!db){ say("Connect first.","err"); return; }
+  const inp = document.createElement("input");
+  inp.type = "file";
+  inp.accept = ".zip,application/zip,application/x-zip-compressed";
+  inp.onchange = e => {
+    const f = e.target.files[0];
+    if(!f) return;
+    const reader = new FileReader();
+    reader.onerror = () => say("Could not read the zip file.","err");
+    reader.onload = async ev => {
+      let entries;
+      try { entries = await readZipBuffer(ev.target.result); }
+      catch(err){ say("Zip read failed: " + (err && err.message || err), "err"); return; }
+
+      // keep only real files, and use the base name as the record key
+      entries = entries
+        .filter(en => en.data && en.name && !en.name.endsWith("/"))
+        .map(en => {
+          const base = en.name.split("/").pop().split("\\").pop();
+          return { name: base || en.name, data: en.data };
+        })
+        .filter(en => en.name);
+
+      if(!entries.length){ say("That zip contains no usable files.","err"); return; }
+
+      const listing = entries.map(en => "  " + en.name + " (" + en.data.length + " bytes)").join("\n");
+      if(!confirm("Import " + entries.length + " file(s) into the save database?\n\n" + listing +
+                  "\n\nExisting records with the same names will be overwritten.")) return;
+
+      let existing = [];
+      try { existing = await readAllRecords(); }
+      catch(err){ say("Could not read database: " + (err && err.message || err), "err"); return; }
+      const existingMap = new Map(existing.map(r => [r.key, r.value]));
+
+      const importedKeys = [];
+      try {
+        const tx = db.transaction(STORE, "readwrite");
+        const store = tx.objectStore(STORE);
+
+        for(const en of entries){
+          const k = en.name;
+          let copy;
+          const prev = existingMap.get(k);
+          if(prev){ copy = {}; for(const p in prev) copy[p] = prev[p]; }
+          else copy = { mode: 33206 };
+          copy.contents = en.data;
+          copy.timestamp = new Date();
+          store.put(copy, k);
+          importedKeys.push(k);
+        }
+
+        tx.onerror = e => say("Import failed: " + (e.target.error && e.target.error.message || "unknown"),"err");
+        tx.oncomplete = () => {
+          // the selected record (if any) may have just been replaced — drop the stale state
+          key = null; rec = null; baseline = null;
+          ["write","resetF","bk","rv","exportBtn"].forEach(id => $(id).disabled = true);
+          armedWrite = armedRevert = false;
+          $("write").textContent = "WRITE"; $("write").classList.remove("warnbtn");
+          $("rv").textContent = "REVERT TO LOADED STATE"; $("rv").classList.remove("warnbtn");
+
+          listFiles();
+          say("Imported " + importedKeys.length + " file(s) from " + f.name + ":\n" +
+              importedKeys.map(k => "  " + k).join("\n") +
+              "\n\nPick file0 from the list to edit it.", "ok");
+
+          // convenience: auto-open file0 if it came in with the zip
+          if(importedKeys.some(k => /^file0$/i.test(k))){
+            setTimeout(() => { try { pick("file0"); } catch(_){} }, 200);
+          }
+        };
+      } catch(err){
+        say("Import threw: " + (err && err.message || err), "err");
+      }
     };
     reader.readAsArrayBuffer(f);
   };
