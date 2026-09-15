@@ -56,8 +56,8 @@ hr{border:0;border-top:1px solid #222;margin:14px 0}
   <div class="tiny">
     <b>Import</b> replaces the selected file, or creates a new record using the imported file's name if none is selected.
     <b>Export</b> downloads exactly the bytes currently stored in IndexedDB.<br>
-    <b>Export All</b> packs every record in the database into one .zip.
-    <b>Import All</b> restores every file from such a .zip (existing records with the same names are overwritten).
+    <b>Export All</b> packs every record in the database into one .zip, preserving each record's exact key (e.g. <code>/_savedata/file0</code>) as its path inside the zip.
+    <b>Import All</b> restores every file from such a .zip using the embedded manifest so the original keys are recreated exactly (existing records with the same keys are overwritten).
   </div>
   <hr>
   <div style="font-size:12px;color:#bbb;line-height:1.6">
@@ -157,6 +157,8 @@ const ITEMS = [
   [56,"Undyne's Letter"],[57,"Undyne Letter EX"],[58,"Popato Chisps"],[59,"Junk Food"],
   [60,"Mystery Key"],[61,"Face Steak"],[62,"Hush Puppy"],[63,"Snail Pie"],[64,"Temmie Armor"]
 ];
+
+const MANIFEST_NAME = "_save_editor_manifest.json";
 
 let db = null;
 let key = null;
@@ -739,10 +741,14 @@ function readAllRecords(){
   });
 }
 
-/* Keys are normally plain names ("file0", "undertale.ini"), but make sure
-   nothing can escape into a directory or collide with a path separator. */
-function safeZipName(k){
-  return String(k).replace(/[\/\\]/g, "_").replace(/^\.+/, "_") || "unnamed";
+/* Build the zip entry name from a DB key. We keep the key's path exactly
+   (including a leading "/"), only normalising backslashes to forward slashes
+   since zip treats "/" as the directory separator. The manifest below stores
+   the untouched key so a round trip is exact even if some external zip tool
+   strips a leading slash. */
+function zipEntryName(k){
+  const s = String(k).replace(/\\/g, "/");
+  return s || "unnamed";
 }
 
 async function exportAllZip(){
@@ -752,14 +758,33 @@ async function exportAllZip(){
   catch(err){ say("Could not read database: " + (err && err.message || err), "err"); return; }
 
   const entries = [];
+  const manifest = [];
   const skipped = [];
+  const usedNames = new Set([MANIFEST_NAME]);
+
   for(const r of records){
     const bytes = toBytes(r.value && r.value.contents);
     if(!bytes){ skipped.push(r.key); continue; }
-    entries.push({ name: safeZipName(r.key), data: bytes.slice() });
+
+    let name = zipEntryName(r.key);
+    // guard against duplicate zip entry names (very unlikely, but cheap)
+    if(usedNames.has(name)){
+      let i = 2; const base = name;
+      while(usedNames.has(name)) name = base + "__" + (i++);
+    }
+    usedNames.add(name);
+
+    entries.push({ name, data: bytes.slice() });
+    manifest.push({ name, key: String(r.key) });
   }
 
   if(!entries.length){ say("Nothing to export — no readable save records found.","err"); return; }
+
+  // manifest is what lets us restore exact keys like "/_savedata/file0"
+  entries.push({
+    name: MANIFEST_NAME,
+    data: new TextEncoder().encode(JSON.stringify({ version: 1, files: manifest }, null, 2))
+  });
 
   const blob = makeZipBlob(entries);
   const a = document.createElement("a");
@@ -769,8 +794,8 @@ async function exportAllZip(){
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 
-  say("Exported " + entries.length + " file(s) into a .zip:" +
-      "\n" + entries.map(e => "  " + e.name + " (" + e.data.length + " bytes)").join("\n") +
+  say("Exported " + manifest.length + " save record(s) into a .zip:" +
+      "\n" + manifest.map(m => "  " + m.name + "  ←  key: " + m.key).join("\n") +
       (skipped.length ? "\nSkipped (unreadable): " + skipped.join(", ") : ""), "ok");
 }
 
@@ -785,24 +810,33 @@ function importAllZip(){
     const reader = new FileReader();
     reader.onerror = () => say("Could not read the zip file.","err");
     reader.onload = async ev => {
-      let entries;
-      try { entries = await readZipBuffer(ev.target.result); }
+      let allEntries;
+      try { allEntries = await readZipBuffer(ev.target.result); }
       catch(err){ say("Zip read failed: " + (err && err.message || err), "err"); return; }
 
-      // keep only real files, and use the base name as the record key
-      entries = entries
-        .filter(en => en.data && en.name && !en.name.endsWith("/"))
-        .map(en => {
-          const base = en.name.split("/").pop().split("\\").pop();
-          return { name: base || en.name, data: en.data };
-        })
-        .filter(en => en.name);
+      // Pull the manifest (if any) so we can restore exact original keys.
+      const manifestEntry = allEntries.find(en => en.name === MANIFEST_NAME);
+      let keyMap = null;
+      if(manifestEntry){
+        try {
+          const parsed = JSON.parse(new TextDecoder().decode(manifestEntry.data));
+          if(parsed && Array.isArray(parsed.files)){
+            keyMap = new Map(parsed.files.map(m => [String(m.name), String(m.key)]));
+          }
+        } catch(_){ /* ignore, fall back to entry names */ }
+      }
 
-      if(!entries.length){ say("That zip contains no usable files.","err"); return; }
+      const payload = allEntries.filter(en => en.name !== MANIFEST_NAME && en.data && !en.name.endsWith("/"));
+      if(!payload.length){ say("That zip contains no usable save files.","err"); return; }
 
-      const listing = entries.map(en => "  " + en.name + " (" + en.data.length + " bytes)").join("\n");
-      if(!confirm("Import " + entries.length + " file(s) into the save database?\n\n" + listing +
-                  "\n\nExisting records with the same names will be overwritten.")) return;
+      const resolved = payload.map(en => {
+        const key = (keyMap && keyMap.has(en.name)) ? keyMap.get(en.name) : en.name;
+        return { key, zipName: en.name, data: en.data };
+      });
+
+      const listing = resolved.map(r => "  " + r.zipName + "  →  key: " + r.key + "  (" + r.data.length + " bytes)").join("\n");
+      if(!confirm("Import " + resolved.length + " save file(s)?\n\n" + listing +
+                  "\n\nExisting records with the same keys will be overwritten.")) return;
 
       let existing = [];
       try { existing = await readAllRecords(); }
@@ -814,21 +848,20 @@ function importAllZip(){
         const tx = db.transaction(STORE, "readwrite");
         const store = tx.objectStore(STORE);
 
-        for(const en of entries){
-          const k = en.name;
+        for(const r of resolved){
           let copy;
-          const prev = existingMap.get(k);
+          const prev = existingMap.get(r.key);
           if(prev){ copy = {}; for(const p in prev) copy[p] = prev[p]; }
           else copy = { mode: 33206 };
-          copy.contents = en.data;
+          copy.contents = r.data;
           copy.timestamp = new Date();
-          store.put(copy, k);
-          importedKeys.push(k);
+          store.put(copy, r.key);
+          importedKeys.push(r.key);
         }
 
-        tx.onerror = e => say("Import failed: " + (e.target.error && e.target.error.message || "unknown"),"err");
+        tx.onerror = ev2 => say("Import failed: " + (ev2.target.error && ev2.target.error.message || "unknown"),"err");
         tx.oncomplete = () => {
-          // the selected record (if any) may have just been replaced — drop the stale state
+          // any previously selected record is now stale
           key = null; rec = null; baseline = null;
           ["write","resetF","bk","rv","exportBtn"].forEach(id => $(id).disabled = true);
           armedWrite = armedRevert = false;
@@ -836,14 +869,13 @@ function importAllZip(){
           $("rv").textContent = "REVERT TO LOADED STATE"; $("rv").classList.remove("warnbtn");
 
           listFiles();
-          say("Imported " + importedKeys.length + " file(s) from " + f.name + ":\n" +
+          say("Imported " + importedKeys.length + " save file(s) from " + f.name + ":\n" +
               importedKeys.map(k => "  " + k).join("\n") +
               "\n\nPick file0 from the list to edit it.", "ok");
 
           // convenience: auto-open file0 if it came in with the zip
-          if(importedKeys.some(k => /^file0$/i.test(k))){
-            setTimeout(() => { try { pick("file0"); } catch(_){} }, 200);
-          }
+          const f0 = importedKeys.find(k => /(^|\/)file0$/i.test(k));
+          if(f0) setTimeout(() => { try { pick(f0); } catch(_){} }, 200);
         };
       } catch(err){
         say("Import threw: " + (err && err.message || err), "err");
