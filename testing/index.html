@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Roguelike (Balatro-lite)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Header / Stats -->
+        <header>
+            <div class="stat-box">Round: <span id="round-num">1</span></div>
+            <div class="stat-box">Score: <span id="current-score">0</span> / <span id="target-score">300</span></div>
+            <div class="stat-box">Money: $<span id="money">4</span></div>
+            <div class="stat-box">Hands: <span id="hands-left">4</span> | Discards: <span id="discards-left">3</span></div>
+        </header>
+
+        <!-- Play Area -->
+        <main>
+            <div id="jokers-area">
+                <h3>Jokers</h3>
+                <div id="jokers-container" class="card-row"></div>
+            </div>
+
+            <div id="selected-cards-area">
+                <h3>Selected Hand</h3>
+                <div id="selected-container" class="card-row"></div>
+            </div>
+
+            <div id="hand-area">
+                <h3>Your Hand</h3>
+                <div id="hand-container" class="card-row"></div>
+            </div>
+        </main>
+
+        <!-- Controls -->
+        <footer>
+            <button id="btn-play" class="btn primary" onclick="playHand()">Play Hand</button>
+            <button id="btn-discard" class="btn secondary" onclick="discardCards()">Discard</button>
+        </footer>
+    </div>
+
+    <!-- Shop Modal -->
+    <div id="shop-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Shop</h2>
+            <div id="shop-items" class="card-row"></div>
+            <button class="btn primary" onclick="closeShop()">Next Round</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

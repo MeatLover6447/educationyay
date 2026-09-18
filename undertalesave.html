@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script defer src="https://cloud.umami.is/script.js" data-website-id="6e9b1de4-1a48-493a-a06e-3d23a78bbd3e"></script>
+<meta charset="utf-8">
+<title>Undertale Save Editor</title>
+<style>
+body{margin:0;padding:20px;background:#000;color:#eee;font:13px monospace}
+h1{font-size:18px;margin:0 0 14px}
+.box{border:1px solid #444;padding:12px;margin-bottom:12px;max-width:900px}
+.box h2{font-size:14px;margin:0 0 10px;color:#0f0;font-weight:normal}
+button{font:inherit;background:#eee;color:#000;border:0;padding:8px 12px;cursor:pointer;margin:2px}
+button:hover{background:#ff0}
+button.go{background:#0f0}
+button.warnbtn{background:#f90}
+button:disabled{opacity:.35;cursor:default}
+button:disabled:hover{background:#eee}
+input,select{font:inherit;background:#111;color:#0f0;border:1px solid #555;padding:6px;width:100%;box-sizing:border-box}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.grid.wide{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+label{display:block;font-size:11px;color:#999;margin-bottom:3px}
+#files div{padding:8px;border-bottom:1px solid #222;cursor:pointer}
+#files div:hover{background:#181818}
+#files div.sel{background:#032;color:#0f0}
+#msg{white-space:pre-wrap;min-height:20px;margin-top:6px}
+.err{color:#f55}.ok{color:#0f0}.warn{color:#ff0}
+.tiny{font-size:11px;color:#777;line-height:1.5;margin-top:8px}
+.flash{animation:fl .9s ease-out}
+@keyframes fl{0%{background:#0a3}100%{background:#000}}
+.ftm-link{display:inline-block;padding:10px 14px;background:#fff;color:#000;font-weight:bold;text-decoration:none;border:2px solid #fff;margin-top:8px;transition:background .15s,color .15s}
+.ftm-link:hover{background:#0f0;border-color:#0f0;color:#000}
+.ftm-link::before{content:"▶ ";color:#f00}
+hr{border:0;border-top:1px solid #222;margin:14px 0}
+</style>
+</head>
+<body>
+
+<h1>UNDERTALE — SAVE EDITOR</h1>
+
+<div class="box">
+  <button onclick="connect()">CONNECT</button>
+  <button onclick="listFiles()">REFRESH</button>
+  <div id="msg">Not connected.</div>
+</div>
+
+<div class="box">
+  <h2>Save files</h2>
+  <div id="files" style="border:1px solid #333;max-height:180px;overflow:auto">(not connected)</div>
+  <div style="margin-top:8px">
+    <button id="importBtn" disabled onclick="importSave()">📥 IMPORT SAVE FILE</button>
+    <button id="exportBtn" disabled onclick="exportSave()">📤 EXPORT SAVE FILE</button>
+  </div>
+  <div style="margin-top:10px;border-top:1px solid #222;padding-top:10px">
+    <button id="zipExportBtn" disabled onclick="exportAllZip()">📦 EXPORT ALL SAVES (.zip)</button>
+    <button id="zipImportBtn" disabled onclick="importAllZip()">📦 IMPORT ALL SAVES (.zip)</button>
+  </div>
+  <div class="tiny">
+    <b>Import</b> replaces the selected file, or creates a new record using the imported file's name if none is selected.
+    <b>Export</b> downloads exactly the bytes currently stored in IndexedDB.<br>
+    <b>Export All</b> packs every record in the database into one .zip, preserving each record's exact key (e.g. <code>/_savedata/file0</code>) as its path inside the zip.
+    <b>Import All</b> restores every file from such a .zip using the embedded manifest so the original keys are recreated exactly (existing records with the same keys are overwritten).
+  </div>
+  <hr>
+  <div style="font-size:12px;color:#bbb;line-height:1.6">
+    Looking for more save file presets — Ruins, Snowdin, Hotland, a pacifist run paused before Asgore, a genocide run at Sans, and more?<br>
+    <a class="ftm-link"
+       href="https://crumblingstatue.github.io/FloweysTimeMachine/"
+       target="_blank"
+       rel="noopener noreferrer">
+      Click here for save file presets that you can import
+    </a>
+  </div>
+</div>
+
+<div class="box" id="statsBox">
+  <h2>Player stats <span id="statSource" style="color:#666;font-size:11px"></span></h2>
+  <div class="grid" id="statGrid"></div>
+</div>
+
+<div class="box" id="invBox">
+  <h2>Inventory <span id="invSource" style="color:#666;font-size:11px"></span></h2>
+  <div class="grid wide" id="invGrid"></div>
+  <div class="tiny">Slot 1 = line 13, Slot 2 = line 15, … Slot 8 = line 27.</div>
+</div>
+
+<div class="box" id="roomBox">
+  <h2>Room <span id="roomSource" style="color:#666;font-size:11px"></span></h2>
+  <div class="grid">
+    <div>
+      <label>Room ID (line 548)</label>
+      <input id="f_room" type="text" inputmode="numeric">
+    </div>
+    <div>
+      <label>Common rooms</label>
+      <select id="preset" onchange="if(this.value)document.getElementById('f_room').value=this.value">
+        <option value="">-- pick to fill --</option>
+        <option value="6">6 — Ruins Entrance</option>
+        <option value="31">31 — Ruins Home</option>
+        <option value="41">41 — Toriel Boss Room</option>
+        <option value="68">68 — Snowdin Town</option>
+        <option value="81">81 — Papyrus Battle</option>
+        <option value="94">94 — Waterfall Crystal</option>
+        <option value="134">134 — Undyne Arena</option>
+        <option value="135">135 — Undyne Arena +1</option>
+        <option value="183">183 — Hotland Hotel Lobby</option>
+        <option value="210">210 — CORE End</option>
+        <option value="231">231 — Last Corridor</option>
+        <option value="235">235 — Throne Room</option>
+        <option value="236">236 — The End</option>
+        <option value="246">246 — True Lab</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<div class="box">
+  <button class="go" id="write" disabled onclick="writeClick()">WRITE</button>
+  <button id="resetF" disabled onclick="resetFields()">RESET FIELDS</button>
+  <button id="bk" disabled onclick="downloadBackup()">DOWNLOAD BACKUP</button>
+  <button id="rv" disabled onclick="revertClick()">REVERT TO LOADED STATE</button>
+  <div class="tiny">
+    Close Undertale fully before writing. Only <b>file0</b> holds these fields.
+    Written values are verified by reading the file back.
+  </div>
+</div>
+
+<script>
+const DB_NAME = "/_savedata", STORE = "FILE_DATA";
+const $ = id => document.getElementById(id);
+
+const STAT_FIELDS = [
+  { id:"name",  line:1,   label:"Name",       numeric:false },
+  { id:"lv",    line:2,   label:"LOVE / LV",  numeric:true  },
+  { id:"hp",    line:3,   label:"Current HP", numeric:true  },
+  { id:"maxhp", line:4,   label:"Max HP",     numeric:true  },
+  { id:"exp",   line:10,  label:"EXP",        numeric:true  },
+  { id:"gold",  line:11,  label:"GOLD",       numeric:true  },
+  { id:"kills", line:12,  label:"Kills",      numeric:true  },
+  { id:"fun",   line:36,  label:"FUN",        numeric:true  },
+  { id:"time",  line:549, label:"Play time",  numeric:true  }
+];
+
+const INV_LINES = [13,15,17,19,21,23,25,27];
+const ROOM_LINE = 548;
+const TOTAL_LINES = 549;
+
+const ITEMS = [
+  [0,"Empty"],[1,"Monster Candy"],[2,"Croquet Roll"],[3,"Stick"],[4,"Bandage"],
+  [5,"Rock Candy"],[6,"Pumpkin Rings"],[7,"Spider Donut"],[8,"Stoic Onion"],
+  [9,"Ghost Fruit"],[10,"Spider Cider"],[11,"Butterscotch Pie"],[12,"Faded Ribbon"],
+  [16,"Snowman Piece"],[17,"Nice Cream"],[18,"Puppydough Icecream"],[19,"Bisicle"],
+  [20,"Unisicle"],[21,"Cinnamon Bun"],[22,"Temmie Flakes"],[23,"Abandoned Quiche"],
+  [24,"Old Tutu"],[25,"Ballet Shoes"],[26,"Punch Card"],[27,"Annoying Dog"],
+  [28,"Dog Salad"],[29,"Dog Residue"],[35,"Astronaut Food"],[36,"Instant Noodles"],
+  [37,"Crab Apple"],[38,"Hot Dog"],[39,"Hot Cat"],[40,"Glamburger"],[41,"Sea Tea"],
+  [42,"Starfait"],[43,"Legendary Hero"],[44,"Butty Glasses"],[45,"Torn Notebook"],
+  [46,"Stained Apron"],[47,"Burnt Pan"],[48,"Cowboy Hat"],[54,"Bad Memory"],[55,"Dream"],
+  [56,"Undyne's Letter"],[57,"Undyne Letter EX"],[58,"Popato Chisps"],[59,"Junk Food"],
+  [60,"Mystery Key"],[61,"Face Steak"],[62,"Hush Puppy"],[63,"Snail Pie"],[64,"Temmie Armor"]
+];
+
+const MANIFEST_NAME = "_save_editor_manifest.json";
+
+let db = null;
+let key = null;
+let rec = null;
+let baseline = null;
+let contentsKind = "u8";
+let originalValues = {};
+let armedWrite = false, armedRevert = false;
+let armTimer = null, revTimer = null;
+
+function say(m,c){ const e=$("msg"); e.textContent=m; e.className=c||""; }
+
+/* ---------- build UI ---------- */
+(function buildUI(){
+  const sg = $("statGrid");
+  for(const f of STAT_FIELDS){
+    const w = document.createElement("div");
+    const l = document.createElement("label"); l.textContent = f.label + " (line " + f.line + ")";
+    const i = document.createElement("input");
+    i.id = "f_" + f.id; i.type = "text"; i.autocomplete = "off";
+    if(f.numeric) i.inputMode = "numeric";
+    w.appendChild(l); w.appendChild(i); sg.appendChild(w);
+  }
+  const ig = $("invGrid");
+  for(let i=0;i<8;i++){
+    const w = document.createElement("div");
+    const l = document.createElement("label"); l.textContent = "Slot " + (i+1) + " (line " + INV_LINES[i] + ")";
+    const s = document.createElement("select"); s.id = "f_inv" + i;
+    for(const [id,name] of ITEMS){
+      const o = document.createElement("option"); o.value = id; o.textContent = id + " — " + name; s.appendChild(o);
+    }
+    w.appendChild(l); w.appendChild(s); ig.appendChild(w);
+  }
+})();
+
+/* ---------- IndexedDB ---------- */
+function connect(){
+  say("Connecting…");
+  let aborted = false;
+  const r = indexedDB.open(DB_NAME);
+  r.onupgradeneeded = e => { aborted = true; try{ e.target.transaction.abort(); }catch(_){} };
+  r.onerror = e => {
+    if(aborted) say("No Undertale save database on this browser/origin yet.\nPlay the game once here first.","err");
+    else say("Could not open database: " + (e.target.error && e.target.error.message || "unknown"),"err");
+  };
+  r.onsuccess = e => {
+    db = e.target.result;
+    if(!db.objectStoreNames.contains(STORE)){ say("Save database found, but no FILE_DATA store.","err"); return; }
+    say("Connected.","ok");
+    $("importBtn").disabled = false;
+    $("zipExportBtn").disabled = false;
+    $("zipImportBtn").disabled = false;
+    listFiles();
+  };
+}
+
+function listFiles(){
+  if(!db){ say("Connect first.","err"); return; }
+  const box = $("files"); box.innerHTML = "";
+  const r = db.transaction(STORE,"readonly").objectStore(STORE).openCursor();
+  let n = 0;
+  r.onsuccess = e => {
+    const c = e.target.result;
+    if(!c){
+      if(!n){ box.textContent = "(no files found)"; say("No save files found.","err"); }
+      else say(n + " file(s) found. Pick file0.","ok");
+      return;
+    }
+    const k = c.key; n++;
+    const d = document.createElement("div"); d.textContent = k;
+    d.onclick = () => pick(k);
+    box.appendChild(d);
+    c.continue();
+  };
+  r.onerror = e => say("Could not read files: " + (e.target.error && e.target.error.message || "unknown"),"err");
+}
+
+function pick(k){
+  const req = db.transaction(STORE,"readonly").objectStore(STORE).get(k);
+  req.onsuccess = e => {
+    const r0 = e.target.result;
+    if(!r0){ say("Could not read " + k,"err"); return; }
+    const bytes = toBytes(r0.contents);
+    if(!bytes){ say("Unsupported record format for " + k,"err"); return; }
+
+    key = k; rec = r0;
+    contentsKind = kindOf(r0.contents);
+    baseline = bytes.slice();
+
+    [...$("files").children].forEach(d => d.classList.toggle("sel", d.textContent === String(k)));
+
+    const summary = populateFromBytes(baseline);
+
+    ["write","resetF","bk","rv"].forEach(id => $(id).disabled = false);
+    $("exportBtn").disabled = false;
+    armedWrite = armedRevert = false;
+    $("write").textContent = "WRITE"; $("write").classList.remove("warnbtn");
+    $("rv").textContent = "REVERT TO LOADED STATE"; $("rv").classList.remove("warnbtn");
+
+    ["statsBox","invBox","roomBox"].forEach(id => {
+      const el = $(id);
+      el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+    });
+
+    say("Loaded " + k + " — " + bytes.length + " bytes, " + summary.lineCount + " lines.\n" +
+        "Auto-filled: " + summary.filled + " field(s). " + summary.missing + " missing.\n" +
+        (summary.file0Hint ? "" : "\n⚠ This doesn't look like file0 — stats/inventory/room live in file0.\n"),
+        summary.file0Hint ? "ok" : "warn");
+  };
+  req.onerror = e => say("Read failed: " + (e.target.error && e.target.error.message || "unknown"),"err");
+}
+
+/* ---------- bytes <-> string ---------- */
+function toBytes(x){
+  if(x instanceof Uint8Array) return x;
+  if(x instanceof ArrayBuffer) return new Uint8Array(x);
+  if(Array.isArray(x)) return new Uint8Array(x);
+  if(x && x.buffer) return new Uint8Array(x.buffer, x.byteOffset || 0, x.byteLength || x.buffer.byteLength);
+  return null;
+}
+function kindOf(x){
+  if(x instanceof ArrayBuffer) return "ab";
+  if(Array.isArray(x)) return "arr";
+  return "u8";
+}
+function makeContents(bytes){
+  if(contentsKind === "ab") return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  if(contentsKind === "arr") return Array.from(bytes);
+  return bytes;
+}
+
+function findLine(bytes, n){
+  let line = 1, start = 0;
+  for(let i = 0; i < bytes.length; i++){
+    if(bytes[i] === 0x0A){
+      if(line === n){
+        let end = i;
+        if(end > start && bytes[end-1] === 0x0D) end--;
+        return { start, end };
+      }
+      line++;
+      start = i + 1;
+    }
+  }
+  if(line === n) return { start, end: bytes.length };
+  return null;
+}
+function readLine(bytes, n){
+  const loc = findLine(bytes, n);
+  if(!loc) return null;
+  return new TextDecoder().decode(bytes.subarray(loc.start, loc.end));
+}
+function countLines(bytes){
+  let n = 1;
+  for(let i = 0; i < bytes.length; i++) if(bytes[i] === 0x0A) n++;
+  return n;
+}
+
+function applyEdits(bytes, edits){
+  edits = edits.slice().sort((a,b) => a.start - b.start);
+  for(let i=1;i<edits.length;i++){
+    if(edits[i].start < edits[i-1].end) throw new Error("Overlapping edits at " + edits[i].start);
+  }
+  let finalLen = bytes.length;
+  for(const e of edits) finalLen += e.value.length - (e.end - e.start);
+  const out = new Uint8Array(finalLen);
+  let src = 0, dst = 0;
+  for(const e of edits){
+    out.set(bytes.subarray(src, e.start), dst);
+    dst += e.start - src;
+    out.set(e.value, dst);
+    dst += e.value.length;
+    src = e.end;
+  }
+  out.set(bytes.subarray(src), dst);
+  return out;
+}
+
+/* ---------- auto-fill ---------- */
+function populateFromBytes(bytes){
+  originalValues = {};
+  let filled = 0, missing = 0;
+
+  for(const f of STAT_FIELDS){
+    const v = readLine(bytes, f.line);
+    const val = v === null ? "" : v;
+    originalValues[f.id] = val;
+    $("f_" + f.id).value = val;
+    if(v === null) missing++; else filled++;
+  }
+
+  for(let i=0;i<8;i++){
+    const v = readLine(bytes, INV_LINES[i]);
+    const val = v === null ? "0" : v;
+    originalValues["inv" + i] = val;
+    setInventorySelect(i, val);
+    if(v === null) missing++; else filled++;
+  }
+
+  const room = readLine(bytes, ROOM_LINE);
+  originalValues["room"] = room === null ? "" : room;
+  $("f_room").value = originalValues["room"];
+  if(room === null) missing++; else filled++;
+
+  const totalLines = countLines(bytes);
+  const isFile0 = /(^|\/)file0$/i.test(String(key||""));
+  const hint = isFile0 ? "(file0)" : "(not file0)";
+  $("statSource").textContent = hint;
+  $("invSource").textContent  = hint;
+  $("roomSource").textContent = hint;
+
+  return { filled, missing, lineCount: totalLines, file0Hint: isFile0 };
+}
+
+function setInventorySelect(i, value){
+  const sel = $("f_inv" + i);
+  let found = false;
+  for(const o of sel.options) if(o.value === value) { found = true; break; }
+  if(!found){
+    const o = document.createElement("option");
+    o.value = value; o.textContent = value + " — (unknown)";
+    sel.appendChild(o);
+  }
+  sel.value = value;
+}
+
+function resetFields(){
+  if(!baseline) return;
+  populateFromBytes(baseline);
+  say("Fields reset to loaded values (DB not changed).","warn");
+}
+
+/* ---------- write ---------- */
+function writeClick(){
+  if(!armedWrite){
+    armedWrite = true;
+    $("write").textContent = "CLICK AGAIN TO CONFIRM";
+    $("write").classList.add("warnbtn");
+    if(armTimer) clearTimeout(armTimer);
+    armTimer = setTimeout(() => {
+      armedWrite = false;
+      $("write").textContent = "WRITE";
+      $("write").classList.remove("warnbtn");
+    }, 4000);
+    say("Click WRITE again within 4 seconds to confirm.","warn");
+    return;
+  }
+  armedWrite = false;
+  if(armTimer){ clearTimeout(armTimer); armTimer = null; }
+  $("write").textContent = "WRITE";
+  $("write").classList.remove("warnbtn");
+  doWrite();
+}
+
+function doWrite(){
+  if(!baseline) return;
+
+  const edits = [];
+  const changes = [];
+
+  for(const f of STAT_FIELDS){
+    const cur = String($("f_" + f.id).value);
+    const old = String(originalValues[f.id] ?? "");
+    if(cur === old) continue;
+    if(f.numeric){
+      if(!/^-?\d+$/.test(cur.trim())){ say("Field \"" + f.label + "\" must be a whole number.","err"); return; }
+      var newVal = String(parseInt(cur.trim(), 10));
+    } else {
+      if(/[\r\n]/.test(cur)){ say("Field \"" + f.label + "\" must not contain line breaks.","err"); return; }
+      var newVal = cur;
+    }
+    const loc = findLine(baseline, f.line);
+    if(!loc){ say("Line " + f.line + " (" + f.label + ") is missing — refusing to write.","err"); return; }
+    edits.push({ start: loc.start, end: loc.end, value: new TextEncoder().encode(newVal) });
+    changes.push(f.label + ": " + old + " → " + newVal);
+  }
+
+  for(let i=0;i<8;i++){
+    const cur = String($("f_inv" + i).value);
+    const old = String(originalValues["inv" + i] ?? "0");
+    if(cur === old) continue;
+    if(!/^-?\d+$/.test(cur)){ say("Inventory slot " + (i+1) + " must be a whole number.","err"); return; }
+    const loc = findLine(baseline, INV_LINES[i]);
+    if(!loc){ say("Inventory line " + INV_LINES[i] + " is missing — refusing to write.","err"); return; }
+    edits.push({ start: loc.start, end: loc.end, value: new TextEncoder().encode(cur) });
+    changes.push("Slot " + (i+1) + ": " + old + " → " + cur);
+  }
+
+  {
+    const cur = String($("f_room").value).trim();
+    const old = String(originalValues["room"] ?? "");
+    if(cur !== old){
+      if(!/^\d+$/.test(cur)){ say("Room must be a whole number.","err"); return; }
+      const n = parseInt(cur, 10);
+      if(n < 1 || n > 400){ say("Room must be between 1 and 400.","err"); return; }
+      const loc = findLine(baseline, ROOM_LINE);
+      if(!loc){ say("Room line " + ROOM_LINE + " is missing — refusing to write.","err"); return; }
+      edits.push({ start: loc.start, end: loc.end, value: new TextEncoder().encode(String(n)) });
+      changes.push("Room: " + old + " → " + n);
+    }
+  }
+
+  if(!edits.length){ say("Nothing to write — no fields changed.","warn"); return; }
+
+  let out;
+  try { out = applyEdits(baseline, edits); }
+  catch(err){ say("Edit failed: " + err.message,"err"); return; }
+
+  const copy = {};
+  for(const p in rec) copy[p] = rec[p];
+  copy.contents = makeContents(out);
+  copy.timestamp = new Date();
+
+  const expected = {};
+  for(const f of STAT_FIELDS) expected[f.line] = String($("f_" + f.id).value).trim();
+  for(let i=0;i<8;i++) expected[INV_LINES[i]] = String($("f_inv" + i).value);
+  expected[ROOM_LINE] = String($("f_room").value).trim();
+
+  try {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.onerror = e => say("Transaction failed: " + (e.target.error && e.target.error.message || "unknown"),"err");
+    const req = tx.objectStore(STORE).put(copy, key);
+    req.onerror = e => say("Write failed: " + (e.target.error && e.target.error.message || "unknown"),"err");
+    req.onsuccess = () => verifyAfterWrite(copy, expected, changes);
+  } catch(err){
+    say("Write threw: " + (err && err.message || err),"err");
+  }
+}
+
+function verifyAfterWrite(writtenRec, expected, changes){
+  const vreq = db.transaction(STORE,"readonly").objectStore(STORE).get(key);
+  vreq.onsuccess = e => {
+    const got = toBytes(e.target.result.contents);
+    const mismatches = [];
+    for(const lineStr in expected){
+      const line = parseInt(lineStr, 10);
+      const gotVal = readLine(got, line);
+      if((gotVal === null ? "" : gotVal) !== expected[lineStr])
+        mismatches.push("line " + line + ": got '" + gotVal + "' expected '" + expected[lineStr] + "'");
+    }
+    if(mismatches.length){
+      say("Write reported success but verification failed:\n" + mismatches.join("\n"),"err");
+      return;
+    }
+    rec = writtenRec;
+    baseline = got.slice();
+    populateFromBytes(baseline);
+    listFiles();
+    say("Saved and verified " + changes.length + " change(s) to " + key + ":\n" + changes.join("\n") + "\n\nLaunch Undertale and load the save.","ok");
+  };
+  vreq.onerror = () => say("Saved, but could not verify.","warn");
+}
+
+/* ---------- export / import (single file) ---------- */
+function exportSave(){
+  if(!baseline || !key){ say("Select a file first.","err"); return; }
+  const blob = new Blob([baseline], { type: "application/octet-stream" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = String(key).replace(/[\/\\]/g,"_");
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  say("Exported " + key + " (" + baseline.length + " bytes).","ok");
+}
+
+function importSave(){
+  if(!db){ say("Connect first.","err"); return; }
+  const inp = document.createElement("input");
+  inp.type = "file";
+  inp.onchange = e => {
+    const f = e.target.files[0];
+    if(!f) return;
+    const reader = new FileReader();
+    reader.onerror = () => say("Could not read the file.","err");
+    reader.onload = ev => {
+      const bytes = new Uint8Array(ev.target.result);
+      const targetKey = key || f.name;
+
+      const msg = key
+        ? "Replace " + key + " with " + f.name + " (" + bytes.length + " bytes)?"
+        : "Create new record \"" + f.name + "\" (" + bytes.length + " bytes)?";
+      if(!confirm(msg)) return;
+
+      let contents;
+      if(contentsKind === "ab") contents = bytes.buffer.slice(0);
+      else if(contentsKind === "arr") contents = Array.from(bytes);
+      else contents = bytes;
+
+      let copy;
+      if(rec){
+        copy = {};
+        for(const p in rec) copy[p] = rec[p];
+      } else {
+        copy = { mode: 33206 };
+      }
+      copy.contents = contents;
+      copy.timestamp = new Date();
+
+      const tx = db.transaction(STORE, "readwrite");
+      const req = tx.objectStore(STORE).put(copy, targetKey);
+      req.onerror = err => say("Import failed: " + (err.target.error && err.target.error.message || "unknown"),"err");
+      req.onsuccess = () => {
+        key = targetKey;
+        rec = copy;
+        contentsKind = kindOf(contents);
+        baseline = bytes.slice();
+
+        [...$("files").children].forEach(d => d.classList.toggle("sel", d.textContent === String(targetKey)));
+
+        populateFromBytes(baseline);
+
+        ["write","resetF","bk","rv"].forEach(id => $(id).disabled = false);
+        $("exportBtn").disabled = false;
+
+        listFiles();
+        say("Imported " + f.name + " → " + targetKey + " (" + bytes.length + " bytes).","ok");
+      };
+    };
+    reader.readAsArrayBuffer(f);
+  };
+  inp.click();
+}
+
+/* ============================================================
+   ZIP support — export/import EVERY save record at once
+   (stored/deflate read, store-only write, no libraries)
+   ============================================================ */
+
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for(let n = 0; n < 256; n++){
+    let c = n;
+    for(let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+
+function crc32(u8){
+  let c = 0xFFFFFFFF;
+  for(let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+/* Build a .zip (stored, no compression) from [{name, data:Uint8Array}] */
+function makeZipBlob(entries){
+  const enc = new TextEncoder();
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+
+  for(const e of entries){
+    const nameBytes = enc.encode(e.name);
+    const data = e.data;
+    const crc = crc32(data);
+
+    const lh = new Uint8Array(30 + nameBytes.length);
+    const lv = new DataView(lh.buffer);
+    lv.setUint32(0, 0x04034b50, true);
+    lv.setUint16(4, 20, true);      // version needed
+    lv.setUint16(6, 0, true);       // flags
+    lv.setUint16(8, 0, true);       // method: store
+    lv.setUint16(10, 0, true);      // mod time
+    lv.setUint16(12, 0x21, true);   // mod date (1980-01-01)
+    lv.setUint32(14, crc, true);
+    lv.setUint32(18, data.length, true);
+    lv.setUint32(22, data.length, true);
+    lv.setUint16(26, nameBytes.length, true);
+    lv.setUint16(28, 0, true);
+    lh.set(nameBytes, 30);
+
+    localParts.push(lh, data);
+
+    const ch = new Uint8Array(46 + nameBytes.length);
+    const cv = new DataView(ch.buffer);
+    cv.setUint32(0, 0x02014b50, true);
+    cv.setUint16(4, 20, true);      // version made by
+    cv.setUint16(6, 20, true);      // version needed
+    cv.setUint16(8, 0, true);
+    cv.setUint16(10, 0, true);
+    cv.setUint16(12, 0, true);
+    cv.setUint16(14, 0x21, true);
+    cv.setUint32(16, crc, true);
+    cv.setUint32(20, data.length, true);
+    cv.setUint32(24, data.length, true);
+    cv.setUint16(28, nameBytes.length, true);
+    cv.setUint16(30, 0, true);      // extra len
+    cv.setUint16(32, 0, true);      // comment len
+    cv.setUint16(34, 0, true);      // disk start
+    cv.setUint16(36, 0, true);      // internal attrs
+    cv.setUint32(38, 0, true);      // external attrs
+    cv.setUint32(42, offset, true); // local header offset
+    ch.set(nameBytes, 46);
+    centralParts.push(ch);
+
+    offset += lh.length + data.length;
+  }
+
+  let cdSize = 0;
+  for(const c of centralParts) cdSize += c.length;
+
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0, 0x06054b50, true);
+  ev.setUint16(4, 0, true);
+  ev.setUint16(6, 0, true);
+  ev.setUint16(8, entries.length, true);
+  ev.setUint16(10, entries.length, true);
+  ev.setUint32(12, cdSize, true);
+  ev.setUint32(16, offset, true);
+  ev.setUint16(20, 0, true);
+
+  return new Blob([...localParts, ...centralParts, eocd], { type: "application/zip" });
+}
+
+async function inflateRawBytes(bytes){
+  if(typeof DecompressionStream === "undefined")
+    throw new Error("This browser cannot decompress deflated zip entries.");
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+/* Parse a .zip ArrayBuffer into [{name, data:Uint8Array}] */
+async function readZipBuffer(buffer){
+  const u8 = new Uint8Array(buffer);
+  const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+
+  let eocd = -1;
+  const minPos = Math.max(0, u8.length - 22 - 65535);
+  for(let i = u8.length - 22; i >= minPos; i--){
+    if(dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; }
+  }
+  if(eocd < 0) throw new Error("Not a zip file (no end-of-central-directory record).");
+
+  const count = dv.getUint16(eocd + 10, true);
+  let cdOff = dv.getUint32(eocd + 16, true);
+  const dec = new TextDecoder();
+  const out = [];
+
+  for(let i = 0; i < count; i++){
+    if(cdOff + 46 > u8.length || dv.getUint32(cdOff, true) !== 0x02014b50)
+      throw new Error("Corrupt zip central directory.");
+    const method = dv.getUint16(cdOff + 10, true);
+    const csize  = dv.getUint32(cdOff + 20, true);
+    const nlen   = dv.getUint16(cdOff + 28, true);
+    const elen   = dv.getUint16(cdOff + 30, true);
+    const clen   = dv.getUint16(cdOff + 32, true);
+    const lho    = dv.getUint32(cdOff + 42, true);
+    const name   = dec.decode(u8.subarray(cdOff + 46, cdOff + 46 + nlen));
+
+    if(dv.getUint32(lho, true) !== 0x04034b50)
+      throw new Error("Corrupt zip local header for " + name);
+    const lnlen = dv.getUint16(lho + 26, true);
+    const lelen = dv.getUint16(lho + 28, true);
+    const dataStart = lho + 30 + lnlen + lelen;
+    let data = u8.slice(dataStart, dataStart + csize);
+
+    if(method === 8) data = await inflateRawBytes(data);
+    else if(method !== 0) throw new Error("Unsupported compression method " + method + " for " + name);
+
+    out.push({ name, data });
+    cdOff += 46 + nlen + elen + clen;
+  }
+  return out;
+}
+
+function readAllRecords(){
+  return new Promise((resolve, reject) => {
+    const out = [];
+    let req;
+    try { req = db.transaction(STORE, "readonly").objectStore(STORE).openCursor(); }
+    catch(err){ reject(err); return; }
+    req.onsuccess = e => {
+      const c = e.target.result;
+      if(!c){ resolve(out); return; }
+      out.push({ key: String(c.key), value: c.value });
+      c.continue();
+    };
+    req.onerror = e => reject(e.target.error || new Error("cursor failed"));
+  });
+}
+
+/* Build the zip entry name from a DB key. We keep the key's path exactly
+   (including a leading "/"), only normalising backslashes to forward slashes
+   since zip treats "/" as the directory separator. The manifest below stores
+   the untouched key so a round trip is exact even if some external zip tool
+   strips a leading slash. */
+function zipEntryName(k){
+  const s = String(k).replace(/\\/g, "/");
+  return s || "unnamed";
+}
+
+async function exportAllZip(){
+  if(!db){ say("Connect first.","err"); return; }
+  let records;
+  try { records = await readAllRecords(); }
+  catch(err){ say("Could not read database: " + (err && err.message || err), "err"); return; }
+
+  const entries = [];
+  const manifest = [];
+  const skipped = [];
+  const usedNames = new Set([MANIFEST_NAME]);
+
+  for(const r of records){
+    const bytes = toBytes(r.value && r.value.contents);
+    if(!bytes){ skipped.push(r.key); continue; }
+
+    let name = zipEntryName(r.key);
+    // guard against duplicate zip entry names (very unlikely, but cheap)
+    if(usedNames.has(name)){
+      let i = 2; const base = name;
+      while(usedNames.has(name)) name = base + "__" + (i++);
+    }
+    usedNames.add(name);
+
+    entries.push({ name, data: bytes.slice() });
+    manifest.push({ name, key: String(r.key) });
+  }
+
+  if(!entries.length){ say("Nothing to export — no readable save records found.","err"); return; }
+
+  // manifest is what lets us restore exact keys like "/_savedata/file0"
+  entries.push({
+    name: MANIFEST_NAME,
+    data: new TextEncoder().encode(JSON.stringify({ version: 1, files: manifest }, null, 2))
+  });
+
+  const blob = makeZipBlob(entries);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+  a.download = "undertale-saves-" + stamp + ".zip";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+
+  say("Exported " + manifest.length + " save record(s) into a .zip:" +
+      "\n" + manifest.map(m => "  " + m.name + "  ←  key: " + m.key).join("\n") +
+      (skipped.length ? "\nSkipped (unreadable): " + skipped.join(", ") : ""), "ok");
+}
+
+function importAllZip(){
+  if(!db){ say("Connect first.","err"); return; }
+  const inp = document.createElement("input");
+  inp.type = "file";
+  inp.accept = ".zip,application/zip,application/x-zip-compressed";
+  inp.onchange = e => {
+    const f = e.target.files[0];
+    if(!f) return;
+    const reader = new FileReader();
+    reader.onerror = () => say("Could not read the zip file.","err");
+    reader.onload = async ev => {
+      let allEntries;
+      try { allEntries = await readZipBuffer(ev.target.result); }
+      catch(err){ say("Zip read failed: " + (err && err.message || err), "err"); return; }
+
+      // Pull the manifest (if any) so we can restore exact original keys.
+      const manifestEntry = allEntries.find(en => en.name === MANIFEST_NAME);
+      let keyMap = null;
+      if(manifestEntry){
+        try {
+          const parsed = JSON.parse(new TextDecoder().decode(manifestEntry.data));
+          if(parsed && Array.isArray(parsed.files)){
+            keyMap = new Map(parsed.files.map(m => [String(m.name), String(m.key)]));
+          }
+        } catch(_){ /* ignore, fall back to entry names */ }
+      }
+
+      const payload = allEntries.filter(en => en.name !== MANIFEST_NAME && en.data && !en.name.endsWith("/"));
+      if(!payload.length){ say("That zip contains no usable save files.","err"); return; }
+
+      const resolved = payload.map(en => {
+        const key = (keyMap && keyMap.has(en.name)) ? keyMap.get(en.name) : en.name;
+        return { key, zipName: en.name, data: en.data };
+      });
+
+      const listing = resolved.map(r => "  " + r.zipName + "  →  key: " + r.key + "  (" + r.data.length + " bytes)").join("\n");
+      if(!confirm("Import " + resolved.length + " save file(s)?\n\n" + listing +
+                  "\n\nExisting records with the same keys will be overwritten.")) return;
+
+      let existing = [];
+      try { existing = await readAllRecords(); }
+      catch(err){ say("Could not read database: " + (err && err.message || err), "err"); return; }
+      const existingMap = new Map(existing.map(r => [r.key, r.value]));
+
+      const importedKeys = [];
+      try {
+        const tx = db.transaction(STORE, "readwrite");
+        const store = tx.objectStore(STORE);
+
+        for(const r of resolved){
+          let copy;
+          const prev = existingMap.get(r.key);
+          if(prev){ copy = {}; for(const p in prev) copy[p] = prev[p]; }
+          else copy = { mode: 33206 };
+          copy.contents = r.data;
+          copy.timestamp = new Date();
+          store.put(copy, r.key);
+          importedKeys.push(r.key);
+        }
+
+        tx.onerror = ev2 => say("Import failed: " + (ev2.target.error && ev2.target.error.message || "unknown"),"err");
+        tx.oncomplete = () => {
+          // any previously selected record is now stale
+          key = null; rec = null; baseline = null;
+          ["write","resetF","bk","rv","exportBtn"].forEach(id => $(id).disabled = true);
+          armedWrite = armedRevert = false;
+          $("write").textContent = "WRITE"; $("write").classList.remove("warnbtn");
+          $("rv").textContent = "REVERT TO LOADED STATE"; $("rv").classList.remove("warnbtn");
+
+          listFiles();
+          say("Imported " + importedKeys.length + " save file(s) from " + f.name + ":\n" +
+              importedKeys.map(k => "  " + k).join("\n") +
+              "\n\nPick file0 from the list to edit it.", "ok");
+
+          // convenience: auto-open file0 if it came in with the zip
+          const f0 = importedKeys.find(k => /(^|\/)file0$/i.test(k));
+          if(f0) setTimeout(() => { try { pick(f0); } catch(_){} }, 200);
+        };
+      } catch(err){
+        say("Import threw: " + (err && err.message || err), "err");
+      }
+    };
+    reader.readAsArrayBuffer(f);
+  };
+  inp.click();
+}
+
+/* ---------- backup / revert ---------- */
+function downloadBackup(){
+  if(!baseline) return;
+  const blob = new Blob([baseline], { type: "application/octet-stream" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = String(key).replace(/[\/\\]/g,"_") + ".backup";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  say("Backup downloaded.","ok");
+}
+
+function revertClick(){
+  if(!armedRevert){
+    armedRevert = true;
+    $("rv").textContent = "CLICK AGAIN TO REVERT";
+    $("rv").classList.add("warnbtn");
+    if(revTimer) clearTimeout(revTimer);
+    revTimer = setTimeout(() => {
+      armedRevert = false;
+      $("rv").textContent = "REVERT TO LOADED STATE";
+      $("rv").classList.remove("warnbtn");
+    }, 4000);
+    say("Click REVERT again within 4 seconds to confirm.","warn");
+    return;
+  }
+  armedRevert = false;
+  if(revTimer){ clearTimeout(revTimer); revTimer = null; }
+  $("rv").textContent = "REVERT TO LOADED STATE";
+  $("rv").classList.remove("warnbtn");
+  doRevert();
+}
+
+function doRevert(){
+  if(!baseline || !rec || !key) return;
+  const copy = {};
+  for(const p in rec) copy[p] = rec[p];
+  copy.contents = makeContents(baseline);
+  const tx = db.transaction(STORE,"readwrite");
+  const req = tx.objectStore(STORE).put(copy, key);
+  req.onsuccess = () => {
+    rec = copy;
+    populateFromBytes(baseline);
+    say("Reverted " + key + " to the bytes it had when you first loaded it.","ok");
+  };
+  req.onerror = e => say("Revert failed: " + (e.target.error && e.target.error.message || "unknown"),"err");
+}
+</script>
+</body>
+</html>
