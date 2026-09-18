@@ -139,6 +139,17 @@
   <!-- <footer>
       <p>Built with <a href="https://github.com/Davidobot/love.js">love.js</a> <button onclick="goFullScreen();">Go Fullscreen</button><br>Hint: Reload the page if screen is blank</p>
     </footer> -->
+
+<script src="love.js"></script>
+<script>
+  var Module = {};
+  Module['locateFile'] = function(path) {
+    if (path.endsWith('.wasm')) return 'love.wasm';
+    return path;
+  };
+</script>
+
+  
 </body>
 
 </html>
