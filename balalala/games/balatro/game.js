@@ -75,6 +75,7 @@ Module.expectedDataFileDownloads++;
           callback(packageData);
         } else {
           throw new Error(xhr.statusText + " : " + xhr.responseURL);
+          throw new Error(`Failed to load ${xhr.responseURL} (status ${xhr.status}: ${xhr.statusText})`);
         }
       };
       xhr.send(null);
