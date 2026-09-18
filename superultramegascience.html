@@ -1,42 +1,207 @@
-<!--Rocket Dancer HTML with CSS embedded-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script defer src="https://cloud.umami.is/script.js" data-website-id="6e9b1de4-1a48-493a-a06e-3d23a78bbd3e"></script>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Grades and Attendance</title>
-<link rel="icon" type="image/x-icon" href="favicon.ico">
-<style>
-html, body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: #000;
-}
-iframe {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    border: none;
-}
-#truffled-logo {
-    position: fixed;
-    bottom: 10px;
-    right: 10px;
-    width: 150px;
-    height: 150px;
-    cursor: pointer;
-    z-index: 9999;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rocket Dancer - Self Hosted</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #111;
+            color: white;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        canvas {
+            border: 4px solid #333;
+            background-color: #050508;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+        #ui {
+            margin-top: 10px;
+            font-size: 18px;
+        }
+    </style>
 </head>
 <body>
-<iframe src="https://itch.zone" width="800" height="600" frameborder="0" scrolling="no" allowfullscreen></iframe>
 
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="ui">Use <b>W / Up Arrow</b> to thrust, <b>A/D or Left/Right</b> to steer!</div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+// Game Variables
+let rocket = { x: 80, y: 100, vx: 0, vy: 0, angle: 0, thrust: false, fuel: 100, alive: true, won: false };
+const gravity = 0.05;
+const thrustPower = 0.15;
+const rotationSpeed = 0.07;
+
+// Cavern Walls / Obstacles
+const walls = [
+    {x: 0, y: 0, w: 800, h: 40}, // Ceiling
+    {x: 0, y: 0, w: 40, h: 600}, // Left Wall
+    {x: 760, y: 0, w: 40, h: 600}, // Right Wall
+    {x: 0, y: 560, w: 800, h: 40}, // Floor
+    // Inner Maze Obstacles
+    {x: 180, y: 40, w: 60, h: 400},
+    {x: 360, y: 200, w: 60, h: 400},
+    {x: 540, y: 40, w: 60, h: 400}
+];
+
+// Start Pad & Light Blue Landing Zone
+const startPad = { x: 50, y: 140, w: 60, h: 10 };
+const landingPad = { x: 670, y: 530, w: 70, h: 15 };
+
+// Keyboard Tracking
+const keys = {};
+window.addEventListener("keydown", e => keys[e.key] = true);
+window.addEventListener("keyup", e => keys[e.key] = false);
+
+function resetGame() {
+    rocket = { x: 80, y: 120, vx: 0, vy: 0, angle: 0, thrust: false, fuel: 100, alive: true, won: false };
+}
+
+function checkCollision(rect1, rect2) {
+    return rect1.x < rect2.x + rect2.w &&
+           rect1.x + rect1.w > rect2.x &&
+           rect1.y < rect2.y + rect2.h &&
+           rect1.y + rect1.h > rect2.y;
+}
+
+function update() {
+    if (!rocket.alive || rocket.won) {
+        if (keys[" "] || keys["Enter"]) resetGame();
+        return;
+    }
+
+    // Rotation Control
+    if (keys["a"] || keys["ArrowLeft"]) rocket.angle -= rotationSpeed;
+    if (keys["d"] || keys["ArrowRight"]) rocket.angle += rotationSpeed;
+
+    // Thrust Control
+    if ((keys["w"] || keys["ArrowUp"] || keys[" "]) && rocket.fuel > 0) {
+        rocket.vx += Math.sin(rocket.angle) * thrustPower;
+        rocket.vy -= Math.cos(rocket.angle) * thrustPower;
+        rocket.fuel -= 0.3;
+        rocket.thrust = true;
+    } else {
+        rocket.thrust = false;
+    }
+
+    // Apply Physics
+    rocket.vy += gravity;
+    rocket.x += rocket.vx;
+    rocket.y += rocket.vy;
+
+    const rRect = { x: rocket.x - 10, y: rocket.y - 15, w: 20, h: 30 };
+
+    // Check Wall Hits
+    for (let wall of walls) {
+        if (checkCollision(rRect, wall)) {
+            rocket.alive = false;
+        }
+    }
+
+    // Check Landing Zone Win Condition
+    if (checkCollision(rRect, landingPad)) {
+        rocket.won = true;
+        rocket.vx = 0; rocket.vy = 0;
+    }
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw Cavern Walls
+    ctx.fillStyle = "#444";
+    walls.forEach(w => ctx.fillRect(w.x, w.w ? w.x : w.x, w.w, w.h));
+    walls.forEach(w => {
+        ctx.fillStyle = "#2c2c35";
+        ctx.fillRect(w.x, w.y, w.w, w.h);
+        ctx.strokeStyle = "#4e4e5a";
+        ctx.strokeRect(w.x, w.y, w.w, w.h);
+    });
+
+    // Draw Start & Landing Zones
+    ctx.fillStyle = "#555";
+    ctx.fillRect(startPad.x, startPad.y, startPad.w, startPad.h);
+    ctx.fillStyle = "#00d2ff"; // Light Blue Pad
+    ctx.fillRect(landingPad.x, landingPad.y, landingPad.w, landingPad.h);
+    ctx.fillStyle = "#fff";
+    ctx.font = "12px sans-serif";
+    ctx.fillText("GOAL", landingPad.x + 18, landingPad.y + 12);
+
+    // Draw Rocket
+    if (rocket.alive) {
+        ctx.save();
+        ctx.translate(rocket.x, rocket.y);
+        ctx.rotate(rocket.angle);
+
+        // Flame Trail
+        if (rocket.thrust) {
+            ctx.fillStyle = Math.random() > 0.5 ? "#ff6600" : "#ffcc00";
+            ctx.beginPath();
+            ctx.moveTo(-6, 15);
+            ctx.lineTo(0, 15 + Math.random() * 15);
+            ctx.lineTo(6, 15);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Rocket Ship Body
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.moveTo(0, -18);
+        ctx.lineTo(10, 12);
+        ctx.lineTo(-10, 12);
+        ctx.closePath();
+        ctx.fill();
+
+        // Fins
+        ctx.fillStyle = "#ff3333";
+        ctx.fillRect(-12, 5, 4, 8);
+        ctx.fillRect(8, 5, 4, 8);
+
+        ctx.restore();
+    }
+
+    // Heads Up Display (HUD)
+    ctx.fillStyle = "white";
+    ctx.font = "16px sans-serif";
+    ctx.fillText(`Fuel: ${Math.max(0, Math.floor(rocket.fuel))}%`, 60, 75);
+
+    if (!rocket.alive) {
+        ctx.fillStyle = "red";
+        ctx.font = "40px sans-serif";
+        ctx.fillText("CRASHED!", 300, 280);
+        ctx.font = "20px sans-serif";
+        ctx.fillText("Press ENTER or SPACE to restart", 260, 320);
+    }
+
+    if (rocket.won) {
+        ctx.fillStyle = "#00d2ff";
+        ctx.font = "40px sans-serif";
+        ctx.fillText("LEVEL COMPLETE!", 240, 280);
+        ctx.font = "20px sans-serif";
+        ctx.fillStyle = "white";
+        ctx.fillText("Press ENTER or SPACE to play again", 260, 320);
+    }
+}
+
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+loop();
+</script>
 </body>
 </html>
