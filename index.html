@@ -48,11 +48,21 @@
   }
 
   /* Sidebar */
+  /* Sidebar */
   nav {
     position: sticky;
     top: 72px;
     align-self: start;
-	  padding:0;
+    padding: 0;
+    /* New constraints for scrolling */
+    max-height: calc(100vh - 100px); /* Leave space for padding at bottom */
+    overflow-y: auto;               /* Allows internal scrolling */
+    scrollbar-width: none;          /* Hides scrollbar for clean look (Firefox) */
+  }
+
+  /* Optional: Hide scrollbar for Chrome/Safari/Edge */
+  nav::-webkit-scrollbar {
+    display: none;
   }
 
   nav .label {
