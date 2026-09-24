@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Save Data Manager</title>
+<style>
+  :root{
+    --bg: #0e0b13;
+    --panel: #171320;
+    --panel-2: #1e1929;
+    --line: #2c2438;
+    --text: #f2ede6;
+    --muted: #948b9e;
+    --accent: #e3273f;
+    --accent-dim: #7a1c28;
+    --violet: #8b7db8;
+    --ok: #4fae7a;
+    --warn: #d99a3d;
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);}
+  body{padding-bottom:4rem;}
+  a{color:var(--violet);}
+
+  header{
+    border-bottom:1px solid var(--line);
+    padding:1.6rem 1.5rem 1.3rem;
+    display:flex; flex-wrap:wrap; gap:1.2rem; align-items:flex-end; justify-content:space-between;
+    background:linear-gradient(180deg, rgba(227,39,63,0.06), transparent 70%);
+  }
+  .brand{max-width:640px;}
+  .brand h1{
+    font-family:var(--mono); font-size:1.35rem; letter-spacing:0.02em; margin:0 0 0.35rem;
+    font-weight:600;
+  }
+  .brand h1 .cursor{display:inline-block;width:0.55em;background:var(--accent);margin-left:0.15em;animation:blink 1.1s steps(1) infinite;}
+  @keyframes blink{50%{opacity:0;}}
+  .brand p{margin:0;color:var(--muted);font-size:0.92rem;line-height:1.5;}
+  .actions{display:flex;gap:0.6rem;flex-wrap:wrap;}
+
+  button, .btn{
+    font-family:var(--sans); font-size:0.85rem; font-weight:600;
+    background:var(--panel-2); color:var(--text); border:1px solid var(--line);
+    padding:0.55rem 0.95rem; border-radius:4px; cursor:pointer;
+    transition:border-color .12s, background .12s;
+  }
+  button:hover, .btn:hover{border-color:var(--violet);}
+  button.primary{background:var(--accent); border-color:var(--accent); color:#fff;}
+  button.primary:hover{background:#c91f34;}
+  button.ghost{background:transparent;}
+  button:disabled{opacity:0.4;cursor:not-allowed;}
+  button.small{padding:0.3rem 0.6rem;font-size:0.75rem;}
+
+  main{max-width:1080px;margin:0 auto;padding:1.6rem 1.5rem;}
+
+  .log{
+    font-family:var(--mono); font-size:0.78rem; color:var(--muted);
+    background:var(--panel); border:1px solid var(--line); border-radius:6px;
+    padding:0.8rem 1rem; margin-bottom:1.6rem; max-height:8rem; overflow-y:auto;
+    white-space:pre-wrap;
+  }
+  .log .err{color:var(--accent);}
+  .log .ok{color:var(--ok);}
+
+  section{margin-bottom:2.2rem;}
+  section > h2{
+    font-family:var(--mono); font-size:0.95rem; letter-spacing:0.03em; text-transform:uppercase;
+    color:var(--violet); margin:0 0 0.9rem; border-bottom:1px solid var(--line); padding-bottom:0.5rem;
+    display:flex; justify-content:space-between; align-items:center; font-weight:600;
+  }
+  section > p.hint{color:var(--muted); font-size:0.85rem; margin:-0.5rem 0 1rem;}
+
+  .empty{color:var(--muted); font-size:0.88rem; font-style:italic; padding:1rem 0;}
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr)); gap:0.8rem;}
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:0.9rem 1rem;
+    display:flex; flex-direction:column; gap:0.55rem;
+  }
+  .card .title{font-family:var(--mono); font-weight:600; font-size:0.92rem;}
+  .card .sub{color:var(--muted); font-size:0.76rem; line-height:1.4;}
+  .card .meta{display:flex; gap:0.4rem; flex-wrap:wrap; font-size:0.7rem;}
+  .tag{
+    background:var(--panel-2); border:1px solid var(--line); border-radius:3px;
+    padding:0.15rem 0.4rem; color:var(--muted); font-family:var(--mono);
+  }
+  .tag.chap{color:var(--accent); border-color:var(--accent-dim);}
+  .card .row{display:flex; gap:0.4rem; margin-top:0.3rem;}
+
+  details.dbgroup{
+    background:var(--panel); border:1px solid var(--line); border-radius:6px; margin-bottom:0.7rem; overflow:hidden;
+  }
+  details.dbgroup > summary{
+    padding:0.7rem 1rem; cursor:pointer; font-family:var(--mono); font-size:0.85rem; font-weight:600;
+    list-style:none; display:flex; justify-content:space-between; align-items:center; gap:1rem;
+  }
+  details.dbgroup > summary::-webkit-details-marker{display:none;}
+  details.dbgroup > summary .n{color:var(--muted); font-weight:400; font-size:0.78rem;}
+  table{width:100%; border-collapse:collapse; font-size:0.82rem;}
+  table th, table td{
+    text-align:left; padding:0.45rem 1rem; border-top:1px solid var(--line);
+  }
+  table th{color:var(--muted); font-weight:600; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.03em;}
+  table td.key{font-family:var(--mono); word-break:break-all;}
+  table td.size{color:var(--muted); white-space:nowrap;}
+  table td.act{white-space:nowrap;}
+
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(6,4,9,0.72); display:none;
+    align-items:flex-start; justify-content:center; padding:4vh 1rem; z-index:50; overflow-y:auto;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{
+    background:var(--panel); border:1px solid var(--line); border-radius:8px; max-width:720px; width:100%;
+    padding:1.4rem 1.5rem 1.5rem;
+  }
+  .modal h3{font-family:var(--mono); margin:0 0 0.2rem; font-size:1.05rem;}
+  .modal .path{color:var(--muted); font-size:0.78rem; font-family:var(--mono); margin-bottom:1rem;}
+  .modal pre{
+    background:var(--bg); border:1px solid var(--line); border-radius:5px; padding:0.9rem;
+    font-family:var(--mono); font-size:0.78rem; max-height:40vh; overflow:auto; white-space:pre-wrap; word-break:break-all;
+  }
+  .modal .toolbar{display:flex; gap:0.5rem; margin:0.9rem 0; flex-wrap:wrap;}
+  .modal .close-row{display:flex; justify-content:flex-end; margin-top:1rem;}
+  .modal .warn-box{
+    background:rgba(217,154,61,0.1); border:1px solid var(--warn); color:var(--warn);
+    border-radius:5px; padding:0.6rem 0.8rem; font-size:0.78rem; margin-bottom:0.9rem;
+  }
+  input[type=file]{display:none;}
+  .footer-note{color:var(--muted); font-size:0.78rem; text-align:center; margin-top:2.5rem; line-height:1.6;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>save data manager<span class="cursor">&nbsp;</span></h1>
+    <p>Reads this browser's local save data for the webport hosted at this domain, lets you download it as a real file, restore it later, and inspect individual save slots. Everything happens on this page &mdash; nothing is uploaded anywhere.</p>
+  </div>
+  <div class="actions">
+    <button id="rescan" class="ghost">Rescan</button>
+    <button id="exportAll" class="primary">Export full backup</button>
+    <button id="importAllBtn">Import backup</button>
+    <input type="file" id="importAllFile" accept="application/json">
+  </div>
+</header>
+
+<main>
+  <div class="log" id="log">Scanning for local save data&hellip;</div>
+
+  <section>
+    <h2>Save files</h2>
+    <p class="hint">Slots detected by filename pattern (<code>filechX_Y</code>): Y 0&ndash;2 are slots 1&ndash;3, 3&ndash;5 are that slot's chapter-clear data, 9 is the latest autosave. If nothing shows up here, your save data may use a different internal layout &mdash; check "All local data" below instead.</p>
+    <div class="grid" id="saveGrid"><div class="empty">Scanning&hellip;</div></div>
+  </section>
+
+  <section>
+    <h2>All local data</h2>
+    <p class="hint">Every database, store and record this page can see on this origin. Useful for options/config files or anything not named like a save slot.</p>
+    <div id="dbList"><div class="empty">Scanning&hellip;</div></div>
+  </section>
+
+  <p class="footer-note">
+    Drop this file next to your webport's <code>index.html</code> and open it from the same domain &mdash; browser storage is locked to a single origin, so this page only ever sees data belonging to the site it's hosted on.<br>
+    Always export a backup before importing one or replacing a slot: writes happen immediately and there's no undo.
+  </p>
+</main>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" id="modalBox"></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const log = document.getElementById('log');
+  const logLines = [];
+  function say(msg, cls){
+    logLines.push(cls ? `<span class="${cls}">${escapeHtml(msg)}</span>` : escapeHtml(msg));
+    log.innerHTML = logLines.join('\n');
+    log.scrollTop = log.scrollHeight;
+  }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ---------- byte helpers ----------
+  function toBytes(value){
+    // Returns a Uint8Array view of a record value's raw bytes, or null if not byte-like.
+    if (value instanceof Uint8Array) return value;
+    if (value instanceof ArrayBuffer) return new Uint8Array(value);
+    if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+    return null;
+  }
+  function bytesToText(bytes){
+    try { return new TextDecoder('utf-8', {fatal:false}).decode(bytes); }
+    catch(e){ return null; }
+  }
+  function textToBytes(str){ return new TextEncoder().encode(str); }
+  function bytesToBase64(bytes){
+    let binary = '';
+    const chunk = 0x8000;
+    for (let i=0; i<bytes.length; i+=chunk){
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i+chunk));
+    }
+    return btoa(binary);
+  }
+  function base64ToBytes(b64){
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+  function humanSize(n){
+    if (n < 1024) return n + ' B';
+    if (n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
+    return (n/1024/1024).toFixed(2) + ' MB';
+  }
+  function approxSize(value){
+    const b = toBytes(value);
+    if (b) return b.length;
+    if (typeof value === 'string') return textToBytes(value).length;
+    if (value && typeof value === 'object'){
+      try { return JSON.stringify(value).length; } catch(e){ return 0; }
+    }
+    return 0;
+  }
+
+  // ---------- serialize / deserialize for backup JSON ----------
+  function serializeValue(v, depth){
+    depth = depth || 0;
+    if (depth > 8) return {__idb:'unsupported'};
+    if (v === null || v === undefined) return v;
+    if (v instanceof Uint8Array) return {__idb:'Uint8Array', data: bytesToBase64(v)};
+    if (v instanceof ArrayBuffer) return {__idb:'ArrayBuffer', data: bytesToBase64(new Uint8Array(v))};
+    if (ArrayBuffer.isView(v)) return {__idb:'Uint8Array', data: bytesToBase64(new Uint8Array(v.buffer, v.byteOffset, v.byteLength))};
+    if (v instanceof Date) return {__idb:'Date', iso: v.toISOString()};
+    if (Array.isArray(v)) return v.map(x => serializeValue(x, depth+1));
+    if (typeof v === 'object'){
+      const out = {};
+      for (const k in v){ if (Object.prototype.hasOwnProperty.call(v,k)) out[k] = serializeValue(v[k], depth+1); }
+      return out;
+    }
+    return v; // string, number, boolean
+  }
+  function deserializeValue(v){
+    if (v === null || v === undefined) return v;
+    if (Array.isArray(v)) return v.map(deserializeValue);
+    if (typeof v === 'object'){
+      if (v.__idb === 'Uint8Array') return base64ToBytes(v.data);
+      if (v.__idb === 'ArrayBuffer') return base64ToBytes(v.data).buffer;
+      if (v.__idb === 'Date') return new Date(v.iso);
+      const out = {};
+      for (const k in v){ if (Object.prototype.hasOwnProperty.call(v,k)) out[k] = deserializeValue(v[k]); }
+      return out;
+    }
+    return v;
+  }
+
+  async function readBlobIfNeeded(v){
+    if (typeof Blob !== 'undefined' && v instanceof Blob){
+      const buf = await v.arrayBuffer();
+      return new Uint8Array(buf);
+    }
+    return v;
+  }
+
+  // ---------- IndexedDB scanning ----------
+  let scanResult = { databases: [] }; // { name, version, stores:[{name, keyPath, autoIncrement, records:[{key, value}]}] }
+
+  async function scanAll(){
+    scanResult = { databases: [] };
+    if (!('indexedDB' in window)){
+      say('This browser does not support IndexedDB. Nothing to scan.', 'err');
+      return;
+    }
+    let dbInfos = [];
+    try {
+      if (indexedDB.databases) {
+        dbInfos = await indexedDB.databases();
+      } else {
+        say('This browser cannot list databases automatically (no indexedDB.databases()). Try Chrome, Edge, or a recent Firefox.', 'err');
+        return;
+      }
+    } catch(e){
+      say('Could not list databases: ' + e.message, 'err');
+      return;
+    }
+    if (!dbInfos.length){
+      say('No IndexedDB databases found on this origin yet. Open and play the webport at least once first, then rescan.', 'warn');
+      return;
+    }
+    for (const info of dbInfos){
+      if (!info.name) continue;
+      try {
+        const dbEntry = await scanDatabase(info.name);
+        scanResult.databases.push(dbEntry);
+        say(`Read "${info.name}" — ${dbEntry.stores.length} store(s), ${dbEntry.stores.reduce((a,s)=>a+s.records.length,0)} record(s)`, 'ok');
+      } catch(e){
+        say(`Could not read database "${info.name}": ` + e.message, 'err');
+      }
+    }
+  }
+
+  function scanDatabase(name){
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(name);
+      req.onerror = () => reject(req.error || new Error('open failed'));
+      req.onblocked = () => reject(new Error('blocked (another tab may have the game open)'));
+      req.onsuccess = async () => {
+        const db = req.result;
+        const storeNames = Array.from(db.objectStoreNames);
+        const stores = [];
+        try {
+          for (const sn of storeNames){
+            const store = await readStore(db, sn);
+            stores.push(store);
+          }
+          db.close();
+          resolve({ name, version: db.version, stores });
+        } catch(e){
+          db.close();
+          reject(e);
+        }
+      };
+    });
+  }
+
+  function readStore(db, storeName){
+    return new Promise((resolve, reject) => {
+      let tx;
+      try { tx = db.transaction(storeName, 'readonly'); }
+      catch(e){ return reject(e); }
+      const store = tx.objectStore(storeName);
+      const keyPath = store.keyPath;
+      const autoIncrement = store.autoIncrement;
+      const keysReq = store.getAllKeys();
+      const valsReq = store.getAll();
+      let keys, vals;
+      keysReq.onsuccess = () => { keys = keysReq.result; maybeDone(); };
+      valsReq.onsuccess = () => { vals = valsReq.result; maybeDone(); };
+      tx.onerror = () => reject(tx.error);
+      function maybeDone(){
+        if (keys === undefined || vals === undefined) return;
+        (async () => {
+          const records = [];
+          for (let i=0;i<vals.length;i++){
+            const value = await readBlobIfNeeded(vals[i]);
+            records.push({ key: keys[i], value });
+          }
+          resolve({ name: storeName, keyPath, autoIncrement, records });
+        })().catch(reject);
+      }
+    });
+  }
+
+  // ---------- save-slot detection ----------
+  const FILECH_RE = /filech(\d+)_(\d+)/i;
+
+  function slotLabel(n){
+    n = parseInt(n,10);
+    if (n>=0 && n<=2) return `Slot ${n+1}`;
+    if (n>=3 && n<=5) return `Slot ${n-2} clear data`;
+    if (n===9) return 'Latest autosave';
+    return `Suffix ${n}`;
+  }
+
+  // Given a raw record value, find its actual byte/text payload. Many builds
+  // (Emscripten-style IDBFS) wrap the real file inside {contents, mode, timestamp, ...}
+  // rather than storing the bytes as the record value directly.
+  function extractContent(value){
+    if (toBytes(value) || typeof value === 'string'){
+      return { holderKind: 'direct', content: value, field: null };
+    }
+    if (value && typeof value === 'object' && !Array.isArray(value)){
+      for (const field of ['contents','data','value']){
+        const fv = value[field];
+        if (fv !== undefined && (toBytes(fv) || typeof fv === 'string')){
+          return { holderKind: 'nested', content: fv, field };
+        }
+      }
+    }
+    return { holderKind: 'direct', content: value, field: null }; // fallback: show as JSON
+  }
+
+  function findSaveRecords(){
+    const found = [];
+    for (const db of scanResult.databases){
+      for (const store of db.stores){
+        for (const rec of store.records){
+          let filename = null;
+          if (typeof rec.key === 'string' && FILECH_RE.test(rec.key)){
+            filename = rec.key.split('/').pop();
+          } else if (rec.value && typeof rec.value === 'object' && !Array.isArray(rec.value)){
+            for (const field of ['path','name','filename','fname']){
+              const fv = rec.value[field];
+              if (typeof fv === 'string' && FILECH_RE.test(fv)){ filename = fv.split('/').pop(); break; }
+            }
+          }
+          if (!filename) continue;
+          const m = FILECH_RE.exec(filename);
+          const { holderKind, content, field } = extractContent(rec.value);
+          found.push({
+            filename, chapter: m[1], slot: m[2],
+            dbName: db.name, storeName: store.name, key: rec.key,
+            rawValue: rec.value, content, holderKind, contentField: field,
+            size: approxSize(content)
+          });
+        }
+      }
+    }
+    found.sort((a,b)=> a.chapter - b.chapter || a.slot - b.slot || a.filename.localeCompare(b.filename));
+    return found;
+  }
+
+  // ---------- rendering ----------
+  const saveGrid = document.getElementById('saveGrid');
+  const dbList = document.getElementById('dbList');
+
+  function render(){
+    renderSaveGrid();
+    renderDbList();
+  }
+
+  function renderSaveGrid(){
+    const saves = findSaveRecords();
+    if (!saves.length){
+      saveGrid.innerHTML = '<div class="empty">No files matching filechX_Y were found.</div>';
+      return;
+    }
+    saveGrid.innerHTML = '';
+    saves.forEach((s, idx) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="title">${escapeHtml(s.filename)}</div>
+        <div class="meta">
+          <span class="tag chap">Chapter ${s.chapter}</span>
+          <span class="tag">${slotLabel(s.slot)}</span>
+          <span class="tag">${humanSize(s.size)}</span>
+        </div>
+        <div class="sub">${escapeHtml(s.dbName)} &rsaquo; ${escapeHtml(s.storeName)}</div>
+        <div class="row">
+          <button class="small" data-act="view">View</button>
+          <button class="small" data-act="download">Download</button>
+          <button class="small" data-act="replace">Replace</button>
+        </div>
+      `;
+      card.querySelector('[data-act=view]').onclick = () => openViewModal(s);
+      card.querySelector('[data-act=download]').onclick = () => downloadRecord(s.filename, s.content);
+      card.querySelector('[data-act=replace]').onclick = () => openReplaceModal(s);
+      saveGrid.appendChild(card);
+    });
+  }
+
+  function renderDbList(){
+    if (!scanResult.databases.length){
+      dbList.innerHTML = '<div class="empty">No databases found.</div>';
+      return;
+    }
+    dbList.innerHTML = '';
+    scanResult.databases.forEach(db => {
+      const totalRecords = db.stores.reduce((a,s)=>a+s.records.length,0);
+      const details = document.createElement('details');
+      details.className = 'dbgroup';
+      const summary = document.createElement('summary');
+      summary.innerHTML = `<span>${escapeHtml(db.name)} <span class="n">v${db.version}</span></span><span class="n">${db.stores.length} store(s) · ${totalRecords} record(s)</span>`;
+      details.appendChild(summary);
+
+      db.stores.forEach(store => {
+        const wrap = document.createElement('div');
+        const table = document.createElement('table');
+        table.innerHTML = `<thead><tr>
+            <th>Key</th><th>Size</th><th></th>
+          </tr></thead>`;
+        const tbody = document.createElement('tbody');
+        if (!store.records.length){
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td colspan="3" style="color:var(--muted)">Store "${escapeHtml(store.name)}" — empty</td>`;
+          tbody.appendChild(tr);
+        }
+        store.records.forEach(rec => {
+          const tr = document.createElement('tr');
+          const keyLabel = typeof rec.key === 'object' ? JSON.stringify(rec.key) : String(rec.key);
+          const size = approxSize(rec.value);
+          const td1 = document.createElement('td');
+          td1.className = 'key';
+          td1.textContent = `[${store.name}] ${keyLabel}`;
+          const td2 = document.createElement('td');
+          td2.className = 'size';
+          td2.textContent = humanSize(size);
+          const td3 = document.createElement('td');
+          td3.className = 'act';
+          const viewBtn = document.createElement('button');
+          viewBtn.className = 'small'; viewBtn.textContent = 'View';
+          viewBtn.onclick = () => {
+            const ex = extractContent(rec.value);
+            openViewModal({
+              filename: (typeof rec.key === 'string' ? rec.key.split('/').pop() : keyLabel),
+              dbName: db.name, storeName: store.name, key: rec.key,
+              content: ex.content, rawValue: rec.value, holderKind: ex.holderKind, contentField: ex.field
+            });
+          };
+          td3.appendChild(viewBtn);
+          tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3);
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        wrap.appendChild(table);
+        details.appendChild(wrap);
+      });
+      dbList.appendChild(details);
+    });
+  }
+
+  // ---------- modal ----------
+  const backdrop = document.getElementById('modalBackdrop');
+  const modalBox = document.getElementById('modalBox');
+  function closeModal(){ backdrop.classList.remove('open'); modalBox.innerHTML=''; }
+  backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
+
+  function describeContent(content){
+    const bytes = toBytes(content);
+    if (bytes){
+      const text = bytesToText(bytes);
+      const printable = text && !/[\x00-\x08\x0E-\x1F]/.test(text.slice(0,2000));
+      if (printable){
+        let pretty = text;
+        try { pretty = JSON.stringify(JSON.parse(text), null, 2); } catch(e){ /* not json, fine */ }
+        return { kind:'text', text: pretty, size: bytes.length };
+      }
+      let hex = '';
+      for (let i=0;i<Math.min(bytes.length, 2000); i++) hex += bytes[i].toString(16).padStart(2,'0') + ' ';
+      if (bytes.length > 2000) hex += '…';
+      return { kind:'hex', text: hex, size: bytes.length };
+    }
+    if (typeof content === 'string'){
+      let pretty = content;
+      try { pretty = JSON.stringify(JSON.parse(content), null, 2); } catch(e){}
+      return { kind:'text', text: pretty, size: textToBytes(content).length };
+    }
+    try {
+      return { kind:'text', text: JSON.stringify(content, null, 2), size: approxSize(content) };
+    } catch(e){
+      return { kind:'text', text: String(content), size: 0 };
+    }
+  }
+
+  function openViewModal(s){
+    const info = describeContent(s.content);
+    modalBox.innerHTML = `
+      <h3>${escapeHtml(s.filename)}</h3>
+      <div class="path">${escapeHtml(s.dbName)} &rsaquo; ${escapeHtml(s.storeName)} &rsaquo; key: ${escapeHtml(String(s.key))} &middot; ${humanSize(info.size)} &middot; ${info.kind === 'text' ? 'decoded as text' : 'binary (hex preview)'}</div>
+      <pre>${escapeHtml(info.text)}</pre>
+      <div class="toolbar">
+        <button id="mDownload">Download this file</button>
+        <button id="mReplace">Replace&hellip;</button>
+      </div>
+      <div class="close-row"><button id="mClose" class="ghost">Close</button></div>
+    `;
+    backdrop.classList.add('open');
+    modalBox.querySelector('#mDownload').onclick = () => downloadRecord(s.filename, s.content);
+    modalBox.querySelector('#mReplace').onclick = () => openReplaceModal(s);
+    modalBox.querySelector('#mClose').onclick = closeModal;
+  }
+
+  function openReplaceModal(s){
+    modalBox.innerHTML = `
+      <h3>Replace ${escapeHtml(s.filename)}</h3>
+      <div class="path">${escapeHtml(s.dbName)} &rsaquo; ${escapeHtml(s.storeName)} &rsaquo; key: ${escapeHtml(String(s.key))}</div>
+      <div class="warn-box">This overwrites the live record in IndexedDB immediately. Export a full backup first if you haven't.</div>
+      <input type="file" id="mFile">
+      <div class="close-row">
+        <button id="mCancel" class="ghost">Cancel</button>
+      </div>
+    `;
+    backdrop.classList.add('open');
+    modalBox.querySelector('#mCancel').onclick = closeModal;
+    modalBox.querySelector('#mFile').onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        await replaceRecord(s, file);
+        say(`Replaced ${s.filename} in "${s.dbName}"`, 'ok');
+        closeModal();
+        await runScan();
+      } catch(err){
+        say('Replace failed: ' + err.message, 'err');
+      }
+    };
+  }
+
+  function downloadRecord(filename, content){
+    const bytes = toBytes(content);
+    let blob;
+    if (bytes) blob = new Blob([bytes]);
+    else if (typeof content === 'string') blob = new Blob([content]);
+    else blob = new Blob([JSON.stringify(content, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename.replace(/[^\w.\-]+/g,'_') || 'file';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+  }
+
+  async function replaceRecord(s, file){
+    const buf = await file.arrayBuffer();
+    const newBytes = new Uint8Array(buf);
+
+    return new Promise((resolve, reject) => {
+      const openReq = indexedDB.open(s.dbName);
+      openReq.onerror = () => reject(openReq.error);
+      openReq.onsuccess = () => {
+        const db = openReq.result;
+        let tx;
+        try { tx = db.transaction(s.storeName, 'readwrite'); }
+        catch(e){ db.close(); return reject(e); }
+        const store = tx.objectStore(s.storeName);
+
+        if (s.holderKind === 'direct'){
+          // preserve original type shape when possible
+          let newValue;
+          if (typeof s.rawValue === 'string'){
+            newValue = bytesToText(newBytes) ?? '';
+          } else if (toBytes(s.rawValue)){
+            newValue = (s.rawValue instanceof Uint8Array || ArrayBuffer.isView(s.rawValue)) ? newBytes : newBytes.buffer;
+          } else {
+            newValue = newBytes;
+          }
+          if (store.keyPath) store.put(newValue);
+          else store.put(newValue, s.key);
+        } else {
+          // nested object holder e.g. IDBFS-style {path, contents, mode, timestamp}
+          const clone = Object.assign({}, s.rawValue);
+          const field = s.contentField || 'contents';
+          const origVal = s.rawValue[field];
+          clone[field] = (typeof origVal === 'string') ? (bytesToText(newBytes) ?? '') : newBytes;
+          if (store.keyPath) store.put(clone);
+          else store.put(clone, s.key);
+        }
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onerror = () => { db.close(); reject(tx.error); };
+      };
+    });
+  }
+
+  // ---------- export / import full backup ----------
+  async function exportAll(){
+    if (!scanResult.databases.length){
+      say('Nothing to export yet — rescan first.', 'warn');
+      return;
+    }
+    say('Building backup file…');
+    const out = { format: 'idb-save-backup', version: 1, exportedAt: new Date().toISOString(), databases: [] };
+    for (const db of scanResult.databases){
+      const dbOut = { name: db.name, version: db.version, stores: [] };
+      for (const store of db.stores){
+        dbOut.stores.push({
+          name: store.name,
+          keyPath: store.keyPath,
+          autoIncrement: store.autoIncrement,
+          records: store.records.map(r => ({
+            key: store.keyPath ? undefined : serializeValue(r.key),
+            value: serializeValue(r.value)
+          }))
+        });
+      }
+      out.databases.push(dbOut);
+    }
+    const blob = new Blob([JSON.stringify(out)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().replace(/[:.]/g,'-');
+    a.href = url; a.download = `save-backup-${stamp}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+    say('Backup downloaded.', 'ok');
+  }
+
+  async function importAll(file){
+    say(`Reading ${file.name}…`);
+    let data;
+    try {
+      data = JSON.parse(await file.text());
+    } catch(e){
+      say('That file is not valid JSON — was it exported from this page?', 'err');
+      return;
+    }
+    if (!data || data.format !== 'idb-save-backup' || !Array.isArray(data.databases)){
+      say('This does not look like a backup made by this page.', 'err');
+      return;
+    }
+    for (const dbBackup of data.databases){
+      try {
+        await importDatabase(dbBackup);
+        say(`Restored data into "${dbBackup.name}"`, 'ok');
+      } catch(e){
+        say(`Could not restore "${dbBackup.name}": ${e.message}. Make sure you've opened the webport at least once so it has created its database.`, 'err');
+      }
+    }
+    await runScan();
+  }
+
+  function importDatabase(dbBackup){
+    return new Promise((resolve, reject) => {
+      const openReq = indexedDB.open(dbBackup.name);
+      openReq.onerror = () => reject(openReq.error || new Error('open failed'));
+      openReq.onsuccess = () => {
+        const db = openReq.result;
+        const existingStores = Array.from(db.objectStoreNames);
+        const missing = dbBackup.stores.filter(s => !existingStores.includes(s.name)).map(s=>s.name);
+        if (missing.length){
+          db.close();
+          return reject(new Error(`missing store(s) ${missing.join(', ')} — this database hasn't been fully initialized yet`));
+        }
+        let tx;
+        try { tx = db.transaction(existingStores.filter(n => dbBackup.stores.some(s=>s.name===n)), 'readwrite'); }
+        catch(e){ db.close(); return reject(e); }
+        for (const storeBackup of dbBackup.stores){
+          const store = tx.objectStore(storeBackup.name);
+          for (const rec of storeBackup.records){
+            const value = deserializeValue(rec.value);
+            if (storeBackup.keyPath){
+              store.put(value);
+            } else {
+              store.put(value, deserializeValue(rec.key));
+            }
+          }
+        }
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onerror = () => { db.close(); reject(tx.error); };
+      };
+    });
+  }
+
+  // ---------- wire up ----------
+  async function runScan(){
+    logLines.length = 0;
+    say('Scanning for local save data…');
+    await scanAll();
+    render();
+  }
+
+  document.getElementById('rescan').onclick = runScan;
+  document.getElementById('exportAll').onclick = exportAll;
+  document.getElementById('importAllBtn').onclick = () => document.getElementById('importAllFile').click();
+  document.getElementById('importAllFile').onchange = (e) => {
+    const f = e.target.files[0];
+    if (f) importAll(f);
+    e.target.value = '';
+  };
+
+  runScan();
+})();
+</script>
+</body>
+</html>
