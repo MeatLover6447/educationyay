@@ -1,6 +1,7 @@
-links that rely on truffled (currently using https://snoopylovestruffle.getinspiredflight.com/)  
+links that rely on truffled (currently using https://truffled.cv/)  
 math.html (balatro)  
 supermath.html (crossy road)  
 reading.html (subway surf)  
 science.html (poly track)  
 superscience.html (slope)  
+superultramegascience.html (snow rider)
