@@ -164,6 +164,8 @@
     padding: 0 32px;
   }
   .tab-btn {
+    display: inline-block;
+    text-decoration: none;
     font-family: var(--serif);
     font-size: 15px;
     color: var(--muted);
@@ -273,7 +275,7 @@
 <div class="tabs" role="tablist">
   <button class="tab-btn active" data-tab="home" role="tab">Home</button>
   <button class="tab-btn" data-tab="games" role="tab">Games</button>
-   <button class="tab-btn" role="tab" href="https://forms.gle/PeesBwPgkGKy4UjH8">suggestions/feedback</button>
+  <a class="tab-btn" href="https://forms.gle/PeesBwPgkGKy4UjH8" target="_blank" rel="noopener noreferrer" role="tab">suggestions/feedback</a>
 </div>
 
 <!-- ============================================================
@@ -724,14 +726,6 @@
         <div class="game-title">multiplayer chess and like yeah</div>
       </a> 
 
-      
-      <a class="game-tile" href="https://forms.gle/PeesBwPgkGKy4UjH8">
-        <div class="game-icon"><span class="fallback">💬</span><!--<img src="icons/feedback.png" alt="Suggestions / Feedback">--></div>
-        <div class="game-title">Suggestions / Feedback</div>
-      </a>
-
-
-      
     </div>
   </div>
 </div><!-- /#tab-games -->
@@ -739,9 +733,9 @@
 
 <script>
   /* ---------- Tabs ---------- */
-  document.querySelectorAll('.tab-btn').forEach(btn => {
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.toggle('active', b === btn));
       document.querySelectorAll('.tab-panel').forEach(p => {
         p.classList.toggle('active', p.id === 'tab-' + btn.dataset.tab);
       });
