@@ -56,18 +56,23 @@
       }
 
       var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/KiwiClicker-WebGL.loader.js";
+      var loaderUrl = buildUrl + "/819c24b1cedd080e5786ff0f83d940ba.loader.js";
       var config = {
-        dataUrl: buildUrl + "/KiwiClicker-WebGL.data.unityweb",
-        frameworkUrl: buildUrl + "/KiwiClicker-WebGL.framework.js.unityweb",
-        codeUrl: buildUrl + "/KiwiClicker-WebGL.wasm.unityweb",
-        symbolsUrl: buildUrl + "/KiwiClicker-WebGL.symbols.json.unityweb",
+        dataUrl: buildUrl + "/fe09c9860a8ceb55920a9073fd281477.data.unityweb",
+        frameworkUrl: buildUrl + "/af53ecb6bd0fd9efd04868af3d71ab9c.framework.js.unityweb",
+        codeUrl: buildUrl + "/fb2a21dbb9834da677600e7dbf285e9e.wasm.unityweb",
+        symbolsUrl: buildUrl + "/",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "Tobspr Games",
         productName: "Kiwi Clicker",
         productVersion: "s1.2.4",
         showBanner: unityShowBanner,
       };
+
+      // Render at 1280x720 backing resolution regardless of display scaling.
+      // On scaled displays (125-150% is common) this otherwise renders
+      // 1600x1080 / 1920x1080, which low-end GPUs cannot afford.
+      config.devicePixelRatio = 1;
 
       // By default, Unity keeps WebGL canvas render target size matched with
       // the DOM size of the canvas element (scaled by window.devicePixelRatio)
@@ -84,6 +89,19 @@
       // existing user projects that might rely on the earlier manual
       // JS_FileSystem_Sync() behavior, but in future Unity version, this will be
       // expected to change.
+
+      // Extra insurance for save persistence: whenever the tab is hidden or
+      // about to be closed/refreshed, push the in-memory save file out to
+      // IndexedDB immediately. window.kiwiFlush is installed by the game
+      // runtime (KiwiSync.jslib) as soon as the player starts.
+      window.addEventListener("pagehide", function () {
+        try { if (window.kiwiFlush) window.kiwiFlush(); } catch (e) {}
+      });
+      document.addEventListener("visibilitychange", function () {
+        try {
+          if (document.visibilityState === "hidden" && window.kiwiFlush) window.kiwiFlush();
+        } catch (e) {}
+      });
 
       if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
         // Mobile device style: fill the whole browser client area with the game canvas:
