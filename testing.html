@@ -162,8 +162,11 @@
     max-width: 1000px;
     margin: 0 auto 16px;
     padding: 0 32px;
+    flex-wrap: wrap;
   }
   .tab-btn {
+    display: inline-block;
+    text-decoration: none;
     font-family: var(--serif);
     font-size: 15px;
     color: var(--muted);
@@ -186,18 +189,18 @@
   }
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
-  .games-wrap {
+  .games-wrap, .guides-wrap {
     max-width: 1000px;
     margin: 0 auto;
     padding: 0 32px 120px;
   }
-  .games-wrap h1 {
+  .games-wrap h1, .guides-wrap h1 {
     font-family: var(--serif);
     font-size: 32px;
     font-weight: 500;
     margin: 0 0 8px;
   }
-  .games-wrap .rule {
+  .games-wrap .rule, .guides-wrap .rule {
     height: 1px;
     background: var(--line);
     margin-bottom: 36px;
@@ -256,9 +259,19 @@
     color: #D8D4C7;
   }
   .game-tile:hover .game-title { color: var(--accent); }
+
+  /* Guides tab spacing */
+  .guides-wrap section { margin-bottom: 48px; }
+  .guides-wrap section h2 {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 500;
+    margin: 0 0 16px;
+  }
+
   @media (max-width: 760px) {
     .tabs { padding: 0 20px; }
-    .games-wrap { padding: 0 20px 80px; }
+    .games-wrap, .guides-wrap { padding: 0 20px 80px; }
     .game-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 18px 14px; }
   }
 </style>
@@ -266,13 +279,15 @@
 <body>
 
 <div class="announcement-bar">
-  <strong>⚠️UPDATE</strong>ADDED ALL DELTARUNE CHAPTERS!!
+  <strong>⚠️UPDATE</strong>games and guides are now in separate tabs
 </div>
 
 <!-- ===== TAB BUTTONS ===== -->
 <div class="tabs" role="tablist">
   <button class="tab-btn active" data-tab="home" role="tab">Home</button>
   <button class="tab-btn" data-tab="games" role="tab">Games</button>
+  <button class="tab-btn" data-tab="guides" role="tab">Guides</button>
+  <a class="tab-btn" href="https://forms.gle/PeesBwPgkGKy4UjH8" target="_blank" rel="noopener noreferrer" role="tab">suggestions/feedback</a>
 </div>
 
 <!-- ============================================================
@@ -411,7 +426,7 @@
             <li>⭐️works with geforce now</li>
             <li>⭐️i think its hidden from search history</li>
           </ul>
-          <a href="https://62s.mendozafutura.ar/">✅link 1</a>
+          <a href="https://62s.mendozafutura.ar/">❌link 1</a>
           <a href="https://79625.d-n-s.org.uk/">✅link 2</a>
         </div>
       </section>
@@ -574,55 +589,11 @@
 
     </div>
 
-    <div class="big-section" id="b3">
-      <h1>guides</h1>
-      <div class="rule"></div>
-
-      <section id="b3-s1">
-        <h2>undertale save guide</h2>
-        <div class="note-body">
-          <ul>
-            <li>save your progress to a file for undertale</li>
-            <li>progress shouldnt wipe on refresh, will wipe on restart</li>
-            <li>just dont have undertale open while this is open</li>
-          </ul>
-          <p>TO EXPORT</p>
-          <p>save in undertale and CLOSE OUT OF THE TAB first</p>
-          <p>1. visit the undertale save editor at the top or <a href="undertalesave" target="_blank">here</a></p>
-          <p>2. click connect</p>
-          <p>3. click export all saves</p>
-          <p>4. save this somewhere like in your email</p>
-          <p>TO IMPORT</p>
-          <p>do NOT have undertale open when you do this</p>
-          <p>1. visit the undertale save edtior at the top or <a href="undertalesave" target="_blank">here</a></p>
-          <p>2. click import all saves and select the file from before</p>
-          <p>3. open undertale again and everything should be there!</p>
-        </div>
-      </section>
-
-      <section id="b3-s2">
-        <h2>cloudmoon guide</h2>
-        <div class="note-body">
-          <ul>
-            <li>requires personal device (phone works)</li>
-            <li>requires a google account</li>
-          </ul>
-          <p>1. visit <a href="https://web.cloudmoonapp.com/" target="_blank">https://web.cloudmoonapp.com/</a> on NOT chromebook</p>
-          <p>2. make an account with google</p>
-          <p>3. once you are in your account, set/add a password</p>
-          <p>4. now visit <a href="moon.html" target="_blank">CloudMoonBypass</a> on chromebook</p>
-          <p>5. sign in with your google email and password you set</p>
-        </div>
-      </section>
-
-    </div>
-
   </main>
 
 </div>
 
 </div><!-- /#tab-home -->
-
 
 <!-- ============================================================
      TAB 2 : GAMES
@@ -718,21 +689,87 @@
         <div class="game-title">CloudMoon Bypass</div>
       </a>
 
-      <a class="game-tile" href="https://forms.gle/PeesBwPgkGKy4UjH8">
-        <div class="game-icon"><span class="fallback">💬</span><!--<img src="icons/feedback.png" alt="Suggestions / Feedback">--></div>
-        <div class="game-title">Suggestions / Feedback</div>
-      </a>
+        <a class="game-tile" href="https://filipposcaramuzza.dev/online-chess">
+        <div class="game-icon"><span class="fallback">multiplayer chess</span><!--<img src="icons/cloudmoon.png" alt="CloudMoon Bypass">--></div>
+        <div class="game-title">multiplayer chess and like yeah</div>
+      </a> 
 
     </div>
   </div>
 </div><!-- /#tab-games -->
 
+<!-- ============================================================
+     TAB 3 : GUIDES
+     ============================================================ -->
+<div class="tab-panel" id="tab-guides">
+  <div class="guides-wrap">
+    <h1>guides</h1>
+    <div class="rule"></div>
+
+    <section id="g-s1">
+      <h2>undertale save guide</h2>
+      <div class="note-body">
+        <ul>
+          <li>save your progress to a file for undertale</li>
+          <li>progress shouldnt wipe on refresh, will wipe on restart</li>
+          <li>just dont have undertale open while this is open</li>
+        </ul>
+        <p>TO EXPORT</p>
+        <p>save in undertale and CLOSE OUT OF THE TAB first</p>
+        <p>1. visit the undertale save editor at the top or <a href="undertalesave" target="_blank">here</a></p>
+        <p>2. click connect</p>
+        <p>3. click export all saves</p>
+        <p>4. save this somewhere like in your email</p>
+        <p>TO IMPORT</p>
+        <p>do NOT have undertale open when you do this</p>
+        <p>1. visit the undertale save edtior at the top or <a href="undertalesave" target="_blank">here</a></p>
+        <p>2. click import all saves and select the file from before</p>
+        <p>3. open undertale again and everything should be there!</p>
+      </div>
+    </section>
+
+    <section id="g-s2">
+      <h2>cloudmoon guide</h2>
+      <div class="note-body">
+        <ul>
+          <li>requires personal device (phone works)</li>
+          <li>requires a google account</li>
+        </ul>
+        <p>1. visit <a href="https://web.cloudmoonapp.com/" target="_blank">https://web.cloudmoonapp.com/</a> on NOT chromebook</p>
+        <p>2. make an account with google</p>
+        <p>3. once you are in your account, set/add a password</p>
+        <p>4. now visit <a href="moon.html" target="_blank">CloudMoonBypass</a> on chromebook</p>
+        <p>5. sign in with your google email and password you set</p>
+      </div>
+    </section>
+
+    <section id="g-s3">
+      <h2>playing undertale bosses</h2>
+      <div class="note-body">
+        <ul>
+          <li>u need a bit of a brain for this</li>
+          <li>u need to have gotten at least 1 save point in undertale first for this to work</li>
+        </ul>
+        <p>1. visit <a href="https://meatlover6447.github.io/educationyay/undertalesave.html" target="_blank">undertale save editor</a></p>
+        <p>2. click "Cick here for save file presets that you can import" or <a href="https://crumblingstatue.github.io/FloweysTimeMachine/" target="_blank">here</a></p>
+        <p>3. using the built in presets at top left, pick which boss u wanna fight</p>
+        <p>4. click load</p>
+        <p>5. click "⭐SAVE" for undertale.ini and file0 and itll download the 2 files</p>
+        <p>6. go back to the undertale save editor</p>
+        <p>7. in save files, select undertale.ini, click import save file, and choose the undertale.ini you downloaded from floweys time machine</p>
+        <p>8. click file0 and do the same</p>
+        <p>9. thats it, reload the undertale tab.</p>
+      </div>
+    </section>
+
+  </div>
+</div><!-- /#tab-guides -->
 
 <script>
   /* ---------- Tabs ---------- */
-  document.querySelectorAll('.tab-btn').forEach(btn => {
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.toggle('active', b === btn));
       document.querySelectorAll('.tab-panel').forEach(p => {
         p.classList.toggle('active', p.id === 'tab-' + btn.dataset.tab);
       });
@@ -740,7 +777,7 @@
     });
   });
 
-  /* ---------- Table of contents ---------- */
+  /* ---------- Table of contents (only scans the home tab) ---------- */
   function buildToc() {
     const toc = document.getElementById('toc');
     toc.innerHTML = '';
