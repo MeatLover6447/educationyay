@@ -164,8 +164,6 @@
     padding: 0 32px;
   }
   .tab-btn {
-    display: inline-block;
-    text-decoration: none;
     font-family: var(--serif);
     font-size: 15px;
     color: var(--muted);
@@ -268,14 +266,13 @@
 <body>
 
 <div class="announcement-bar">
-  <strong>⚠️UPDATE</strong>games put in a seperate tab
+  <strong>⚠️UPDATE</strong>ADDED ALL DELTARUNE CHAPTERS!!
 </div>
 
 <!-- ===== TAB BUTTONS ===== -->
 <div class="tabs" role="tablist">
   <button class="tab-btn active" data-tab="home" role="tab">Home</button>
   <button class="tab-btn" data-tab="games" role="tab">Games</button>
-  <a class="tab-btn" href="https://forms.gle/PeesBwPgkGKy4UjH8" target="_blank" rel="noopener noreferrer" role="tab">suggestions/feedback</a>
 </div>
 
 <!-- ============================================================
@@ -414,7 +411,7 @@
             <li>⭐️works with geforce now</li>
             <li>⭐️i think its hidden from search history</li>
           </ul>
-          <a href="https://62s.mendozafutura.ar/">❌link 1</a>
+          <a href="https://62s.mendozafutura.ar/">✅link 1</a>
           <a href="https://79625.d-n-s.org.uk/">✅link 2</a>
         </div>
       </section>
@@ -721,10 +718,10 @@
         <div class="game-title">CloudMoon Bypass</div>
       </a>
 
-        <a class="game-tile" href="https://filipposcaramuzza.dev/online-chess">
-        <div class="game-icon"><span class="fallback">multiplayer chess</span><!--<img src="icons/cloudmoon.png" alt="CloudMoon Bypass">--></div>
-        <div class="game-title">multiplayer chess and like yeah</div>
-      </a> 
+      <a class="game-tile" href="https://forms.gle/PeesBwPgkGKy4UjH8">
+        <div class="game-icon"><span class="fallback">💬</span><!--<img src="icons/feedback.png" alt="Suggestions / Feedback">--></div>
+        <div class="game-title">Suggestions / Feedback</div>
+      </a>
 
     </div>
   </div>
@@ -733,9 +730,9 @@
 
 <script>
   /* ---------- Tabs ---------- */
-  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
       document.querySelectorAll('.tab-panel').forEach(p => {
         p.classList.toggle('active', p.id === 'tab-' + btn.dataset.tab);
       });
