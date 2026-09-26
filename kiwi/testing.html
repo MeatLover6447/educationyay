@@ -27,6 +27,29 @@
       #kiwi-skip-house:hover { background: #3b2f1f; border-color: #9a7b3c; }
       #kiwi-skip-house[disabled] { opacity: 0.6; cursor: default; }
 
+      /* ============ Fix: anchor the game to the top of the page ============
+         Unity's default template absolutely-positions the container and
+         vertically centers it with translate(-50%, -50%). When the page is
+         taller than the viewport, the top half of the container overflows
+         ABOVE the document origin (pixel 0), where it can never be scrolled
+         back to. Returning the container to normal document flow makes the
+         top of the canvas the top of the scrollable page. */
+      html, body {
+        margin: 0;
+        padding: 0;
+      }
+
+      #unity-container.unity-desktop {
+        position: static !important;
+        left: auto !important;
+        top: auto !important;
+        transform: none !important;
+        width: fit-content;
+        margin: 0 auto;
+        padding-top: 8px; /* breathing room above the canvas; set to 0 for flush */
+      }
+      /* ============ End top-anchor fix ============ */
+
       /* ============ Auto clicker tool bar ============ */
       #kiwi-tools {
         display: flex;
