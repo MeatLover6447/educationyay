@@ -6,6 +6,22 @@
     <title>Unity WebGL Player | Kiwi Clicker</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
+    <style>
+      #kiwi-skip-house {
+        display: block;
+        margin: 10px auto 16px;
+        padding: 10px 24px;
+        font: 600 15px/1.2 Arial, Helvetica, sans-serif;
+        color: #ffe9a8;
+        background: #2b2118;
+        border: 2px solid #6b5327;
+        border-radius: 6px;
+        letter-spacing: 0.4px;
+        cursor: pointer;
+      }
+      #kiwi-skip-house:hover { background: #3b2f1f; border-color: #9a7b3c; }
+      #kiwi-skip-house[disabled] { opacity: 0.6; cursor: default; }
+    </style>
   </head>
   <body>
     <div id="unity-container" class="unity-desktop">
@@ -22,6 +38,7 @@
         <div id="unity-fullscreen-button"></div>
         <div id="unity-build-title">Kiwi Clicker</div>
       </div>
+      <button id="kiwi-skip-house" type="button" hidden>Skip the house &rsaquo; play now</button>
     </div>
     <script>
       var container = document.querySelector("#unity-container");
@@ -124,6 +141,287 @@
         canvas.style.width = "1280px";
         canvas.style.height = "720px";
       }
+
+      // ============ Skip-the-house button ============
+      // Shown only while the save is still at the house stage (throneState 0).
+      // Clicking applies the same save transition the game performs when the
+      // house portal is used (throneState -> 1, everything else preserved),
+      // then reloads so HouseSceneBoot routes straight into the main scene.
+      (function () {
+        var SAVE_KEY_NAME = "kiwiClicker.es3";
+        var PRF_HEADER = new Uint8Array([0x55, 0x6e, 0x69, 0x74, 0x79, 0x50, 0x72, 0x66, 0, 0, 1, 0, 0, 0, 16, 0]);
+        // Proven post-intro save payload (throneState=1, ComingFromHouse=false,
+        // saveIsValid=true). Used when a brand-new visitor skips before the
+        // game has written its own ES3 save - verified to boot straight into
+        // the main scene and to be overwritten normally by later saves.
+        var SEED_VALUE = "sGaIoSboGrrs8v6AMYiN5Dd1h3p5dqkEbmn1YEqmQTWfW0k6GqAVwHqIwt/DT70LMD/Crhigh8HapLsDEniV1dO4fdIeyPG8WzIOZzFP5n/z8PCTBdEBXnQTB5IAweXkFkgOdTXHv/828S8ii64DY2AJZOvtJdJUuHzTy8bl0k5cO868cQmQVoc0u9m+EPpqF/zJmb8rR/NxZp2Dpm7t5f++V0tX11Wy3dkHwfk4MSgokoATYMPzdJEyExaz4KiyG2XuaPHaFrJmmJHQqEVxAFmSs7AAS2lwemjVKgdaFZcqZaDivqcZpH05wxri3LJ297ChaT/SUEh1pW+F8dP5YNouPiIDjcm9btp7dfk+hCA=";
+        var btn = document.getElementById("kiwi-skip-house");
+        if (!btn) return;
+        var enc = new TextEncoder(), dec = new TextDecoder();
+
+        function b2a(u8) { // bytes -> binary string, chunked (no stack overflow)
+          var s = "", CH = 8192;
+          for (var i = 0; i < u8.length; i += CH) s += String.fromCharCode.apply(null, u8.subarray(i, i + CH));
+          return s;
+        }
+        function a2b(str) {
+          var u = new Uint8Array(str.length);
+          for (var i = 0; i < str.length; i++) u[i] = str.charCodeAt(i);
+          return u;
+        }
+
+        function dbExists() {
+          if (!indexedDB.databases) return Promise.resolve(true);
+          return indexedDB.databases().then(function (list) {
+            return list.some(function (d) { return d.name === "/idbfs"; });
+          }).catch(function () { return true; });
+        }
+        function openDb() {
+          return dbExists().then(function (yes) {
+            if (!yes) return null;
+            return new Promise(function (res, rej) {
+              var rq = indexedDB.open("/idbfs");
+              rq.onerror = function () { rej(rq.error); };
+              rq.onsuccess = function () {
+                var db = rq.result;
+                if (!Array.prototype.includes.call(db.objectStoreNames, "FILE_DATA")) { db.close(); res(null); return; }
+                res(db);
+              };
+            });
+          });
+        }
+        function findPrefsKey(db) {
+          return new Promise(function (res) {
+            var rq = db.transaction("FILE_DATA", "readonly").objectStore("FILE_DATA").getAllKeys();
+            rq.onsuccess = function () {
+              var keys = rq.result.map(String);
+              var hit = keys.filter(function (k) { return typeof k === "string" && k.endsWith("/PlayerPrefs"); })[0];
+              if (hit) return res(hit);
+              var dir = keys.filter(function (k) { return /^\/idbfs\/[^/]+$/.test(k); })[0];
+              res(dir ? dir + "/PlayerPrefs" : null);
+            };
+            rq.onerror = function () { res(null); };
+          });
+        }
+        function readRecord(db, key) {
+          return new Promise(function (res) {
+            var rq = db.transaction("FILE_DATA", "readonly").objectStore("FILE_DATA").get(key);
+            rq.onsuccess = function () { res(rq.result || null); };
+            rq.onerror = function () { res(null); };
+          });
+        }
+        function putRecord(db, key, bytes) {
+          return new Promise(function (res, rej) {
+            var tx = db.transaction("FILE_DATA", "readwrite");
+            tx.objectStore("FILE_DATA").put({ contents: bytes, mode: 33206, timestamp: new Date() }, key);
+            tx.oncomplete = function () { res(); };
+            tx.onerror = function () { rej(tx.error); };
+            tx.onabort = function () { rej(tx.error); };
+          });
+        }
+
+        // ---- UnityPrf container: 16B header + entries (u8 nameLen, name,
+        // length-prefixed value). The file can hold several keys
+        // (unity.player_session_*, kiwiClicker.es3, kiwiClicker.es3.bac, ...).
+        // Scan them all so the right one is found no matter the order; every
+        // entry except kiwiClicker.es3 is preserved byte-for-byte.
+        function scanPrf(u8) {
+          if (b2a(u8.subarray(0, 8)) !== "UnityPrf") throw new Error("bad UnityPrf header");
+          var entries = [], n = 16;
+          while (n < u8.length) {
+            var start = n;
+            if (start + 2 > u8.length) break;
+            var klen = u8[start];
+            if (klen === 0 || klen > 127 || start + 2 + klen > u8.length) break;
+            var name = b2a(u8.subarray(start + 1, start + 1 + klen));
+            if (!/^[ -~]+$/.test(name)) break;
+            var p = start + 1 + klen;
+            var first = u8[p], vlen, hdrLen;
+            if (first & 0x80) {
+              if (p + 5 > u8.length) break;
+              vlen = (u8[p + 1] | (u8[p + 2] << 8) | (u8[p + 3] << 16) | (u8[p + 4] << 24)) >>> 0;
+              hdrLen = 5;
+            } else { vlen = first; hdrLen = 1; }
+            var valueStart = p + hdrLen;
+            if (valueStart + vlen > u8.length) break;
+            n = valueStart + vlen;
+            entries.push({ name: name, start: start, end: n, valueStart: valueStart, vlen: vlen });
+          }
+          return entries;
+        }
+        function framePatchedSave(name, value, before, after) {
+          var nameB = enc.encode(name), valB = enc.encode(value);
+          var out = new Uint8Array(before.length + 1 + nameB.length + 5 + valB.length + after.length);
+          var o = 0;
+          out.set(before, o); o += before.length; // includes the UnityPrf header
+          out[o++] = nameB.length;
+          out.set(nameB, o); o += nameB.length;
+          if (valB.length < 0x80) out[o++] = valB.length;
+          else {
+            out[o++] = 0x80;
+            out[o++] = valB.length & 255; out[o++] = (valB.length >>> 8) & 255;
+            out[o++] = (valB.length >>> 16) & 255; out[o++] = (valB.length >>> 24) & 255;
+          }
+          out.set(valB, o); o += valB.length;
+          out.set(after, o); o += after.length;
+          return out;
+        }
+
+        // ---- ES3 crypto: PBKDF2-HMAC-SHA1 (100 iters, salt = IV) + AES-128-CBC
+        function aesKeyFor(salt) {
+          return crypto.subtle.importKey("raw", enc.encode("gatucha"), "PBKDF2", false, ["deriveBits"])
+            .then(function (pk) {
+              return crypto.subtle.deriveBits({ name: "PBKDF2", salt: salt, iterations: 100, hash: "SHA-1" }, pk, 128);
+            })
+            .then(function (bits) {
+              return crypto.subtle.importKey("raw", bits, { name: "AES-CBC" }, false, ["encrypt", "decrypt"]);
+            });
+        }
+        function decodeSave(b64) {
+          var raw = a2b(atob(b64));
+          var iv = raw.subarray(0, 16), ct = raw.subarray(16);
+          return aesKeyFor(iv).then(function (k) {
+            return crypto.subtle.decrypt({ name: "AES-CBC", iv: iv }, k, ct);
+          }).then(function (plain) {
+            return JSON.parse(dec.decode(new Uint8Array(plain)));
+          });
+        }
+        function encodeSave(obj) {
+          var iv = crypto.getRandomValues(new Uint8Array(16));
+          return aesKeyFor(iv).then(function (k) {
+            return crypto.subtle.encrypt({ name: "AES-CBC", iv: iv }, k, enc.encode(JSON.stringify(obj)));
+          }).then(function (ct) {
+            var all = new Uint8Array(16 + ct.byteLength);
+            all.set(iv); all.set(new Uint8Array(ct), 16);
+            return btoa(b2a(all));
+          });
+        }
+        // Values are stored either plain or wrapped as {__type, value} by ES3.
+        function unwrap(v) {
+          if (v && typeof v === "object" && "value" in v && typeof v.value === "number") return v.value;
+          return v;
+        }
+        function throneStateOf(json) {
+          var holder = (json && json.value && typeof json.value === "object") ? json.value : json;
+          var t = holder ? unwrap(holder.throneState) : undefined;
+          return typeof t === "number" ? t : 0;
+        }
+        function setThroneState(json, v) {
+          var holder = (json && json.value && typeof json.value === "object") ? json.value : json;
+          if (holder && holder.throneState && typeof holder.throneState === "object" && "value" in holder.throneState) {
+            holder.throneState.value = v; // keep the {__type, value} wrapper intact
+          } else if (holder) {
+            holder.throneState = v;
+          } else {
+            json.throneState = v;
+          }
+          return json;
+        }
+
+        // -> {key, u8} once the PlayerPrefs record exists, else null
+        function readSaveRecord() {
+          return openDb().then(function (db) {
+            if (!db) return null;
+            return findPrefsKey(db).then(function (key) {
+              if (!key) { db.close(); return null; }
+              return readRecord(db, key).then(function (rec) {
+                db.close();
+                if (!rec || !rec.contents) return null;
+                return { key: key, u8: new Uint8Array(rec.contents) };
+              });
+            });
+          });
+        }
+        // -> {json, before, after} for the kiwiClicker.es3 entry,
+        //    or null when the game hasn't written its ES3 save yet
+        function decodeEntry(u8) {
+          var entries = scanPrf(u8);
+          var target = null;
+          for (var i = 0; i < entries.length; i++) {
+            if (entries[i].name === SAVE_KEY_NAME) { target = entries[i]; break; }
+          }
+          if (!target) return Promise.resolve(null);
+          var value = b2a(u8.subarray(target.valueStart, target.valueStart + target.vlen));
+          return decodeSave(value).then(function (json) {
+            return { json: json, before: u8.subarray(0, target.start), after: u8.subarray(target.end) };
+          });
+        }
+
+        function refreshVisibility(attempt) {
+          readSaveRecord()
+            .then(function (r) {
+              if (!r) return { fresh: true };
+              return decodeEntry(r.u8).then(function (d) {
+                return d ? { fresh: false, json: d.json } : { fresh: true };
+              });
+            })
+            .then(function (info) {
+              if (info.fresh) {
+                // Save file not written yet (fresh visitor) - keep checking briefly.
+                if (attempt < 4) setTimeout(function () { refreshVisibility(attempt + 1); }, 2500);
+                else btn.hidden = false;
+                return;
+              }
+              btn.hidden = throneStateOf(info.json) !== 0;
+            })
+            .catch(function () {
+              // Cannot verify the save -> never risk showing a destructive action.
+              btn.hidden = true;
+            });
+        }
+
+        btn.addEventListener("click", function () {
+          if (btn.disabled) return;
+          btn.disabled = true;
+          var label = btn.textContent;
+          btn.textContent = "Loading\u2026";
+          // Stop the running game from flushing its old in-memory save over our patch.
+          window.kiwiFlush = function () {};
+          var deadline = Date.now() + 30000;
+          (function waitAndPatch() {
+            readSaveRecord()
+              .then(function (r) {
+                if (!r) {
+                  if (Date.now() < deadline) return null; // wait for the record to appear
+                  throw new Error("save file did not appear");
+                }
+                return decodeEntry(r.u8).then(function (d) {
+                  if (d) {
+                    // Existing game save: bump only throneState - all progress,
+                    // the .bac backup and Unity's own entries stay intact.
+                    setThroneState(d.json, 1);
+                    return encodeSave(d.json).then(function (b64) {
+                      return { key: r.key, bytes: framePatchedSave(SAVE_KEY_NAME, b64, d.before, d.after) };
+                    });
+                  }
+                  // Fresh visitor with no ES3 save yet: install the proven
+                  // post-intro seed as the kiwiClicker.es3 entry, keeping
+                  // Unity's own entries in place.
+                  var wellFormed = r.u8.length >= 16 && b2a(r.u8.subarray(0, 8)) === "UnityPrf";
+                  var bytes = framePatchedSave(SAVE_KEY_NAME, SEED_VALUE,
+                    wellFormed ? r.u8.subarray(0, 16) : PRF_HEADER,
+                    wellFormed ? r.u8.subarray(16) : new Uint8Array(0));
+                  return { key: r.key, bytes: bytes };
+                });
+              })
+              .then(function (res) {
+                if (!res) { setTimeout(waitAndPatch, 750); return; }
+                return openDb().then(function (db) {
+                  if (!db) throw new Error("database unavailable");
+                  return putRecord(db, res.key, res.bytes).then(function () { db.close(); });
+                }).then(function () { location.reload(); });
+              })
+              .catch(function (e) {
+                console.error("skip-house failed:", e);
+                btn.disabled = false;
+                btn.textContent = label;
+              });
+          })();
+        });
+
+        refreshVisibility(0);
+      })();
+      // ============ End skip-the-house button ============
 
       loadingBar.style.display = "block";
 
