@@ -36,8 +36,8 @@
         gap: 10px;
         width: fit-content;
         max-width: 96vw;
-        margin: 14px auto 28px;
-        padding: 12px 18px;
+        margin: 0 auto 12px;
+        padding: 10px 18px;
         font: 600 14px/1.2 Arial, Helvetica, sans-serif;
         color: #ffe9a8;
         background: #1d160f;
@@ -95,16 +95,16 @@
         <div id="unity-build-title">Kiwi Clicker</div>
       </div>
       <button id="kiwi-skip-house" type="button" hidden>Skip the house &rsaquo; play now</button>
-    </div>
 
-    <!-- ============ Auto clicker controls ============ -->
-    <div id="kiwi-tools">
-      <button id="kiwi-autoclick-toggle" type="button" aria-pressed="false">Auto Clicker: OFF (F)</button>
-      <label id="kiwi-rate-wrap" for="kiwi-autoclick-rate">CPS
-        <input id="kiwi-autoclick-rate" type="number" min="1" max="200" step="1" value="20">
-      </label>
-      <button id="kiwi-autoclick-hotkey" type="button">Hotkey: F</button>
-      <span class="kiwi-hint">Clicks follow your cursor while it is over the game, otherwise the centre of the canvas.</span>
+      <!-- ============ Auto clicker controls (under the skip button) ============ -->
+      <div id="kiwi-tools">
+        <button id="kiwi-autoclick-toggle" type="button" aria-pressed="false">Auto Clicker: OFF (F)</button>
+        <label id="kiwi-rate-wrap" for="kiwi-autoclick-rate">CPS
+          <input id="kiwi-autoclick-rate" type="number" min="1" max="200" step="1" value="20">
+        </label>
+        <button id="kiwi-autoclick-hotkey" type="button">Hotkey: F</button>
+        <span class="kiwi-hint">Clicks only happen while your cursor is over the game. Move the cursor off the canvas to pause clicking.</span>
+      </div>
     </div>
 
     <script>
@@ -526,7 +526,7 @@
         var capturing = false;   // waiting for the user to press a new hotkey
         var timerId = null;
         var nextAt = 0;
-        var lastPoint = null;    // last cursor position seen over the canvas
+        var lastPoint = null;    // cursor position, only set while over the canvas
 
         /* ---------------- persistence ---------------- */
         try {
@@ -567,16 +567,22 @@
           return KEY_NAMES[code] || code;
         }
 
-        /* ---------------- synthetic clicking ---------------- */
-        // Remember where the cursor is while it hovers the game, so the
-        // autoclicker hits the same spot the player is pointing at.
-        window.addEventListener("mousemove", function (e) {
+        /* ---------------- cursor tracking ---------------- */
+        // lastPoint is only non-null while the cursor is over the canvas.
+        // Moving the cursor anywhere else (page, tool bar, outside the window)
+        // clears it, which makes the click loop simply skip its click.
+        function isOverCanvas(x, y) {
           var r = canvas.getBoundingClientRect();
-          if (e.clientX >= r.left && e.clientX <= r.right &&
-              e.clientY >= r.top && e.clientY <= r.bottom) {
-            lastPoint = { x: e.clientX, y: e.clientY };
-          }
+          return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+        }
+        window.addEventListener("mousemove", function (e) {
+          lastPoint = isOverCanvas(e.clientX, e.clientY)
+            ? { x: e.clientX, y: e.clientY }
+            : null;
         }, true);
+        canvas.addEventListener("mouseleave", function () { lastPoint = null; });
+        window.addEventListener("blur", function () { lastPoint = null; });
+        document.addEventListener("mouseleave", function () { lastPoint = null; });
 
         function eventOptions(x, y, buttons) {
           return {
@@ -589,9 +595,11 @@
         }
 
         function fireClick() {
-          var r = canvas.getBoundingClientRect();
-          var x = lastPoint ? lastPoint.x : r.left + r.width / 2;
-          var y = lastPoint ? lastPoint.y : r.top + r.height / 2;
+          // Only click when the cursor is actually over the game canvas.
+          // Otherwise the click is skipped entirely (no clicks on the page,
+          // no clicks aimed at the centre of the canvas).
+          if (!lastPoint) return;
+          var x = lastPoint.x, y = lastPoint.y;
 
           if (window.PointerEvent) {
             try {
