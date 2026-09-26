@@ -360,7 +360,73 @@ Module.preRun = Module.preRun || [ ];
 
     async function loadGameZip() {
 
+        let parts = window.gameZipParts;
+
         try {
+
+            // game.zip may be stored as an ordered set of byte-range parts,
+            // so that no single file exceeds the host's size limit. The parts
+            // are fetched in order and appended to one /game.zip, which is
+            // exactly the file the engine expects to find.
+            if (Array.isArray(parts) && parts.length > 0) {
+
+                // Ask every part for its size up front so the progress bar can
+                // show one total for the whole download. Any failure here is
+                // harmless: sizes are then accumulated as the parts arrive.
+                let sizes = await Promise.all(parts.map(function (part) {
+                    return fetch(part, { method: "HEAD" })
+                        .then(function (r) {
+                            if (!r.ok) return 0;
+                            let n = parseInt(r.headers.get('Content-Length'), 10);
+                            return Number.isNaN(n) ? 0 : n;
+                        })
+                        .catch(function () { return 0; });
+                }));
+
+                let total = sizes.reduce(function (a, b) { return a + b; }, 0);
+                if (total > 0) {
+                    gameZipSize = total;
+                }
+
+                let f = FS.open('/game.zip', 'w');
+
+                for (let i = 0; i < parts.length; i++) {
+
+                    let response = await fetch(parts[i]);
+
+                    if (!response.ok) {
+                        try { FS.close(f); } catch (e) { }
+                        reportError("Could not load " + parts[i] + ": " + response.status + " " + response.statusText);
+                        return;
+                    }
+
+                    if (gameZipSize == 0) {
+                        let n = parseInt(response.headers.get('Content-Length'), 10);
+                        if (!Number.isNaN(n)) gameZipSize += n;
+                    }
+
+                    let reader = await response.body.getReader();
+
+                    while (true) {
+
+                        let { done, value } = await reader.read();
+
+                        if (done) {
+                            break;
+                        }
+
+                        FS.write(f, value, 0, value.length);
+                        gameZipDownloaded += value.length;
+
+                        updateDownloadProgress();
+                    }
+                }
+
+                FS.close(f);
+                return;
+            }
+
+            // No parts declared: download game.zip as a single file.
             let response = await fetch(window.gameZipURL);
 
             if (!response.ok) {

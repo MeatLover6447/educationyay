@@ -217,7 +217,21 @@
 
   <script>
       // The URL to game.zip, relative to the URL of this file.
+      // Used only when gameZipParts is not set (see below).
       window.gameZipURL = 'game.zip';
+
+      // game.zip is stored as an ordered set of byte-range parts so that no
+      // single file exceeds the hosting service's per-file size limit.
+      // They are downloaded in order and concatenated into one /game.zip,
+      // which is exactly the file the engine expects.
+      window.gameZipParts = [
+          'game.zip.000',
+          'game.zip.001',
+          'game.zip.002',
+          'game.zip.003',
+          'game.zip.004',
+          'game.zip.005'
+      ];
 
       // Register the service worker.
       if (navigator.serviceWorker) {
