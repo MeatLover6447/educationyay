@@ -260,7 +260,48 @@
   }
   .game-tile:hover .game-title { color: var(--accent); }
 
-  /* Guides tab spacing */
+  /* ===== Game search bar ===== */
+  .game-search-wrap {
+    position: relative;
+    margin-bottom: 32px;
+  }
+  .game-search {
+    width: 100%;
+    background: var(--accent-soft);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    padding: 12px 44px 12px 16px;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    -webkit-appearance: none;
+  }
+  .game-search::placeholder { color: var(--muted); }
+  .game-search:focus {
+    border-color: var(--accent);
+    background: #2E3328;
+  }
+  .game-search-icon {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    pointer-events: none;
+    font-size: 15px;
+  }
+  .game-no-results {
+    display: none;
+    color: var(--muted);
+    font-size: 14.5px;
+    padding: 4px 2px 0;
+  }
+  .game-no-results.show { display: block; }
+  .game-tile.hidden { display: none; }
+
+  /* Guides tab layout (mirrors home) */
   .guides-wrap section { margin-bottom: 48px; }
   .guides-wrap section h2 {
     font-family: var(--serif);
@@ -603,7 +644,12 @@
     <h1>games</h1>
     <div class="rule"></div>
 
-    <div class="game-grid">
+    <div class="game-search-wrap">
+      <input type="text" id="gameSearch" class="game-search" placeholder="Search games..." autocomplete="off" spellcheck="false" aria-label="Search games">
+      <span class="game-search-icon">🔍</span>
+    </div>
+
+    <div class="game-grid" id="gameGrid">
 
       <!--
       ==========================================================
@@ -695,72 +741,85 @@
       </a> 
 
     </div>
+
+    <div class="game-no-results" id="gameNoResults">no games match that search.</div>
+
   </div>
 </div><!-- /#tab-games -->
 
 <!-- ============================================================
-     TAB 3 : GUIDES
+     TAB 3 : GUIDES  (now with sidebar like home)
      ============================================================ -->
 <div class="tab-panel" id="tab-guides">
-  <div class="guides-wrap">
-    <h1>guides</h1>
-    <div class="rule"></div>
+  <div class="layout">
 
-    <section id="g-s1">
-      <h2>undertale save guide</h2>
-      <div class="note-body">
-        <ul>
-          <li>save your progress to a file for undertale</li>
-          <li>progress shouldnt wipe on refresh, will wipe on restart</li>
-          <li>just dont have undertale open while this is open</li>
-        </ul>
-        <p>TO EXPORT</p>
-        <p>save in undertale and CLOSE OUT OF THE TAB first</p>
-        <p>1. visit the undertale save editor at the top or <a href="undertalesave" target="_blank">here</a></p>
-        <p>2. click connect</p>
-        <p>3. click export all saves</p>
-        <p>4. save this somewhere like in your email</p>
-        <p>TO IMPORT</p>
-        <p>do NOT have undertale open when you do this</p>
-        <p>1. visit the undertale save edtior at the top or <a href="undertalesave" target="_blank">here</a></p>
-        <p>2. click import all saves and select the file from before</p>
-        <p>3. open undertale again and everything should be there!</p>
-      </div>
-    </section>
+    <nav aria-label="Guide list">
+      <ul id="guideToc"></ul>
+    </nav>
 
-    <section id="g-s2">
-      <h2>cloudmoon guide</h2>
-      <div class="note-body">
-        <ul>
-          <li>requires personal device (phone works)</li>
-          <li>requires a google account</li>
-        </ul>
-        <p>1. visit <a href="https://web.cloudmoonapp.com/" target="_blank">https://web.cloudmoonapp.com/</a> on NOT chromebook</p>
-        <p>2. make an account with google</p>
-        <p>3. once you are in your account, set/add a password</p>
-        <p>4. now visit <a href="moon.html" target="_blank">CloudMoonBypass</a> on chromebook</p>
-        <p>5. sign in with your google email and password you set</p>
-      </div>
-    </section>
+    <main id="guideSections">
+      <div class="big-section" id="gb1">
+        <h1>guides</h1>
+        <div class="rule"></div>
 
-    <section id="g-s3">
-      <h2>playing undertale bosses</h2>
-      <div class="note-body">
-        <ul>
-          <li>u need a bit of a brain for this</li>
-          <li>u need to have gotten at least 1 save point in undertale first for this to work</li>
-        </ul>
-        <p>1. visit <a href="https://meatlover6447.github.io/educationyay/undertalesave.html" target="_blank">undertale save editor</a></p>
-        <p>2. click "Cick here for save file presets that you can import" or <a href="https://crumblingstatue.github.io/FloweysTimeMachine/" target="_blank">here</a></p>
-        <p>3. using the built in presets at top left, pick which boss u wanna fight</p>
-        <p>4. click load</p>
-        <p>5. click "⭐SAVE" for undertale.ini and file0 and itll download the 2 files</p>
-        <p>6. go back to the undertale save editor</p>
-        <p>7. in save files, select undertale.ini, click import save file, and choose the undertale.ini you downloaded from floweys time machine</p>
-        <p>8. click file0 and do the same</p>
-        <p>9. thats it, reload the undertale tab.</p>
+        <section id="g-s1">
+          <h2>undertale save guide</h2>
+          <div class="note-body">
+            <ul>
+              <li>save your progress to a file for undertale</li>
+              <li>progress shouldnt wipe on refresh, will wipe on restart</li>
+              <li>just dont have undertale open while this is open</li>
+            </ul>
+            <p>TO EXPORT</p>
+            <p>save in undertale and CLOSE OUT OF THE TAB first</p>
+            <p>1. visit the undertale save editor at the top or <a href="undertalesave" target="_blank">here</a></p>
+            <p>2. click connect</p>
+            <p>3. click export all saves</p>
+            <p>4. save this somewhere like in your email</p>
+            <p>TO IMPORT</p>
+            <p>do NOT have undertale open when you do this</p>
+            <p>1. visit the undertale save edtior at the top or <a href="undertalesave" target="_blank">here</a></p>
+            <p>2. click import all saves and select the file from before</p>
+            <p>3. open undertale again and everything should be there!</p>
+          </div>
+        </section>
+
+        <section id="g-s2">
+          <h2>cloudmoon guide</h2>
+          <div class="note-body">
+            <ul>
+              <li>requires personal device (phone works)</li>
+              <li>requires a google account</li>
+            </ul>
+            <p>1. visit <a href="https://web.cloudmoonapp.com/" target="_blank">https://web.cloudmoonapp.com/</a> on NOT chromebook</p>
+            <p>2. make an account with google</p>
+            <p>3. once you are in your account, set/add a password</p>
+            <p>4. now visit <a href="moon.html" target="_blank">CloudMoonBypass</a> on chromebook</p>
+            <p>5. sign in with your google email and password you set</p>
+          </div>
+        </section>
+
+        <section id="g-s3">
+          <h2>playing undertale bosses</h2>
+          <div class="note-body">
+            <ul>
+              <li>u need a bit of a brain for this</li>
+              <li>u need to have gotten at least 1 save point in undertale first for this to work</li>
+            </ul>
+            <p>1. visit <a href="https://meatlover6447.github.io/educationyay/undertalesave.html" target="_blank">undertale save editor</a></p>
+            <p>2. click "Cick here for save file presets that you can import" or <a href="https://crumblingstatue.github.io/FloweysTimeMachine/" target="_blank">here</a></p>
+            <p>3. using the built in presets at top left, pick which boss u wanna fight</p>
+            <p>4. click load</p>
+            <p>5. click "⭐SAVE" for undertale.ini and file0 and itll download the 2 files</p>
+            <p>6. go back to the undertale save editor</p>
+            <p>7. in save files, select undertale.ini, click import save file, and choose the undertale.ini you downloaded from floweys time machine</p>
+            <p>8. click file0 and do the same</p>
+            <p>9. thats it, reload the undertale tab.</p>
+          </div>
+        </section>
+
       </div>
-    </section>
+    </main>
 
   </div>
 </div><!-- /#tab-guides -->
@@ -777,11 +836,13 @@
     });
   });
 
-  /* ---------- Table of contents (only scans the home tab) ---------- */
-  function buildToc() {
-    const toc = document.getElementById('toc');
+  /* ---------- Build a TOC for any tab (home + guides) ---------- */
+  function buildToc(tocId, containerSelector) {
+    const toc = document.getElementById(tocId);
+    if (!toc) return;
     toc.innerHTML = '';
-    document.querySelectorAll('#sections .big-section').forEach(big => {
+
+    document.querySelectorAll(containerSelector + ' .big-section').forEach(big => {
       const h1 = big.querySelector('h1');
       const li = document.createElement('li');
 
@@ -808,7 +869,39 @@
     });
   }
 
-  buildToc();
+  buildToc('toc', '#sections');
+  buildToc('guideToc', '#guideSections');
+
+  /* ---------- Game search filter ---------- */
+  const gameSearch = document.getElementById('gameSearch');
+  const gameGrid = document.getElementById('gameGrid');
+  const gameNoResults = document.getElementById('gameNoResults');
+
+  if (gameSearch && gameGrid) {
+    const tiles = Array.from(gameGrid.querySelectorAll('.game-tile'));
+
+    const filterGames = () => {
+      const q = gameSearch.value.trim().toLowerCase();
+      let visible = 0;
+
+      tiles.forEach(tile => {
+        const title = (tile.querySelector('.game-title')?.textContent || '').toLowerCase();
+        const matches = title.includes(q);
+        tile.classList.toggle('hidden', !matches);
+        if (matches) visible++;
+      });
+
+      gameNoResults.classList.toggle('show', visible === 0);
+    };
+
+    gameSearch.addEventListener('input', filterGames);
+    gameSearch.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        gameSearch.value = '';
+        filterGames();
+      }
+    });
+  }
 </script>
 
 <script>
