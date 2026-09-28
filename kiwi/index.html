@@ -513,6 +513,50 @@
       })();
       // ============ End skip-the-house button ============
 
+      // ============ Crash guard: show a friendly reload screen ============
+      var kiwiGuardSkip = false;
+      var kiwiGuardShown = false;
+      window.addEventListener("beforeunload", function () { kiwiGuardSkip = true; });
+      function kiwiShowCrashScreen(title, detail) {
+        if (kiwiGuardShown || kiwiGuardSkip) return;
+        kiwiGuardShown = true;
+        var ov = document.createElement("div");
+        ov.style.cssText = "position:fixed;left:0;top:0;right:0;bottom:0;z-index:99999;background:#1d160f;color:#ffe9a8;font:600 15px/1.5 Arial,Helvetica,sans-serif;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;";
+        var box = document.createElement("div");
+        box.style.cssText = "max-width:560px;";
+        var t = document.createElement("div");
+        t.style.cssText = "font-size:20px;margin-bottom:10px;";
+        t.textContent = title;
+        var d = document.createElement("div");
+        d.style.cssText = "opacity:0.85;white-space:pre-line;";
+        d.textContent = detail || "";
+        var b = document.createElement("button");
+        b.textContent = "Reload the game";
+        b.style.cssText = "margin-top:18px;padding:10px 24px;font:600 15px Arial,Helvetica,sans-serif;color:#ffe9a8;background:#2b2118;border:2px solid #6b5327;border-radius:6px;cursor:pointer;";
+        b.onclick = function () { location.reload(); };
+        box.appendChild(t); box.appendChild(d); box.appendChild(b);
+        ov.appendChild(box);
+        document.body.appendChild(ov);
+      }
+      var kiwiCrashMsg = "This can happen on devices with limited memory, or after a graphics driver hiccup. Reloading usually fixes it.";
+      window.addEventListener("error", function (e) {
+        var msg = e && e.message ? String(e.message) : "";
+        if (/out of memory|Array buffer allocation|Invalid array length|Cannot enlarge memory/i.test(msg)) {
+          kiwiShowCrashScreen("The game ran out of memory", kiwiCrashMsg);
+        }
+      }, true);
+      window.addEventListener("unhandledrejection", function (e) {
+        var r = e && e.reason;
+        var msg = r ? (r.message || String(r)) : "";
+        if (/out of memory|Cannot enlarge memory|Aborted\(OOM\)/i.test(msg)) {
+          kiwiShowCrashScreen("The game ran out of memory", kiwiCrashMsg);
+        }
+      });
+      canvas.addEventListener("webglcontextlost", function (e) {
+        e.preventDefault();
+        kiwiShowCrashScreen("The game lost its graphics context", kiwiCrashMsg);
+      }, false);
+
       loadingBar.style.display = "block";
 
       var script = document.createElement("script");
@@ -527,8 +571,11 @@
             unityInstance.SetFullscreen(1);
           };
         }).catch((message) => {
-          alert(message);
+          kiwiShowCrashScreen("The game failed to start", String(message || ""));
         });
+      };
+      script.onerror = function () {
+        kiwiShowCrashScreen("Could not load the game files", "Check your internet connection and reload the page.");
       };
       document.body.appendChild(script);
     </script>
