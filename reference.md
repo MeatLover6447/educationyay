@@ -5,3 +5,5 @@ reading.html (subway surf)
 science.html (poly track)  
 superscience.html (slope)  
 superultramegascience.html (snow rider)
+gd.html (gd)
+
