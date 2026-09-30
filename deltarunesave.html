@@ -66,6 +66,7 @@
   }
   .log .err{color:var(--accent);}
   .log .ok{color:var(--ok);}
+  .log .warn{color:var(--warn);}
 
   section{margin-bottom:2.2rem;}
   section > h2{
@@ -76,6 +77,8 @@
   section > p.hint{color:var(--muted); font-size:0.85rem; margin:-0.5rem 0 1rem;}
 
   .empty{color:var(--muted); font-size:0.88rem; font-style:italic; padding:1rem 0;}
+  .empty p{margin:0 0 0.8rem;}
+  .empty p.note{font-style:normal;font-size:0.82rem;line-height:1.6;margin:0.9rem 0 0;}
 
   .grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr)); gap:0.8rem;}
   .card{
@@ -126,12 +129,41 @@
     font-family:var(--mono); font-size:0.78rem; max-height:40vh; overflow:auto; white-space:pre-wrap; word-break:break-all;
   }
   .modal .toolbar{display:flex; gap:0.5rem; margin:0.9rem 0; flex-wrap:wrap;}
-  .modal .close-row{display:flex; justify-content:flex-end; margin-top:1rem;}
+  .modal .close-row{display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1rem;}
   .modal .warn-box{
     background:rgba(217,154,61,0.1); border:1px solid var(--warn); color:var(--warn);
     border-radius:5px; padding:0.6rem 0.8rem; font-size:0.78rem; margin-bottom:0.9rem;
+    line-height:1.5;
   }
   input[type=file]{display:none;}
+  input[type=file].show{
+    display:block; width:100%; padding:0.6rem; border:1px dashed var(--line); border-radius:5px;
+    background:var(--bg); color:var(--muted); font-family:var(--mono); font-size:0.76rem; cursor:pointer;
+  }
+  input[type=file].show:hover{border-color:var(--violet);}
+  input[type=file].show::file-selector-button{
+    font-family:var(--sans); font-size:0.78rem; font-weight:600; margin-right:0.7rem;
+    background:var(--panel-2); color:var(--text); border:1px solid var(--line);
+    padding:0.35rem 0.7rem; border-radius:4px; cursor:pointer;
+  }
+  .field{margin-bottom:1.1rem;}
+  .field-label{
+    display:block; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.03em;
+    color:var(--muted); font-weight:600; margin-bottom:0.5rem;
+  }
+  .radio{
+    display:flex; gap:0.6rem; align-items:flex-start; padding:0.55rem 0.7rem;
+    border:1px solid var(--line); border-radius:5px; margin-bottom:0.4rem;
+    cursor:pointer; font-size:0.82rem; line-height:1.5; transition:border-color .12s;
+  }
+  .radio:hover{border-color:var(--violet);}
+  .radio input[type=radio]{accent-color:var(--accent); margin-top:0.2rem; flex:none;}
+  .radio .n{color:var(--muted); font-family:var(--mono); font-size:0.72rem; display:block; margin-top:0.2rem;}
+  .radio select, .radio input[type=text]{
+    background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:4px;
+    padding:0.25rem 0.4rem; font-family:var(--mono); font-size:0.75rem; max-width:100%;
+  }
+  .radio input[type=text]{width:11rem;}
   .footer-note{color:var(--muted); font-size:0.78rem; text-align:center; margin-top:2.5rem; line-height:1.6;}
 </style>
 </head>
@@ -144,6 +176,7 @@
   </div>
   <div class="actions">
     <button id="rescan" class="ghost">Rescan</button>
+    <button id="uploadSave">Upload save file</button>
     <button id="exportAll" class="primary">Export full backup</button>
     <button id="importAllBtn">Import backup</button>
     <input type="file" id="importAllFile" accept="application/json">
@@ -188,6 +221,13 @@
   }
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function withTimeout(promise, ms, label){
+    let timer;
+    return Promise.race([
+      Promise.resolve(promise).finally(() => clearTimeout(timer)),
+      new Promise((_, rej) => { timer = setTimeout(() => rej(new Error((label || 'Operation') + ' timed out')), ms); })
+    ]);
   }
 
   // ---------- byte helpers ----------
@@ -280,39 +320,52 @@
       say('This browser does not support IndexedDB. Nothing to scan.', 'err');
       return;
     }
+    if (!indexedDB.databases){
+      say('This browser cannot list databases automatically (no indexedDB.databases()). Try Chrome, Edge, or a recent Firefox.', 'err');
+      return;
+    }
+
     let dbInfos = [];
     try {
-      if (indexedDB.databases) {
-        dbInfos = await indexedDB.databases();
-      } else {
-        say('This browser cannot list databases automatically (no indexedDB.databases()). Try Chrome, Edge, or a recent Firefox.', 'err');
-        return;
-      }
+      dbInfos = await withTimeout(indexedDB.databases(), 4000, 'Listing databases');
     } catch(e){
       say('Could not list databases: ' + e.message, 'err');
       return;
     }
-    if (!dbInfos.length){
-      say('No IndexedDB databases found on this origin yet. Open and play the webport at least once first, then rescan.', 'warn');
+
+    if (!dbInfos || !dbInfos.length){
+      say('No IndexedDB databases on this origin yet — there is nothing to search. Open the webport at least once so it creates its storage, then rescan.', 'warn');
       return;
     }
+
     for (const info of dbInfos){
       if (!info.name) continue;
       try {
-        const dbEntry = await scanDatabase(info.name);
+        const dbEntry = await withTimeout(scanDatabase(info.name), 8000, 'Reading "' + info.name + '"');
         scanResult.databases.push(dbEntry);
         say(`Read "${info.name}" — ${dbEntry.stores.length} store(s), ${dbEntry.stores.reduce((a,s)=>a+s.records.length,0)} record(s)`, 'ok');
       } catch(e){
         say(`Could not read database "${info.name}": ` + e.message, 'err');
       }
     }
+
+    if (!scanResult.databases.length){
+      say('No readable databases found.', 'warn');
+    }
   }
 
   function scanDatabase(name){
     return new Promise((resolve, reject) => {
-      const req = indexedDB.open(name);
+      let req;
+      try { req = indexedDB.open(name); }
+      catch(e){ return reject(e); }
       req.onerror = () => reject(req.error || new Error('open failed'));
       req.onblocked = () => reject(new Error('blocked (another tab may have the game open)'));
+      req.onupgradeneeded = (e) => {
+        // The database vanished between listing and opening. Abort instead of
+        // silently creating a brand-new empty one.
+        try { e.target.transaction.abort(); } catch(err){}
+      };
       req.onsuccess = async () => {
         const db = req.result;
         const storeNames = Array.from(db.objectStoreNames);
@@ -325,7 +378,7 @@
           db.close();
           resolve({ name, version: db.version, stores });
         } catch(e){
-          db.close();
+          try { db.close(); } catch(err){}
           reject(e);
         }
       };
@@ -431,18 +484,30 @@
   function renderSaveGrid(){
     const saves = findSaveRecords();
     if (!saves.length){
-      saveGrid.innerHTML = '<div class="empty">No files matching filechX_Y were found.</div>';
+      const noDbs = scanResult.databases.length === 0;
+      saveGrid.innerHTML = `
+        <div class="empty" style="grid-column:1/-1">
+          <p>${noDbs
+            ? 'Nothing to look at yet — this origin has no local save storage.'
+            : 'No files matching <code>filechX_Y</code> were found in the local storage.'}</p>
+          <button id="emptyUploadBtn" class="primary small">Upload a save file</button>
+          <p class="note">${noDbs
+            ? 'Open the webport once so it creates its storage, then hit Rescan. If you already have a save file you can still try uploading it.'
+            : 'You can write a save file straight into one of the stores listed under "All local data" below.'}</p>
+        </div>`;
+      const btn = saveGrid.querySelector('#emptyUploadBtn');
+      if (btn) btn.onclick = openUploadModal;
       return;
     }
     saveGrid.innerHTML = '';
-    saves.forEach((s, idx) => {
+    saves.forEach((s) => {
       const card = document.createElement('div');
       card.className = 'card';
       card.innerHTML = `
         <div class="title">${escapeHtml(s.filename)}</div>
         <div class="meta">
-          <span class="tag chap">Chapter ${s.chapter}</span>
-          <span class="tag">${slotLabel(s.slot)}</span>
+          <span class="tag chap">Chapter ${escapeHtml(s.chapter)}</span>
+          <span class="tag">${escapeHtml(slotLabel(s.slot))}</span>
           <span class="tag">${humanSize(s.size)}</span>
         </div>
         <div class="sub">${escapeHtml(s.dbName)} &rsaquo; ${escapeHtml(s.storeName)}</div>
@@ -524,6 +589,7 @@
   const modalBox = document.getElementById('modalBox');
   function closeModal(){ backdrop.classList.remove('open'); modalBox.innerHTML=''; }
   backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && backdrop.classList.contains('open')) closeModal(); });
 
   function describeContent(content){
     const bytes = toBytes(content);
@@ -575,7 +641,7 @@
       <h3>Replace ${escapeHtml(s.filename)}</h3>
       <div class="path">${escapeHtml(s.dbName)} &rsaquo; ${escapeHtml(s.storeName)} &rsaquo; key: ${escapeHtml(String(s.key))}</div>
       <div class="warn-box">This overwrites the live record in IndexedDB immediately. Export a full backup first if you haven't.</div>
-      <input type="file" id="mFile">
+      <input type="file" id="mFile" class="show">
       <div class="close-row">
         <button id="mCancel" class="ghost">Cancel</button>
       </div>
@@ -586,7 +652,7 @@
       const file = e.target.files[0];
       if (!file) return;
       try {
-        await replaceRecord(s, file);
+        await withTimeout(replaceRecord(s, file), 10000, 'Write');
         say(`Replaced ${s.filename} in "${s.dbName}"`, 'ok');
         closeModal();
         await runScan();
@@ -594,6 +660,194 @@
         say('Replace failed: ' + err.message, 'err');
       }
     };
+  }
+
+  // ---------- upload ----------
+  function guessFullKey(storeEntry, rawKey){
+    if (rawKey.includes('/')) return rawKey;
+    const kp = storeEntry.keyPath;
+    for (const r of storeEntry.records){
+      if (typeof r.key === 'string' && r.key.includes('/')){
+        return r.key.slice(0, r.key.lastIndexOf('/') + 1) + rawKey;
+      }
+      const v = r.value;
+      if (kp && v && typeof v === 'object' && typeof v[kp] === 'string' && v[kp].includes('/')){
+        const p = v[kp];
+        return p.slice(0, p.lastIndexOf('/') + 1) + rawKey;
+      }
+    }
+    return rawKey;
+  }
+
+  // Build a record value that matches the shape already used by this store
+  // (e.g. Emscripten IDBFS {path, mode, timestamp, contents}).
+  function buildNewValue(storeEntry, fullKey, bytes){
+    const kp = storeEntry.keyPath;
+    const sample = storeEntry.records.find(r =>
+      r.value && typeof r.value === 'object' && !Array.isArray(r.value) && !toBytes(r.value)
+    );
+    if (sample){
+      const clone = {};
+      for (const k in sample.value){
+        if (Object.prototype.hasOwnProperty.call(sample.value, k)) clone[k] = sample.value[k];
+      }
+      if (typeof kp === 'string') clone[kp] = fullKey;
+      const ex = extractContent(sample.value);
+      if (ex.holderKind === 'nested' && ex.field){
+        clone[ex.field] = (typeof sample.value[ex.field] === 'string')
+          ? (bytesToText(bytes) || '')
+          : bytes;
+      } else {
+        return bytes;
+      }
+      for (const tf of ['timestamp','mtime','updatedAt','modified']){
+        if (typeof clone[tf] === 'number') clone[tf] = Date.now();
+      }
+      return clone;
+    }
+    if (typeof kp === 'string'){
+      const obj = {};
+      obj[kp] = fullKey;
+      obj.contents = bytes;
+      return obj;
+    }
+    return bytes;
+  }
+
+  function writeNewRecord(dbName, storeEntry, fullKey, bytes){
+    const value = buildNewValue(storeEntry, fullKey, bytes);
+    const inlineKey = !!storeEntry.keyPath;
+    return withTimeout(new Promise((resolve, reject) => {
+      let openReq;
+      try { openReq = indexedDB.open(dbName); }
+      catch(e){ return reject(e); }
+      openReq.onerror = () => reject(openReq.error || new Error('open failed'));
+      openReq.onsuccess = () => {
+        const db = openReq.result;
+        let tx;
+        try { tx = db.transaction(storeEntry.name, 'readwrite'); }
+        catch(e){ try{db.close();}catch(x){} return reject(e); }
+        const store = tx.objectStore(storeEntry.name);
+        try {
+          if (inlineKey) store.put(value);
+          else store.put(value, fullKey);
+        } catch(e){
+          try{db.close();}catch(x){}
+          return reject(e);
+        }
+        tx.oncomplete = () => { try{db.close();}catch(x){} resolve(); };
+        tx.onerror = () => { try{db.close();}catch(x){} reject(tx.error || new Error('write failed')); };
+        tx.onabort = () => { try{db.close();}catch(x){} reject(tx.error || new Error('write aborted')); };
+      };
+    }), 10000, 'Write');
+  }
+
+  function openUploadModal(){
+    const saves = findSaveRecords();
+    const storeOptions = [];
+    scanResult.databases.forEach(db => db.stores.forEach(st => {
+      storeOptions.push({ dbName: db.name, storeName: st.name, store: st });
+    }));
+
+    const hasTarget = saves.length > 0 || storeOptions.length > 0;
+
+    let targetsHtml = '';
+    if (saves.length){
+      targetsHtml += '<div class="field-label">Replace an existing save</div>';
+      saves.forEach((s, i) => {
+        targetsHtml += `
+          <label class="radio">
+            <input type="radio" name="upTarget" value="replace:${i}" ${i===0 ? 'checked' : ''}>
+            <span>
+              <b>${escapeHtml(s.filename)}</b> &middot; ${escapeHtml(slotLabel(s.slot))} &middot; chapter ${escapeHtml(s.chapter)}
+              <span class="n">${escapeHtml(s.dbName)} &rsaquo; ${escapeHtml(s.storeName)}</span>
+            </span>
+          </label>`;
+      });
+    }
+    if (storeOptions.length){
+      targetsHtml += `<div class="field-label"${saves.length ? ' style="margin-top:1rem"' : ''}>${saves.length ? 'Or write it as a new record' : 'Write it as a new record'}</div>`;
+      targetsHtml += `
+        <label class="radio">
+          <input type="radio" name="upTarget" value="new" ${saves.length ? '' : 'checked'}>
+          <span>
+            Write to
+            <select id="upStore">${storeOptions.map((o,i)=>`<option value="${i}">${escapeHtml(o.dbName)} &rsaquo; ${escapeHtml(o.storeName)}</option>`).join('')}</select>
+            under the name <input type="text" id="upKey" placeholder="filech1_0" spellcheck="false">
+            <span class="n">Use the game's own filename, e.g. <code>filech1_0</code> for slot 1. A matching folder prefix is added automatically.</span>
+          </span>
+        </label>`;
+    }
+
+    modalBox.innerHTML = `
+      <h3>Upload a save file</h3>
+      <div class="path">Written straight into this browser's IndexedDB. Nothing leaves this page.</div>
+      <div class="warn-box">Writes happen immediately and there is no undo. Export a full backup first if you're not sure.</div>
+      ${hasTarget ? '' : '<div class="warn-box">This origin has no save storage yet, so there is nowhere to write to. Open the webport once so it creates its database, then come back and rescan.</div>'}
+      <div class="field">
+        <div class="field-label">1. Pick the file</div>
+        <input type="file" id="upFile" class="show">
+      </div>
+      ${hasTarget ? `<div class="field"><div class="field-label">2. Where should it go?</div>${targetsHtml}</div>` : ''}
+      <div class="close-row">
+        <button id="mCancel" class="ghost">Cancel</button>
+        <button id="upWrite" class="primary" ${hasTarget ? '' : 'disabled'}>Write file</button>
+      </div>
+    `;
+    backdrop.classList.add('open');
+
+    const fileInput = modalBox.querySelector('#upFile');
+    const keyInput = modalBox.querySelector('#upKey');
+    fileInput.onchange = () => {
+      const f = fileInput.files[0];
+      if (f && keyInput && !keyInput.value) keyInput.value = f.name;
+    };
+    modalBox.querySelector('#mCancel').onclick = closeModal;
+
+    const writeBtn = modalBox.querySelector('#upWrite');
+    if (hasTarget){
+      writeBtn.onclick = () => doUpload(writeBtn, saves, storeOptions);
+    }
+  }
+
+  async function doUpload(btn, saves, storeOptions){
+    const file = modalBox.querySelector('#upFile').files[0];
+    if (!file){ say('Pick a file to upload first.', 'warn'); return; }
+    const sel = modalBox.querySelector('input[name=upTarget]:checked');
+    if (!sel){ say('Choose where the file should go.', 'warn'); return; }
+
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Writing…';
+
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+
+      if (sel.value.indexOf('replace:') === 0){
+        const idx = parseInt(sel.value.split(':')[1], 10);
+        const s = saves[idx];
+        await withTimeout(replaceRecord(s, file), 10000, 'Write');
+        say(`Wrote ${file.name} over ${s.filename} in "${s.dbName}"`, 'ok');
+      } else {
+        const storeSel = modalBox.querySelector('#upStore');
+        const opt = storeOptions[parseInt(storeSel.value, 10)];
+        const rawKey = (modalBox.querySelector('#upKey').value || file.name).trim();
+        if (!rawKey){
+          say('Enter a name for the new record.', 'warn');
+          btn.disabled = false; btn.textContent = original; return;
+        }
+        const fullKey = guessFullKey(opt.store, rawKey);
+        await writeNewRecord(opt.dbName, opt.store, fullKey, bytes);
+        say(`Wrote ${file.name} as "${fullKey}" in "${opt.dbName}" › "${opt.storeName}"`, 'ok');
+      }
+
+      closeModal();
+      await runScan();
+    } catch(err){
+      say('Upload failed: ' + (err && err.message ? err.message : err), 'err');
+      btn.disabled = false;
+      btn.textContent = original;
+    }
   }
 
   function downloadRecord(filename, content){
@@ -614,38 +868,50 @@
     const newBytes = new Uint8Array(buf);
 
     return new Promise((resolve, reject) => {
-      const openReq = indexedDB.open(s.dbName);
+      let openReq;
+      try { openReq = indexedDB.open(s.dbName); }
+      catch(e){ return reject(e); }
       openReq.onerror = () => reject(openReq.error);
       openReq.onsuccess = () => {
         const db = openReq.result;
         let tx;
         try { tx = db.transaction(s.storeName, 'readwrite'); }
-        catch(e){ db.close(); return reject(e); }
+        catch(e){ try{db.close();}catch(x){} return reject(e); }
         const store = tx.objectStore(s.storeName);
 
-        if (s.holderKind === 'direct'){
-          // preserve original type shape when possible
-          let newValue;
-          if (typeof s.rawValue === 'string'){
-            newValue = bytesToText(newBytes) ?? '';
-          } else if (toBytes(s.rawValue)){
-            newValue = (s.rawValue instanceof Uint8Array || ArrayBuffer.isView(s.rawValue)) ? newBytes : newBytes.buffer;
+        try {
+          if (s.holderKind === 'direct'){
+            // preserve original type shape when possible
+            let newValue;
+            if (typeof s.rawValue === 'string'){
+              newValue = bytesToText(newBytes) || '';
+            } else if (toBytes(s.rawValue)){
+              newValue = (s.rawValue instanceof Uint8Array || ArrayBuffer.isView(s.rawValue)) ? newBytes : newBytes.buffer;
+            } else {
+              newValue = newBytes;
+            }
+            if (store.keyPath) store.put(newValue);
+            else store.put(newValue, s.key);
           } else {
-            newValue = newBytes;
+            // nested object holder e.g. IDBFS-style {path, contents, mode, timestamp}
+            const clone = Object.assign({}, s.rawValue);
+            const field = s.contentField || 'contents';
+            const origVal = s.rawValue[field];
+            clone[field] = (typeof origVal === 'string') ? (bytesToText(newBytes) || '') : newBytes;
+            for (const tf of ['timestamp','mtime','updatedAt','modified']){
+              if (typeof clone[tf] === 'number') clone[tf] = Date.now();
+            }
+            if (store.keyPath) store.put(clone);
+            else store.put(clone, s.key);
           }
-          if (store.keyPath) store.put(newValue);
-          else store.put(newValue, s.key);
-        } else {
-          // nested object holder e.g. IDBFS-style {path, contents, mode, timestamp}
-          const clone = Object.assign({}, s.rawValue);
-          const field = s.contentField || 'contents';
-          const origVal = s.rawValue[field];
-          clone[field] = (typeof origVal === 'string') ? (bytesToText(newBytes) ?? '') : newBytes;
-          if (store.keyPath) store.put(clone);
-          else store.put(clone, s.key);
+        } catch(e){
+          try{db.close();}catch(x){}
+          return reject(e);
         }
-        tx.oncomplete = () => { db.close(); resolve(); };
-        tx.onerror = () => { db.close(); reject(tx.error); };
+
+        tx.oncomplete = () => { try{db.close();}catch(x){} resolve(); };
+        tx.onerror = () => { try{db.close();}catch(x){} reject(tx.error || new Error('write failed')); };
+        tx.onabort = () => { try{db.close();}catch(x){} reject(tx.error || new Error('write aborted')); };
       };
     });
   }
@@ -698,7 +964,7 @@
     }
     for (const dbBackup of data.databases){
       try {
-        await importDatabase(dbBackup);
+        await withTimeout(importDatabase(dbBackup), 15000, `Restoring "${dbBackup.name}"`);
         say(`Restored data into "${dbBackup.name}"`, 'ok');
       } catch(e){
         say(`Could not restore "${dbBackup.name}": ${e.message}. Make sure you've opened the webport at least once so it has created its database.`, 'err');
@@ -709,32 +975,41 @@
 
   function importDatabase(dbBackup){
     return new Promise((resolve, reject) => {
-      const openReq = indexedDB.open(dbBackup.name);
+      let openReq;
+      try { openReq = indexedDB.open(dbBackup.name); }
+      catch(e){ return reject(e); }
       openReq.onerror = () => reject(openReq.error || new Error('open failed'));
       openReq.onsuccess = () => {
         const db = openReq.result;
         const existingStores = Array.from(db.objectStoreNames);
         const missing = dbBackup.stores.filter(s => !existingStores.includes(s.name)).map(s=>s.name);
         if (missing.length){
-          db.close();
+          try{db.close();}catch(e){}
           return reject(new Error(`missing store(s) ${missing.join(', ')} — this database hasn't been fully initialized yet`));
         }
+        const usable = dbBackup.stores.filter(s => existingStores.includes(s.name)).map(s => s.name);
         let tx;
-        try { tx = db.transaction(existingStores.filter(n => dbBackup.stores.some(s=>s.name===n)), 'readwrite'); }
-        catch(e){ db.close(); return reject(e); }
-        for (const storeBackup of dbBackup.stores){
-          const store = tx.objectStore(storeBackup.name);
-          for (const rec of storeBackup.records){
-            const value = deserializeValue(rec.value);
-            if (storeBackup.keyPath){
-              store.put(value);
-            } else {
-              store.put(value, deserializeValue(rec.key));
+        try { tx = db.transaction(usable, 'readwrite'); }
+        catch(e){ try{db.close();}catch(x){} return reject(e); }
+        try {
+          for (const storeBackup of dbBackup.stores){
+            const store = tx.objectStore(storeBackup.name);
+            for (const rec of storeBackup.records){
+              const value = deserializeValue(rec.value);
+              if (storeBackup.keyPath){
+                store.put(value);
+              } else {
+                store.put(value, deserializeValue(rec.key));
+              }
             }
           }
+        } catch(e){
+          try{db.close();}catch(x){}
+          return reject(e);
         }
-        tx.oncomplete = () => { db.close(); resolve(); };
-        tx.onerror = () => { db.close(); reject(tx.error); };
+        tx.oncomplete = () => { try{db.close();}catch(e){} resolve(); };
+        tx.onerror = () => { try{db.close();}catch(e){} reject(tx.error || new Error('write failed')); };
+        tx.onabort = () => { try{db.close();}catch(e){} reject(tx.error || new Error('write aborted')); };
       };
     });
   }
@@ -743,11 +1018,16 @@
   async function runScan(){
     logLines.length = 0;
     say('Scanning for local save data…');
-    await scanAll();
+    try {
+      await withTimeout(scanAll(), 20000, 'Scan');
+    } catch(e){
+      say(e.message + ' — showing whatever was found so far.', 'err');
+    }
     render();
   }
 
   document.getElementById('rescan').onclick = runScan;
+  document.getElementById('uploadSave').onclick = openUploadModal;
   document.getElementById('exportAll').onclick = exportAll;
   document.getElementById('importAllBtn').onclick = () => document.getElementById('importAllFile').click();
   document.getElementById('importAllFile').onchange = (e) => {
