@@ -334,10 +334,103 @@
     margin: 0 0 16px;
   }
 
+  /* ===== To-Do tab ===== */
+  .todo-wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 32px 120px;
+  }
+  .todo-wrap h1 {
+    font-family: var(--serif);
+    font-size: 32px;
+    font-weight: 500;
+    margin: 0 0 8px;
+  }
+  .todo-wrap .rule {
+    height: 1px;
+    background: var(--line);
+    margin-bottom: 36px;
+  }
+  .todo-intro {
+    font-size: 15.5px;
+    color: var(--muted);
+    margin: -18px 0 40px;
+  }
+  .todo-section { margin-bottom: 48px; }
+  .todo-section h2 {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 500;
+    margin: 0 0 14px;
+  }
+  .todo-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--line);
+  }
+  .todo-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 11px 2px;
+    border-bottom: 1px solid var(--line);
+    font-size: 15.5px;
+    color: #D8D4C7;
+  }
+  .todo-box {
+    flex-shrink: 0;
+    width: 17px;
+    height: 17px;
+    margin-top: 4px;
+    border: 1px solid var(--muted);
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    color: transparent;
+    user-select: none;
+  }
+  .todo-text { flex: 1 1 auto; min-width: 0; }
+  .todo-text a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent); }
+  .todo-text a:hover, .todo-text a:focus-visible { color: var(--ink); border-bottom-color: var(--ink); }
+  .todo-note { display: block; font-size: 13.5px; color: var(--muted); margin-top: 2px; }
+  .todo-tag {
+    flex-shrink: 0;
+    align-self: center;
+    font-size: 11.5px;
+    letter-spacing: 0.02em;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 1px 9px;
+    white-space: nowrap;
+  }
+  .todo-tag.high { color: var(--accent); border-color: var(--accent); }
+
+  /* done state */
+  .todo-item.done .todo-box {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--paper);
+  }
+  .todo-item.done .todo-box::after { content: '✓'; }
+  .todo-item.done .todo-text {
+    color: var(--muted);
+    text-decoration: line-through;
+    text-decoration-color: var(--muted);
+  }
+  .todo-item.done .todo-tag { opacity: 0.5; }
+
   @media (max-width: 760px) {
     .tabs { padding: 0 20px; }
     .games-wrap, .guides-wrap { padding: 0 20px 80px; }
     .game-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 18px 14px; }
+    .todo-wrap { padding: 0 20px 80px; }
+    .todo-tag { display: none; }
   }
 </style>
 </head>
@@ -357,6 +450,7 @@
   <button class="tab-btn" data-tab="games" role="tab">Games</button>
   <button class="tab-btn" data-tab="guides" role="tab">Guides</button>
   <a class="tab-btn" href="https://forms.gle/PeesBwPgkGKy4UjH8" target="_blank" rel="noopener noreferrer" role="tab">suggestions/feedback</a>
+  <button class="tab-btn" data-tab="todo" role="tab">To-Do List</button>
 </div>
 
 <!-- ============================================================
@@ -536,7 +630,7 @@
       </section>
 
       
-      <section id="b1-10">
+      <section id="b1-s10">
         <h2>⭐☁️opium</h2>
         <div class="note-body">
           <ul>
@@ -553,7 +647,7 @@
         </div>
       </section>
 
-      <section id="b1-11">
+      <section id="b1-s11">
         <h2>⭐galaxy</h2>
         <div class="note-body">
           <ul>
@@ -566,7 +660,7 @@
         </div>
       </section>
 
-            <section id="b1-12">
+            <section id="b1-s12">
         <h2>⭐velara</h2>
         <div class="note-body">
           <ul>
@@ -602,7 +696,7 @@
         </div>
       </section>
 
-            <section id="b1-13">
+            <section id="b1-s13">
         <h2>⭐☁️quasar</h2>
         <div class="note-body">
           <ul>
@@ -976,6 +1070,121 @@
 
   </div>
 </div><!-- /#tab-guides -->
+
+<!-- ============================================================
+     TAB 4 : TO-DO LIST
+     ============================================================
+
+     ⚙️  THIS TAB IS STATIC — visitors cannot edit it.
+         To change the list, edit the HTML below directly.
+
+     📋  HOW TO ADD A NEW ITEM:
+         Copy the block between the dashed lines and paste it
+         inside the appropriate <ul class="todo-list">.
+
+     ┌─────────────────────────────────────────────────────
+     │ <li class="todo-item">
+     │   <span class="todo-box"></span>
+     │   <span class="todo-text">your task here</span>
+     │   <span class="todo-tag">tag</span>
+     │ </li>
+     └─────────────────────────────────────────────────────
+
+     • To mark an item as DONE, add class "done" to the <li>:
+         <li class="todo-item done">
+
+     • The <span class="todo-tag"> is optional — delete it if
+       you don't want a tag.
+
+     • To highlight a tag, add class "high":
+         <span class="todo-tag high">high</span>
+
+     • For a smaller sub-note under the main text, put this
+       inside the .todo-text span:
+         <span class="todo-note">extra detail here</span>
+
+     • Each <li> must have exactly one .todo-box and one
+       .todo-text. The .todo-tag is optional.
+
+     ============================================================ -->
+<div class="tab-panel" id="tab-todo">
+  <div class="todo-wrap">
+    <h1>to-do list</h1>
+    <div class="rule"></div>
+
+    <p class="todo-intro">what i'm working on / planning to add. check back every so often.</p>
+
+    <!-- ======================================================
+         SECTION: PLANNED
+         ====================================================== -->
+    <section class="todo-section">
+      <h2>planned</h2>
+      <ul class="todo-list">
+
+        <!-- 📋 COPY THIS BLOCK TO ADD A NEW PLANNED ITEM -->
+        <li class="todo-item">
+          <span class="todo-box"></span>
+          <span class="todo-text">find unblocked movie/tv sites that don't need a proxy</span>
+          <span class="todo-tag">movies</span>
+        </li>
+
+        <li class="todo-item">
+          <span class="todo-box"></span>
+          <span class="todo-text">add a proper search bar to the home tab</span>
+          <span class="todo-tag">site</span>
+        </li>
+
+        <li class="todo-item">
+          <span class="todo-box"></span>
+          <span class="todo-text">write more guides for the trickier games</span>
+          <span class="todo-tag">guides</span>
+        </li>
+
+        <li class="todo-item">
+          <span class="todo-box"></span>
+          <span class="todo-text">clean up dead links</span>
+          <span class="todo-tag">maintenance</span>
+        </li>
+
+        <!-- Add more planned items below this line -->
+
+      </ul>
+    </section>
+
+    <!-- ======================================================
+         SECTION: DONE
+         ====================================================== -->
+    <section class="todo-section">
+      <h2>done</h2>
+      <ul class="todo-list">
+
+        <!-- 📋 COPY THIS BLOCK TO ADD A NEW DONE ITEM
+             (make sure to include class "done" on the <li>) -->
+        <li class="todo-item done">
+          <span class="todo-box"></span>
+          <span class="todo-text">add the binding of isaac: repentance</span>
+          <span class="todo-tag">games</span>
+        </li>
+
+        <li class="todo-item done">
+          <span class="todo-box"></span>
+          <span class="todo-text">add cloud gaming section</span>
+          <span class="todo-tag">cloud</span>
+        </li>
+
+        <li class="todo-item done">
+          <span class="todo-box"></span>
+          <span class="todo-text">add a game search bar</span>
+          <span class="todo-tag">site</span>
+        </li>
+
+        <!-- Add more completed items below this line -->
+
+      </ul>
+    </section>
+
+  </div>
+</div><!-- /#tab-todo -->
 
 <script>
   /* ---------- Tabs ---------- */
