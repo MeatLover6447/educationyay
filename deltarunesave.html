@@ -47,7 +47,7 @@
     font-family:var(--sans); font-size:0.85rem; font-weight:600;
     background:var(--panel-2); color:var(--text); border:1px solid var(--line);
     padding:0.55rem 0.95rem; border-radius:4px; cursor:pointer;
-    transition:border-color .12s, background .12s;
+    transition:border-color .12s, background .12s, opacity .12s;
   }
   button:hover, .btn:hover{border-color:var(--violet);}
   button.primary{background:var(--accent); border-color:var(--accent); color:#fff;}
@@ -57,6 +57,28 @@
   button.small{padding:0.3rem 0.6rem;font-size:0.75rem;}
 
   main{max-width:1080px;margin:0 auto;padding:1.6rem 1.5rem;}
+
+  /* ---------- progress bar ---------- */
+  .scanbar{
+    margin-bottom:1.2rem;
+    opacity:0; max-height:0; overflow:hidden;
+    transition:opacity .2s ease, max-height .2s ease;
+  }
+  .scanbar.active{opacity:1; max-height:8rem;}
+  .scanbar-track{
+    height:6px; background:var(--panel-2); border:1px solid var(--line);
+    border-radius:4px; overflow:hidden;
+  }
+  .scanbar-fill{
+    height:100%; width:0%;
+    background:linear-gradient(90deg, var(--accent-dim), var(--accent));
+    transition:width .15s linear;
+  }
+  .scanbar.done .scanbar-fill{background:var(--ok);}
+  .scanbar-text{
+    font-family:var(--mono); font-size:0.76rem; color:var(--muted);
+    margin-top:0.5rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
 
   .log{
     font-family:var(--mono); font-size:0.78rem; color:var(--muted);
@@ -112,6 +134,7 @@
   table td.key{font-family:var(--mono); word-break:break-all;}
   table td.size{color:var(--muted); white-space:nowrap;}
   table td.act{white-space:nowrap;}
+  table td.more{padding:0.5rem 1rem;}
 
   .modal-backdrop{
     position:fixed; inset:0; background:rgba(6,4,9,0.72); display:none;
@@ -184,6 +207,11 @@
 </header>
 
 <main>
+  <div class="scanbar" id="scanbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+    <div class="scanbar-track"><div class="scanbar-fill" id="scanbarFill"></div></div>
+    <div class="scanbar-text" id="scanbarText">Starting&hellip;</div>
+  </div>
+
   <div class="log" id="log">Scanning for local save data&hellip;</div>
 
   <section>
@@ -214,13 +242,14 @@
 
   const log = document.getElementById('log');
   const logLines = [];
-  function say(msg, cls){
-    logLines.push(cls ? `<span class="${cls}">${escapeHtml(msg)}</span>` : escapeHtml(msg));
-    log.innerHTML = logLines.join('\n');
-    log.scrollTop = log.scrollHeight;
-  }
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function say(msg, cls){
+    logLines.push(cls ? `<span class="${cls}">${escapeHtml(msg)}</span>` : escapeHtml(msg));
+    if (logLines.length > 500) logLines.splice(0, logLines.length - 500);
+    log.innerHTML = logLines.join('\n');
+    log.scrollTop = log.scrollHeight;
   }
   function withTimeout(promise, ms, label){
     let timer;
@@ -230,9 +259,61 @@
     ]);
   }
 
+  // ---------- cooperative yielding ----------
+  // A real macrotask yield (not a microtask!) so the browser can paint and
+  // process clicks between chunks of work. MessageChannel avoids the 4ms
+  // clamping that nested setTimeout(0) gets hit with.
+  const _yieldQueue = [];
+  let _yieldPort = null;
+  (function initYield(){
+    if (typeof MessageChannel === 'function'){
+      const ch = new MessageChannel();
+      _yieldPort = ch.port2;
+      ch.port1.onmessage = () => {
+        const resolve = _yieldQueue.shift();
+        if (resolve) resolve();
+      };
+    }
+  })();
+  function yieldUI(){
+    if (!_yieldPort) return new Promise(r => setTimeout(r, 0));
+    return new Promise(r => { _yieldQueue.push(r); _yieldPort.postMessage(0); });
+  }
+
+  // ---------- progress bar ----------
+  const scanbar      = document.getElementById('scanbar');
+  const scanbarFill  = document.getElementById('scanbarFill');
+  const scanbarText  = document.getElementById('scanbarText');
+  let progressHideTimer = null;
+
+  function progressStart(text){
+    if (progressHideTimer){ clearTimeout(progressHideTimer); progressHideTimer = null; }
+    scanbar.classList.add('active');
+    scanbar.classList.remove('done');
+    setProgress(0, text || 'Starting…');
+  }
+  function setProgress(frac, text){
+    const pct = Math.max(0, Math.min(100, Math.round(frac * 100)));
+    scanbarFill.style.width = pct + '%';
+    scanbar.setAttribute('aria-valuenow', String(pct));
+    if (text !== undefined) scanbarText.textContent = text;
+  }
+  function progressDone(text){
+    setProgress(1, text || 'Done');
+    scanbar.classList.add('done');
+    progressHideTimer = setTimeout(() => {
+      scanbar.classList.remove('active', 'done');
+      progressHideTimer = null;
+    }, 1100);
+  }
+  function progressFail(text){
+    scanbar.classList.remove('active', 'done');
+    scanbarFill.style.width = '0%';
+    if (text) scanbarText.textContent = text;
+  }
+
   // ---------- byte helpers ----------
   function toBytes(value){
-    // Returns a Uint8Array view of a record value's raw bytes, or null if not byte-like.
     if (value instanceof Uint8Array) return value;
     if (value instanceof ArrayBuffer) return new Uint8Array(value);
     if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
@@ -262,13 +343,26 @@
     if (n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
     return (n/1024/1024).toFixed(2) + ' MB';
   }
+  // Cheap size estimate. Never encodes or stringifies huge payloads — that was
+  // the main reason rendering the record list used to lock up the page.
   function approxSize(value){
+    if (value === null || value === undefined) return 0;
     const b = toBytes(value);
     if (b) return b.length;
-    if (typeof value === 'string') return textToBytes(value).length;
-    if (value && typeof value === 'object'){
+    if (typeof value === 'string') return value.length; // chars ≈ bytes, good enough
+    if (typeof value === 'object'){
+      // Emscripten-style IDBFS holder: measure the payload field only.
+      for (const f of ['contents','data','value']){
+        const fv = value[f];
+        if (fv === undefined) continue;
+        const fb = toBytes(fv);
+        if (fb) return fb.length;
+        if (typeof fv === 'string') return fv.length;
+      }
       try { return JSON.stringify(value).length; } catch(e){ return 0; }
     }
+    if (typeof value === 'number') return 8;
+    if (typeof value === 'boolean') return 4;
     return 0;
   }
 
@@ -287,7 +381,7 @@
       for (const k in v){ if (Object.prototype.hasOwnProperty.call(v,k)) out[k] = serializeValue(v[k], depth+1); }
       return out;
     }
-    return v; // string, number, boolean
+    return v;
   }
   function deserializeValue(v){
     if (v === null || v === undefined) return v;
@@ -303,58 +397,11 @@
     return v;
   }
 
-  async function readBlobIfNeeded(v){
-    if (typeof Blob !== 'undefined' && v instanceof Blob){
-      const buf = await v.arrayBuffer();
-      return new Uint8Array(buf);
-    }
-    return v;
-  }
+  // ---------- IndexedDB helpers ----------
+  let scanResult = { databases: [] };
+  let scanning = false;
 
-  // ---------- IndexedDB scanning ----------
-  let scanResult = { databases: [] }; // { name, version, stores:[{name, keyPath, autoIncrement, records:[{key, value}]}] }
-
-  async function scanAll(){
-    scanResult = { databases: [] };
-    if (!('indexedDB' in window)){
-      say('This browser does not support IndexedDB. Nothing to scan.', 'err');
-      return;
-    }
-    if (!indexedDB.databases){
-      say('This browser cannot list databases automatically (no indexedDB.databases()). Try Chrome, Edge, or a recent Firefox.', 'err');
-      return;
-    }
-
-    let dbInfos = [];
-    try {
-      dbInfos = await withTimeout(indexedDB.databases(), 4000, 'Listing databases');
-    } catch(e){
-      say('Could not list databases: ' + e.message, 'err');
-      return;
-    }
-
-    if (!dbInfos || !dbInfos.length){
-      say('No IndexedDB databases on this origin yet — there is nothing to search. Open the webport at least once so it creates its storage, then rescan.', 'warn');
-      return;
-    }
-
-    for (const info of dbInfos){
-      if (!info.name) continue;
-      try {
-        const dbEntry = await withTimeout(scanDatabase(info.name), 8000, 'Reading "' + info.name + '"');
-        scanResult.databases.push(dbEntry);
-        say(`Read "${info.name}" — ${dbEntry.stores.length} store(s), ${dbEntry.stores.reduce((a,s)=>a+s.records.length,0)} record(s)`, 'ok');
-      } catch(e){
-        say(`Could not read database "${info.name}": ` + e.message, 'err');
-      }
-    }
-
-    if (!scanResult.databases.length){
-      say('No readable databases found.', 'warn');
-    }
-  }
-
-  function scanDatabase(name){
+  function openDb(name){
     return new Promise((resolve, reject) => {
       let req;
       try { req = indexedDB.open(name); }
@@ -365,52 +412,163 @@
         // The database vanished between listing and opening. Abort instead of
         // silently creating a brand-new empty one.
         try { e.target.transaction.abort(); } catch(err){}
+        reject(new Error('database no longer exists'));
       };
-      req.onsuccess = async () => {
-        const db = req.result;
-        const storeNames = Array.from(db.objectStoreNames);
-        const stores = [];
-        try {
-          for (const sn of storeNames){
-            const store = await readStore(db, sn);
-            stores.push(store);
-          }
-          db.close();
-          resolve({ name, version: db.version, stores });
-        } catch(e){
-          try { db.close(); } catch(err){}
-          reject(e);
-        }
-      };
+      req.onsuccess = () => resolve(req.result);
     });
   }
 
-  function readStore(db, storeName){
+  function getStoreMeta(db, storeName){
     return new Promise((resolve, reject) => {
       let tx;
       try { tx = db.transaction(storeName, 'readonly'); }
       catch(e){ return reject(e); }
-      const store = tx.objectStore(storeName);
-      const keyPath = store.keyPath;
-      const autoIncrement = store.autoIncrement;
-      const keysReq = store.getAllKeys();
-      const valsReq = store.getAll();
-      let keys, vals;
-      keysReq.onsuccess = () => { keys = keysReq.result; maybeDone(); };
-      valsReq.onsuccess = () => { vals = valsReq.result; maybeDone(); };
-      tx.onerror = () => reject(tx.error);
-      function maybeDone(){
-        if (keys === undefined || vals === undefined) return;
-        (async () => {
-          const records = [];
-          for (let i=0;i<vals.length;i++){
-            const value = await readBlobIfNeeded(vals[i]);
-            records.push({ key: keys[i], value });
-          }
-          resolve({ name: storeName, keyPath, autoIncrement, records });
-        })().catch(reject);
-      }
+      const s = tx.objectStore(storeName);
+      resolve({ keyPath: s.keyPath, autoIncrement: s.autoIncrement });
     });
+  }
+
+  function storeRequest(db, storeName, fn){
+    return new Promise((resolve, reject) => {
+      let tx;
+      try { tx = db.transaction(storeName, 'readonly'); }
+      catch(e){ return reject(e); }
+      let req;
+      try { req = fn(tx.objectStore(storeName)); }
+      catch(e){ return reject(e); }
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error || new Error('read failed'));
+      req.onblocked = () => reject(new Error('blocked'));
+    });
+  }
+
+  const READ_BATCH = 50;
+
+  // Reads one object store in small batches, yielding to the UI between each
+  // batch so the page stays interactive and the progress bar can move.
+  async function readStore(db, storeName, onProgress){
+    const meta = await getStoreMeta(db, storeName);
+    const keys = await storeRequest(db, storeName, s => s.getAllKeys());
+    const records = [];
+    const total = keys.length || 1;
+
+    for (let i = 0; i < keys.length; i += READ_BATCH){
+      const slice = keys.slice(i, i + READ_BATCH);
+      const range = slice.length === 1
+        ? IDBKeyRange.only(slice[0])
+        : IDBKeyRange.bound(slice[0], slice[slice.length - 1]);
+      const vals = await storeRequest(db, storeName, s => s.getAll(range));
+      const n = Math.min(slice.length, vals.length);
+      for (let j = 0; j < n; j++){
+        let value = vals[j];
+        if (typeof Blob !== 'undefined' && value instanceof Blob){
+          value = new Uint8Array(await value.arrayBuffer());
+        }
+        records.push({ key: slice[j], value });
+      }
+      if (onProgress) onProgress(Math.min(1, (i + slice.length) / total));
+      await yieldUI();
+    }
+
+    return { name: storeName, keyPath: meta.keyPath, autoIncrement: meta.autoIncrement, records };
+  }
+
+  // ---------- scanning ----------
+  async function scanAll(){
+    scanResult = { databases: [] };
+
+    if (!('indexedDB' in window)){
+      say('This browser does not support IndexedDB. Nothing to scan.', 'err');
+      return;
+    }
+    if (!indexedDB.databases){
+      say('This browser cannot list databases automatically (no indexedDB.databases()). Try Chrome, Edge, or a recent Firefox.', 'err');
+      return;
+    }
+
+    setProgress(0.01, 'Listing databases…');
+    await yieldUI();
+
+    let dbInfos = [];
+    try {
+      dbInfos = await withTimeout(indexedDB.databases(), 5000, 'Listing databases');
+    } catch(e){
+      say('Could not list databases: ' + e.message, 'err');
+      return;
+    }
+    dbInfos = (dbInfos || []).filter(d => d && d.name);
+
+    if (!dbInfos.length){
+      say('No IndexedDB databases on this origin yet — there is nothing to search. Open the webport at least once so it creates its storage, then rescan.', 'warn');
+      return;
+    }
+
+    // --- Phase 1: cheap pass, just collect store names so we know the total ---
+    const plan = [];
+    for (let i = 0; i < dbInfos.length; i++){
+      const info = dbInfos[i];
+      setProgress(0.02 + 0.10 * (i / dbInfos.length), `Inspecting "${info.name}"…`);
+      await yieldUI();
+      try {
+        const db = await withTimeout(openDb(info.name), 8000, 'Opening "' + info.name + '"');
+        plan.push({ name: info.name, version: db.version, storeNames: Array.from(db.objectStoreNames) });
+        try { db.close(); } catch(e){}
+      } catch(e){
+        say(`Could not open database "${info.name}": ${e.message}`, 'err');
+      }
+    }
+
+    if (!plan.length){
+      say('No readable databases found.', 'warn');
+      return;
+    }
+
+    // --- Phase 2: read every store, reporting progress as we go ---
+    const totalStores = Math.max(1, plan.reduce((a, p) => a + p.storeNames.length, 0));
+    const base = 0.14;
+    let storeIndex = 0;
+
+    for (const p of plan){
+      const startIndex = storeIndex;
+      let db = null;
+      try {
+        db = await withTimeout(openDb(p.name), 8000, 'Opening "' + p.name + '"');
+        const stores = [];
+
+        for (const sn of p.storeNames){
+          const storeStart = storeIndex / totalStores;
+          const storeSpan  = 1 / totalStores;
+          const label = `Reading "${p.name}" › "${sn}" — store ${storeIndex + 1} of ${totalStores}`;
+          setProgress(base + (1 - base) * storeStart, label);
+          await yieldUI();
+
+          stores.push(await withTimeout(
+            readStore(db, sn, frac => {
+              setProgress(base + (1 - base) * (storeStart + storeSpan * frac), label);
+            }),
+            30000,
+            'Reading "' + sn + '"'
+          ));
+
+          storeIndex++;
+          await yieldUI();
+        }
+
+        scanResult.databases.push({ name: p.name, version: p.version, stores });
+        const recCount = stores.reduce((a, s) => a + s.records.length, 0);
+        say(`Read "${p.name}" — ${stores.length} store(s), ${recCount} record(s)`, 'ok');
+      } catch(e){
+        storeIndex = startIndex + p.storeNames.length;
+        say(`Could not read database "${p.name}": ${e.message}`, 'err');
+      } finally {
+        if (db){ try { db.close(); } catch(e){} }
+      }
+      await yieldUI();
+    }
+
+    if (!scanResult.databases.length){
+      say('No readable databases found.', 'warn');
+    }
   }
 
   // ---------- save-slot detection ----------
@@ -439,7 +597,7 @@
         }
       }
     }
-    return { holderKind: 'direct', content: value, field: null }; // fallback: show as JSON
+    return { holderKind: 'direct', content: value, field: null };
   }
 
   function findSaveRecords(){
@@ -474,7 +632,8 @@
 
   // ---------- rendering ----------
   const saveGrid = document.getElementById('saveGrid');
-  const dbList = document.getElementById('dbList');
+  const dbList   = document.getElementById('dbList');
+  const MAX_ROWS = 150;   // per store, before "show all"
 
   function render(){
     renderSaveGrid();
@@ -484,6 +643,10 @@
   function renderSaveGrid(){
     const saves = findSaveRecords();
     if (!saves.length){
+      if (scanning){
+        saveGrid.innerHTML = '<div class="empty" style="grid-column:1/-1">Scanning&hellip;</div>';
+        return;
+      }
       const noDbs = scanResult.databases.length === 0;
       saveGrid.innerHTML = `
         <div class="empty" style="grid-column:1/-1">
@@ -524,9 +687,88 @@
     });
   }
 
+  function makeRecordRow(db, store, rec){
+    const tr = document.createElement('tr');
+    const keyLabel = typeof rec.key === 'object' ? JSON.stringify(rec.key) : String(rec.key);
+
+    const td1 = document.createElement('td');
+    td1.className = 'key';
+    td1.textContent = `[${store.name}] ${keyLabel}`;
+
+    const td2 = document.createElement('td');
+    td2.className = 'size';
+    td2.textContent = humanSize(approxSize(rec.value));
+
+    const td3 = document.createElement('td');
+    td3.className = 'act';
+    const viewBtn = document.createElement('button');
+    viewBtn.className = 'small';
+    viewBtn.textContent = 'View';
+    viewBtn.onclick = () => {
+      const ex = extractContent(rec.value);
+      openViewModal({
+        filename: (typeof rec.key === 'string' ? rec.key.split('/').pop() : keyLabel),
+        dbName: db.name, storeName: store.name, key: rec.key,
+        content: ex.content, rawValue: rec.value, holderKind: ex.holderKind, contentField: ex.field
+      });
+    };
+    td3.appendChild(viewBtn);
+
+    tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3);
+    return tr;
+  }
+
+  function makeStoreSection(db, store){
+    const wrap = document.createElement('div');
+    const table = document.createElement('table');
+    table.innerHTML = `<thead><tr><th>Key</th><th>Size</th><th></th></tr></thead>`;
+    const tbody = document.createElement('tbody');
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+
+    let expanded = false;
+    function renderRows(){
+      tbody.innerHTML = '';
+      if (!store.records.length){
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 3;
+        td.style.color = 'var(--muted)';
+        td.textContent = `Store "${store.name}" — empty`;
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+      const limit = expanded ? store.records.length : Math.min(store.records.length, MAX_ROWS);
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < limit; i++){
+        frag.appendChild(makeRecordRow(db, store, store.records[i]));
+      }
+      tbody.appendChild(frag);
+
+      if (!expanded && store.records.length > MAX_ROWS){
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 3;
+        td.className = 'more';
+        const b = document.createElement('button');
+        b.className = 'small ghost';
+        b.textContent = `Show all ${store.records.length} records`;
+        b.onclick = () => { expanded = true; renderRows(); };
+        td.appendChild(b);
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      }
+    }
+    renderRows();
+    return wrap;
+  }
+
   function renderDbList(){
     if (!scanResult.databases.length){
-      dbList.innerHTML = '<div class="empty">No databases found.</div>';
+      dbList.innerHTML = scanning
+        ? '<div class="empty">Scanning&hellip;</div>'
+        : '<div class="empty">No databases found.</div>';
       return;
     }
     dbList.innerHTML = '';
@@ -538,48 +780,25 @@
       summary.innerHTML = `<span>${escapeHtml(db.name)} <span class="n">v${db.version}</span></span><span class="n">${db.stores.length} store(s) · ${totalRecords} record(s)</span>`;
       details.appendChild(summary);
 
-      db.stores.forEach(store => {
-        const wrap = document.createElement('div');
-        const table = document.createElement('table');
-        table.innerHTML = `<thead><tr>
-            <th>Key</th><th>Size</th><th></th>
-          </tr></thead>`;
-        const tbody = document.createElement('tbody');
-        if (!store.records.length){
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td colspan="3" style="color:var(--muted)">Store "${escapeHtml(store.name)}" — empty</td>`;
-          tbody.appendChild(tr);
+      // Build the (potentially huge) tables lazily, only when opened.
+      let built = false;
+      function build(){
+        if (built) return;
+        built = true;
+        const frag = document.createDocumentFragment();
+        if (!db.stores.length){
+          const p = document.createElement('div');
+          p.className = 'empty';
+          p.style.padding = '0.9rem 1rem';
+          p.textContent = 'No object stores in this database.';
+          frag.appendChild(p);
+        } else {
+          db.stores.forEach(store => frag.appendChild(makeStoreSection(db, store)));
         }
-        store.records.forEach(rec => {
-          const tr = document.createElement('tr');
-          const keyLabel = typeof rec.key === 'object' ? JSON.stringify(rec.key) : String(rec.key);
-          const size = approxSize(rec.value);
-          const td1 = document.createElement('td');
-          td1.className = 'key';
-          td1.textContent = `[${store.name}] ${keyLabel}`;
-          const td2 = document.createElement('td');
-          td2.className = 'size';
-          td2.textContent = humanSize(size);
-          const td3 = document.createElement('td');
-          td3.className = 'act';
-          const viewBtn = document.createElement('button');
-          viewBtn.className = 'small'; viewBtn.textContent = 'View';
-          viewBtn.onclick = () => {
-            const ex = extractContent(rec.value);
-            openViewModal({
-              filename: (typeof rec.key === 'string' ? rec.key.split('/').pop() : keyLabel),
-              dbName: db.name, storeName: store.name, key: rec.key,
-              content: ex.content, rawValue: rec.value, holderKind: ex.holderKind, contentField: ex.field
-            });
-          };
-          td3.appendChild(viewBtn);
-          tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3);
-          tbody.appendChild(tr);
-        });
-        table.appendChild(tbody);
-        wrap.appendChild(table);
-        details.appendChild(wrap);
-      });
+        details.appendChild(frag);
+      }
+      details.addEventListener('toggle', () => { if (details.open) build(); });
+
       dbList.appendChild(details);
     });
   }
@@ -679,8 +898,6 @@
     return rawKey;
   }
 
-  // Build a record value that matches the shape already used by this store
-  // (e.g. Emscripten IDBFS {path, mode, timestamp, contents}).
   function buildNewValue(storeEntry, fullKey, bytes){
     const kp = storeEntry.keyPath;
     const sample = storeEntry.records.find(r =>
@@ -881,7 +1098,6 @@
 
         try {
           if (s.holderKind === 'direct'){
-            // preserve original type shape when possible
             let newValue;
             if (typeof s.rawValue === 'string'){
               newValue = bytesToText(newBytes) || '';
@@ -893,7 +1109,6 @@
             if (store.keyPath) store.put(newValue);
             else store.put(newValue, s.key);
           } else {
-            // nested object holder e.g. IDBFS-style {path, contents, mode, timestamp}
             const clone = Object.assign({}, s.rawValue);
             const field = s.contentField || 'contents';
             const origVal = s.rawValue[field];
@@ -1015,15 +1230,40 @@
   }
 
   // ---------- wire up ----------
+  const actionButtons = [
+    document.getElementById('rescan'),
+    document.getElementById('uploadSave'),
+    document.getElementById('exportAll'),
+    document.getElementById('importAllBtn')
+  ];
+  function setBusy(busy){
+    actionButtons.forEach(b => { if (b) b.disabled = busy; });
+    document.body.style.cursor = busy ? 'progress' : '';
+  }
+
   async function runScan(){
+    if (scanning) return;
+    scanning = true;
+    setBusy(true);
+
     logLines.length = 0;
     say('Scanning for local save data…');
+    progressStart('Starting…');
+
+    // Let the browser paint the "scanning" state before we start hammering IDB.
+    await yieldUI();
+
     try {
-      await withTimeout(scanAll(), 20000, 'Scan');
+      await withTimeout(scanAll(), 120000, 'Scan');
+      progressDone('Scan complete');
     } catch(e){
       say(e.message + ' — showing whatever was found so far.', 'err');
+      progressFail(e.message);
     }
+
     render();
+    scanning = false;
+    setBusy(false);
   }
 
   document.getElementById('rescan').onclick = runScan;
