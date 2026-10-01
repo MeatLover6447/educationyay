@@ -425,6 +425,20 @@
   }
   .todo-item.done .todo-tag { opacity: 0.5; }
 
+  /* ===== declined state (can't / won't add) ===== */
+  .todo-item.no .todo-box {
+    border-color: #5A5648;
+    color: #7A7566;
+  }
+  .todo-item.no .todo-box::after { content: '✕'; font-size: 10px; }
+  .todo-item.no .todo-text { color: #8A8577; }
+  .todo-item.no .todo-tag {
+    color: #7A7566;
+    border-color: #4A4638;
+    opacity: 0.7;
+  }
+  .todo-item.no .todo-note { color: #7A7566; }
+
   @media (max-width: 760px) {
     .tabs { padding: 0 20px; }
     .games-wrap, .guides-wrap { padding: 0 20px 80px; }
@@ -1093,6 +1107,11 @@
      • To mark an item as DONE, add class "done" to the <li>:
          <li class="todo-item done">
 
+     • To mark an item as DECLINED / WON'T ADD, add class "no":
+         <li class="todo-item no">
+       (shows an ✕ box and muted text — use for the
+        "can't / won't add" section)
+
      • The <span class="todo-tag"> is optional — delete it if
        you don't want a tag.
 
@@ -1139,6 +1158,12 @@
           <span class="todo-text">look into castle crashers</span>
           <span class="todo-tag">games</span>
         </li>
+
+                          <li class="todo-item">
+          <span class="todo-box"></span>
+          <span class="todo-text">fix tboi lag, tboi save editor. this will take a while and may not be possible</span>
+          <span class="todo-tag">games</span>
+        </li>
         
 
 
@@ -1176,6 +1201,51 @@
 
 
         <!-- Add more completed items below this line -->
+
+      </ul>
+    </section>
+
+    <!-- ======================================================
+         SECTION: CAN'T / WON'T ADD
+         ======================================================
+         📋 COPY THIS BLOCK TO ADD A NEW DECLINED ITEM.
+            The <li> MUST have class "no" so it renders with
+            the ✕ box and muted text.
+
+            <li class="todo-item no">
+              <span class="todo-box"></span>
+              <span class="todo-text">thing you're not adding</span>
+              <span class="todo-tag">reason</span>
+            </li>
+
+         💡 Tip: use the .todo-note span inside .todo-text to
+            explain WHY you're not adding it.
+         ====================================================== -->
+    <section class="todo-section">
+      <h2>can't / won't add</h2>
+      <ul class="todo-list">
+
+        
+       <li class="todo-item no">
+          <span class="todo-box"></span>
+          <span class="todo-text">
+            real minecraft
+            <span class="todo-note">impossible</span>
+          </span>
+          <span class="todo-tag">games</span>
+        </li>
+
+
+        <li class="todo-item no">
+          <span class="todo-box"></span>
+          <span class="todo-text">
+            steam
+            <span class="todo-note">i cant add steam bro just use geforce now</span>
+          </span>
+          <span class="todo-tag">games</span>
+        </li>
+
+        <!-- Add more declined items below this line -->
 
       </ul>
     </section>
