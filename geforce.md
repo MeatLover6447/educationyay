@@ -1,3 +1,12 @@
+<!--
+Source - https://stackoverflow.com/a/75359298
+Posted by user21156527, modified by community. See post 'Timeline' for change history
+Retrieved 2026-10-02, License - CC BY-SA 4.0
+-->
+
+<script src="https://rawcdn.githack.com/oscarmorrison/md-page/master/md-page.js"></script><noscript>
+
+
 # geforce now guide
 > [!WARNING]
 > if you click in dogeub and a new tab opens, just close it and go back
