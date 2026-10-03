@@ -1,7 +1,10 @@
+---
+---
+
 # geforce now guide
 
 warning: if you click in dogeub and a new tab opens, just close it and go back
-1. visit any dogeub link [link 1](https://edu.ronginbari.com/) [link 2](https://api-www.studycare.help/) [link 3](https://edu.ronginbari.com/) [link 4](https://active.plik-perm.ru/) [link 5](https://edu.nextcomm.com.ar/) [link 6](https://getaway.champagnewishesandrvdreams.com/)
+1. visit any dogeub link <a href="https://edu.ronginbari.com/" target="_blank" rel="noopener noreferrer">link 1</a> <a href="https://api-www.studycare.help/" target="_blank" rel="noopener noreferrer">link 2</a> <a href="https://edu.ronginbari.com/" target="_blank" rel="noopener noreferrer">link 3</a> <a href="https://active.plik-perm.ru/" target="_blank" rel="noopener noreferrer">link 4</a> <a href="https://edu.nextcomm.com.ar/" target="_blank" rel="noopener noreferrer">link 5</a> <a href="https://getaway.champagnewishesandrvdreams.com/" target="_blank" rel="noopener noreferrer">link 6</a>
 2. click apps
 3. click geforce now
 4. click get in
