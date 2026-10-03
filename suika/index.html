@@ -1,0 +1,355 @@
+<!DOCTYPE html><html lang="en"><head>
+    <link rel="stylesheet" href="css/css2.css">
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suika Game | Play Watermelon Game on PC &amp; Mobile [English]</title>
+    <meta name="description" content="Play the addictive Watermelon Game for free online on your web or mobile device! Combine fruits and get the highest score among your friends. Available in Japanese and English.">
+    <meta name="title" content="Suika Game | Play Watermelon Game on PC &amp; Mobile [English]">
+
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+    <link rel="manifest" href="/static/site.webmanifest">
+    <link rel="mask-icon" href="fonts/safari-pinned-tab.svg" color="#5bbad5">
+    <script src="js/phaser.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/ff5ab1e5.js"></script>
+  </head>
+  <body>
+    <nav id="suika-nav">
+      <div class="logo">
+        <a href="/">
+          <img src="images/logo.png" alt="play suika game">
+        </a>
+      </div>
+      <div class="athyx-credit-banner">
+        <a href="https://github.com/daniil-athyx" target="_blank" rel="noopener noreferrer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          <span class="credit-title">ripped by athyx!</span>
+          <span class="credit-url">https://github.com/daniil-athyx</span>
+        </a>
+      </div>
+    </nav>
+    <section id="game">
+      <div class="left">
+        <div class="score">
+          <div class="bubble">
+            <div class="text">Score</div>
+            <img src="images/bubble.png" width="200" alt="bubble">
+          </div>
+          <div class="values">
+            <div class="currentScore" id="currentScore">0</div>
+            <div class="best-score">
+              <div class="text">BEST SCORE</div>
+              <div class="value" id="best-score">0</div>
+            </div>
+          </div>
+        </div>
+        <div class="leaderboard">
+          <div class="container">
+            <div class="header">
+              <div class="text">Leaderboard</div>
+            </div>
+            <div class="dates">
+              <div class="score-filter selected" data-f="daily">Daily</div>
+              <div class="score-filter" data-f="weekly">Weekly</div>
+              <div class="score-filter" data-f="monthly">Monthly</div>
+            </div>
+            <div class="ranks daily">
+              
+              <div class="player-score">
+                <div class="rank"><span>1</span></div>
+                <div class="value">
+                  
+                  <span>42715</span>
+                  
+                </div>
+              </div>
+              
+              <div class="player-score">
+                <div class="rank"><span>2</span></div>
+                <div class="value">
+                  
+                  <span>34239</span>
+                  
+                </div>
+              </div>
+              
+              <div class="player-score">
+                <div class="rank"><span>3</span></div>
+                <div class="value">
+                  
+                  <span>27728</span>
+                  
+                </div>
+              </div>
+              
+              <div class="player-score">
+                <div class="rank"><span>4</span></div>
+                <div class="value">
+                  
+                  <span>27557</span>
+                  
+                </div>
+              </div>
+              
+              <div class="player-score">
+                <div class="rank"><span>5</span></div>
+                <div class="value">
+                  
+                  <span>27142</span>
+                  
+                </div>
+              </div>
+              
+            </div>
+            <div class="ranks weekly">
+              
+              <div class="player-score">
+                <div class="rank"><span>1</span></div>
+                <div class="value">
+                  
+                  <span>9223372036854775807</span>
+                  
+                </div>
+              </div>
+              
+              <div class="player-score">
+                <div class="rank"><span>2</span></div>
+                <div class="value">
+                  
+                  <span>6767676767667676767</span>
+                  
+                </div>
+              </div>
+              
+              <div class="player-score">
+                <div class="rank"><span>3</span></div>
+                <div class="value">
+                  
+                  <span>10000000000000000</span>
+                  
+                </div>
+              </div>
+              
+              <div class="player-score">
+                <div class="rank"><span>4</span></div>
+                <div class="value">
+                  
+                  <span>9999999999999999</span>
+                  
+                </div>
+              </div>
+              
+              <div class="player-score">
+                <div class="rank"><span>5</span></div>
+                <div class="value">
+                  
+                  <span>9999999999999999</span>
+                  
+                </div>
+              </div>
+              
+            </div>
+            <div class="ranks monthly">
+              
+              <div class="player-score">
+                <div class="rank"><span>1</span></div>
+                <div class="value">
+                  
+                  <span>6767676767667676767</span>
+                  
+                </div>
+              </div>
+              
+              <div class="player-score">
+                <div class="rank"><span>2</span></div>
+                <div class="value">
+                  
+                  <span>42963</span>
+                  
+                </div>
+              </div>
+              
+              <div class="player-score">
+                <div class="rank"><span>3</span></div>
+                <div class="value">
+                  
+                  <span>42715</span>
+                  
+                </div>
+              </div>
+              
+              <div class="player-score">
+                <div class="rank"><span>4</span></div>
+                <div class="value">
+                  
+                  <span>38754</span>
+                  
+                </div>
+              </div>
+              
+              <div class="player-score">
+                <div class="rank"><span>5</span></div>
+                <div class="value">
+                  
+                  <span>34239</span>
+                  
+                </div>
+              </div>
+              
+            </div>
+            <div class="close">
+              <button id="close-ld">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="show-leaderboard">
+        <button id="show-ld">
+          <svg width="800px" height="800px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 21H9V12.6C9 12.2686 9.26863 12 9.6 12H14.4C14.7314 12 15 12.2686 15 12.6V21Z" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path d="M20.4 21H15V18.1C15 17.7686 15.2686 17.5 15.6 17.5H20.4C20.7314 17.5 21 17.7686 21 18.1V20.4C21 20.7314 20.7314 21 20.4 21Z" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path d="M9 21V16.1C9 15.7686 8.73137 15.5 8.4 15.5H3.6C3.26863 15.5 3 15.7686 3 16.1V20.4C3 20.7314 3.26863 21 3.6 21H9Z" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path d="M10.8056 5.11325L11.7147 3.1856C11.8314 2.93813 12.1686 2.93813 12.2853 3.1856L13.1944 5.11325L15.2275 5.42427C15.4884 5.46418 15.5923 5.79977 15.4035 5.99229L13.9326 7.4917L14.2797 9.60999C14.3243 9.88202 14.0515 10.0895 13.8181 9.96099L12 8.96031L10.1819 9.96099C9.94851 10.0895 9.67568 9.88202 9.72026 9.60999L10.0674 7.4917L8.59651 5.99229C8.40766 5.79977 8.51163 5.46418 8.77248 5.42427L10.8056 5.11325Z" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="text">Leaderboard</span>
+        </button>
+      </div>
+      <div id="game-container">
+        <div class="game-over">
+          <div class="text">Your Score</div>
+          <div class="value" id="final-score">3220</div>
+          <div class="best">
+            <span class="best-text">Best Score:</span>
+            <span id="best-score-value">0</span>
+          </div>
+          <button id="restart-game">Play Again</button>
+        </div>
+      </div>
+      <div class="right">
+        <div class="next-fruit">
+          <div class="bubble">
+            <div class="text">Next</div>
+            <img src="images/bubble.png" width="200" alt="bubble">
+          </div>
+          <div class="fruit">
+            <img src="images/3.png" alt="" id="next-drop">
+          </div>
+        </div>
+        <div class="evolution">
+          <div class="bubble">
+            <div class="text">Fruit Evolution</div>
+            <img src="images/evolution.png" alt="suika game fruit evolution" width="250">
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="details">
+      <h1>Suika Game</h1>
+      <div class="container">
+        <h2>What is Suika/Watermelon Game?</h2>
+        <p>
+          Suika Game is a fun little physics game that originated in Japan and
+          has recently gained popularity worldwide. It is also known as the
+          Watermelon Game. The objective of the game is to drop fruits into a
+          container and combine two matching fruits into a bigger fruit. The aim
+          is to reach the final fruit, which is a watermelon, or last as long as
+          possible before the fruit pile reaches the top of the container. The
+          game is like a cross between 2048 and Tetris, but with physics.
+        </p>
+        <h2>How to Play Suika Game?</h2>
+        <ul>
+          <li>
+            The objective of the game is to drop fruits into a container and
+            combine two matching fruits into a bigger fruit. The aim is to reach
+            the final fruit, which is a watermelon, or last as long as possible
+            before the fruit pile reaches the top of the container.
+          </li>
+          <img src="images/gameplay.png" alt="Suika-game gameplay" loading="lazy">
+          <li>
+            If you want to play Suika Game for free on PC and mobile, go to
+            playsuikagame.com and start playing! Bear in mind that the free
+            version of Suika Game is a little different from the main version of
+            the game on the Nintendo Store. Here are the main differences: The
+            physics are slightly different between the two versions. All the
+            fruits are perfectly round in the browser version. You can’t see the
+            next fruit to be dropped in the browser version.
+          </li>
+        </ul>
+        <h2>What are Some Tips to Play Suika Game Effectively?</h2>
+        <p>
+          To play Suika Game at a high level, you need more than luck, here are
+          some tips to get you started:
+        </p>
+        <p>
+          <strong>- Plan Ahead:</strong>
+          Try to anticipate where the current fruit will fit best. Think about
+          potential placements before the fruit even lands.
+        </p>
+        <p>
+          <strong>- Avoid Gaps:</strong> Gaps between your fruits can quickly
+          become problematic. Try to keep your container as flat as possible and
+          avoid creating deep holes. Gaps make it difficult to combine fruits
+          and can lead to a game over quickly.
+        </p>
+        <p>
+          <strong>- Practice Regularly:</strong>
+          Like any skill-based game, practice makes perfect. Regularly playing
+          Suika Game improves your awareness. You'll learn to recognize patterns
+          and make decisions faster with practice.
+        </p>
+        <h2>Suika Game &amp; Friends</h2>
+        <p>
+          Watermelon Game isn’t just about individual achievements, it fosters a
+          sense of community among players. Gamers can connect with friends,
+          share their high scores, and engage in friendly competitions.
+          Leaderboards add a competitive edge, motivating players to hone their
+          skills and outshine their peers. The thrill of friendly rivalry and
+          the joy of shared accomplishments enhance the overall experience of
+          Suika Game.
+        </p>
+        <h2>English and Japanese Version</h2>
+        <p>
+          One of the remarkable aspects of the Suika Game is its accessibility
+          to a global audience through its availability in both
+          <a href="/jp">Japanese ( Suika Game )</a> and
+          <a href="/">English ( Watermelon game )</a> languages. This bilingual
+          feature not only broadens its player base but also fosters cultural
+          exchange and understanding among gamers worldwide.
+        </p>
+      </div>
+    </section>
+    <footer id="footer-suika">
+      <ul>
+        <li>
+          <a href="/contact">Contact us</a>
+        </li>
+        <li>
+          <a href="/privacy-policy">Privacy Policy</a>
+        </li>
+        <li>
+          <a href="/terms-of-service">Terms of Service</a>
+        </li>
+        <li>
+          <a href="https://rivalsmeta.com/" target="_blank">Marvel Rivals Player Tracker</a>
+        </li>
+        <li>
+          <a href="https://crimsondb.gg" target="_blank">Crimson Desert Database</a>
+        </li>
+      </ul>
+      <ul>
+        <li>
+          <a href="/jp">Japanese</a>
+        </li>
+        <li>
+          <a href="/ko">Korean</a>
+        </li>
+        <li>
+          <a href="/zh-tw">Chinese</a>
+        </li>
+      </ul>
+      <p>This website is in no way affiliated with popIn, Inc.</p>
+      <p class="athyx-credit-footer">ripped by athyx! <a href="https://github.com/daniil-athyx" target="_blank" rel="noopener noreferrer">https://github.com/daniil-athyx</a></p>
+    </footer>
+</body></html>
