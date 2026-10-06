@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PXHK7Q7G3Z"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() {
+      dataLayer.push(arguments);
+    }
+    gtag("js", new Date());
+    gtag("config", "G-PXHK7Q7G3Z");
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#000000">
+  <meta name="description" content="osu!lazer running in your browser — rhythm is just a click away.">
+  <meta property="og:title" content="osu! on Truffled">
+  <meta property="og:description" content="osu!lazer running in your browser — rhythm is just a click away.">
+  <meta property="og:image" content="/png/logo.png">
+  <title>osu!</title>
+  <link rel="icon" href="favicon.ico">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="osu-canvas"></canvas>
+
+  <div id="loading">
+    <div id="loading-center">
+      <div id="loading-logo">osu!</div>
+      <div id="loading-status">loading…</div>
+    </div>
+    <div id="loading-bar"></div>
+  </div>
+
+  <div id="drop"><span>drop to import</span><small>.osz · .osk · .osr</small></div>
+
+  <div id="crash" hidden>
+    <div class="dialog">
+      <h1>osu! crashed</h1>
+      <pre id="crash-text"></pre>
+      <div class="buttons">
+        <button id="crash-reload" class="pink">Restart</button>
+        <button id="crash-copy">Copy log</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="file-input" multiple accept=".osz,.osk,.osr,.osu,.olz,.db,.zip" hidden>
+
+  <noscript><div id="noscript">osu! needs JavaScript and WebAssembly to run.</div></noscript>
+
+  <script src="epoxy.js"></script>
+  <script src="wisp.js"></script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>

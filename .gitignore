@@ -1,3 +1,8 @@
 # game.zip is split into ddlcplus/game.zip.000 ... game.zip.005 so that no
 # single file exceeds GitHub's size limit. Never commit the unsplit original.
 ddlcplus/game.zip
+
+# osu: the two oversized runtime files ship as .piASu.partNNN splits (see
+# osu/tool/split-files.mjs). Never commit the joined originals - they exceed
+# the GitHub 100 MB limit.
+osu/_framework/*.piASu.source
