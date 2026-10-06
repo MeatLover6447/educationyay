@@ -28,15 +28,27 @@ async function ensureServiceWorker() {
   if (!sw) return;
   if (sw.controller) {
     sessionStorage.removeItem("osu-sw-reload");
-    return;
+  } else {
+    await sw.register("sw.js");
+    await sw.ready;
+    if (!sessionStorage.getItem("osu-sw-reload")) {
+      sessionStorage.setItem("osu-sw-reload", "1");
+      location.reload();
+      await new Promise(() => {});
+    }
   }
-  await sw.register("sw.js");
-  await sw.ready;
-  if (!sessionStorage.getItem("osu-sw-reload")) {
-    sessionStorage.setItem("osu-sw-reload", "1");
-    location.reload();
-    await new Promise(() => {});
-  }
+  // When an updated worker takes over mid-session (after a deploy), reload
+  // exactly once so the game boots under the new worker from the start —
+  // otherwise its first big-file fetches race the old worker and fail SRI.
+  let swapped = sessionStorage.getItem("osu-sw-reload") === "1";
+  sw.addEventListener("controllerchange", () => {
+    if (sw.controller && !swapped) {
+      swapped = true;
+      sessionStorage.setItem("osu-sw-reload", "1");
+      location.reload();
+    }
+  });
+  if (sw.controller) sessionStorage.removeItem("osu-sw-reload");
 }
 try {
   await ensureServiceWorker();
@@ -72,6 +84,7 @@ navigator.storage?.persist?.().catch(() => {});
 // ---------------------------------------------------------------------------
 const CHUNK_SPLIT = 4 * 1024 * 1024;
 const CHUNK_SIZE = 3 * 1024 * 1024;
+const MAX_TX_BYTES = 8 * 1024 * 1024; // per-transaction write budget
 const HUGE_FILE_DEFER = 96 * 1024 * 1024;
 
 let dbPromise = null;
@@ -123,7 +136,11 @@ const fsSkip = (p) =>
   p === "/dev" ||
   p.startsWith("/dev/") ||
   p === "/proc" ||
-  p.startsWith("/proc/");
+  p.startsWith("/proc/") ||
+  // online.db is a server-provided cache (89 MB) the game re-downloads from
+  // ppy.sh on every boot; persisting it only burns quota and fails with
+  // QuotaExceededError once the beatmap library grows.
+  p.endsWith("/online.db");
 
 const chunkKey = (path, index) => path + ":" + index;
 const splitChunkKey = (key) => {
@@ -132,10 +149,12 @@ const splitChunkKey = (key) => {
 };
 
 // --- one shared metadata snapshot per page load -----------------------------
-let versionsReady = null;
+let versionsReady = null; // the RESOLVED snapshot object (not a promise)
+let versionsPromise = null;
 function loadVersions() {
-  if (!versionsReady) {
-    versionsReady = (async () => {
+  if (versionsReady) return versionsReady;
+  if (!versionsPromise) {
+    versionsPromise = (async () => {
       const db = await fsDb();
       const tx = db.transaction(["meta", "chunks"], "readonly");
       const metas = await req(tx.objectStore("meta").getAll());
@@ -162,15 +181,18 @@ function loadVersions() {
       }
       return { metas, chunkIndex };
     })();
-    versionsReady.catch(() => {
-      versionsReady = null;
+    versionsPromise.catch(() => {
+      versionsPromise = null;
     });
   }
-  return versionsReady;
+  return versionsPromise.then((snap) => {
+    versionsReady = snap;
+    return snap;
+  });
 }
 
 // Drop stale chunk rows when a file shrinks, disappears, or changes storage
-// layout. Mutates the in-memory chunkIndex to stay in sync; a真 aborted
+// layout. Mutates the in-memory chunkIndex to stay in sync; a truly aborted
 // transaction self-heals on the next reload because the snapshot is rebuilt.
 function cleanupChunks(chunks, path, chunkIndex, keepTotal) {
   const entry = chunkIndex.get(path);
@@ -226,7 +248,7 @@ async function restoreAll() {
   console.info("[osu!] restored " + restored + "/" + metas.length + " files from IndexedDB");
 }
 
-// --- coalesced, idle-scheduled flushing -------------------------------------
+// --- flushing (immediate-ish, but always chunked) ---------------------------
 let flushing = false;
 let flushQueued = false;
 function scheduleFlush() {
@@ -235,20 +257,39 @@ function scheduleFlush() {
     return;
   }
   flushing = true;
-  const idle = globalThis.requestIdleCallback || ((f) => setTimeout(f, 32));
-  idle(() => {
-    globalThis
-      .osuFsFlush()
-      .catch((e) => console.warn("osu! data flush failed", e))
-      .finally(() => {
-        flushing = false;
-        if (flushQueued) {
-          flushQueued = false;
-          scheduleFlush();
-        }
-      });
-  }, { timeout: 9500 });
+  globalThis
+    .osuFsFlush()
+    .catch((e) => console.warn("osu! data flush failed", e))
+    .finally(() => {
+      flushing = false;
+      if (flushQueued) {
+        flushQueued = false;
+        scheduleFlush();
+      }
+    });
 }
+
+// Keep both the per-flush diff map and the page-cached snapshot in sync —
+// otherwise every flush re-writes everything against a stale snapshot.
+const markSaved = (r, total) => {
+  const list = versionsReady?.metas;
+  if (list) {
+    const ex = list.find((m) => m.path === r.path);
+    if (ex) {
+      ex.size = r.size;
+      ex.mtime = r.mtime;
+      ex.chunks = total;
+      if ("rev" in ex) delete ex.rev;
+    } else list.push({ path: r.path, size: r.size, mtime: r.mtime, chunks: total });
+  }
+};
+const markDeleted = (p) => {
+  const list = versionsReady?.metas;
+  if (list) {
+    const i = list.findIndex((m) => m.path === p);
+    if (i >= 0) list.splice(i, 1);
+  }
+};
 
 let hugeWarnedAt = 0;
 globalThis.osuFsFlush = async () => {
@@ -263,41 +304,78 @@ globalThis.osuFsFlush = async () => {
   let deferred = 0;
   let writes = 0;
 
+  // Writes commit in small transactions (≤MAX_TX_BYTES each, one file per
+  // transaction when a single file exceeds the budget) with event-loop gaps
+  // between, so a first-run save burst or a beatmap import can never pin the
+  // main thread for hundreds of milliseconds at a time.
+  const gap = () => new Promise((r) => setTimeout(r, 0));
   const drain = async () => {
-    if (!records.length && !deletes.length) return;
-    const batch = records;
-    records = [];
-    bytesQueued = 0;
-    const db = await fsDb();
-    {
-      const tx = db.transaction(["meta", "chunks"], "readwrite");
-      const meta = tx.objectStore("meta");
-      const chunks = tx.objectStore("chunks");
-      for (const path of deletes) {
-        meta.delete(path);
-        cleanupChunks(chunks, path, chunkIndex, 0);
+    for (;;) {
+      if (!records.length && !deletes.length) return;
+      const batch = [];
+      let bytes = 0;
+      while (records.length && bytes < MAX_TX_BYTES) {
+        const r = records.shift();
+        batch.push(r);
+        bytes += r.size ?? 0;
       }
-      for (const r of batch) {
-        let data;
+      bytesQueued = 0;
+      const multiIdx = batch.findIndex((r) => (r.size ?? 0) > CHUNK_SPLIT);
+      if (multiIdx >= 0) {
+        // One oversized file: give it its own transaction.
+        const r = batch.splice(multiIdx, 1)[0];
+        records.unshift(...batch);
         try {
-          data = new Uint8Array(fs.readFile(r.path));
-        } catch (e) {
-          console.warn("osu! data flush failed for", r.path, e);
-          continue;
-        }
-        const multi = data.length > CHUNK_SPLIT;
-        const total = multi ? Math.ceil(data.length / CHUNK_SIZE) : 1;
-        cleanupChunks(chunks, r.path, chunkIndex, total);
-        if (multi) {
+          const data = new Uint8Array(fs.readFile(r.path));
+          const total = Math.ceil(data.length / CHUNK_SIZE);
+          const db = await fsDb();
+          const tx = db.transaction(["meta", "chunks"], "readwrite");
+          const chunks = tx.objectStore("chunks");
+          cleanupChunks(chunks, r.path, chunkIndex, total);
           for (let i = 0; i < total; i++)
             chunks.put({ path: chunkKey(r.path, i), data: data.subarray(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE) });
-        } else {
-          chunks.put({ path: chunkKey(r.path, 0), data });
+          tx.objectStore("meta").put({ path: r.path, size: r.size, mtime: r.mtime, chunks: total });
+          await txDone(tx);
+          writes++;
+          prev.set(r.path, { path: r.path, size: r.size, mtime: r.mtime, chunks: total });
+          markSaved(r, total);
+        } catch (e) {
+          console.warn("osu! data flush failed for", r.path, e);
         }
-        meta.put({ path: r.path, size: r.size, mtime: r.mtime, chunks: total });
+        await gap();
+        continue;
       }
-      await txDone(tx);
-      writes += batch.length;
+      try {
+        const db = await fsDb();
+        const tx = db.transaction(["meta", "chunks"], "readwrite");
+        const meta = tx.objectStore("meta");
+        const chunks = tx.objectStore("chunks");
+        for (const path of deletes.splice(0)) {
+          meta.delete(path);
+          cleanupChunks(chunks, path, chunkIndex, 0);
+        }
+        for (const r of batch) {
+          let data;
+          try {
+            data = new Uint8Array(fs.readFile(r.path));
+          } catch (e) {
+            console.warn("osu! data flush failed for", r.path, e);
+            continue;
+          }
+          cleanupChunks(chunks, r.path, chunkIndex, 1);
+          chunks.put({ path: chunkKey(r.path, 0), data });
+          meta.put({ path: r.path, size: r.size, mtime: r.mtime, chunks: 1 });
+        }
+        await txDone(tx);
+        writes += batch.length;
+        for (const r of batch) {
+          prev.set(r.path, { path: r.path, size: r.size, mtime: r.mtime, chunks: 1 });
+          markSaved(r, 1);
+        }
+      } catch (e) {
+        console.warn("osu! data flush failed", e);
+      }
+      if (records.length || deletes.length) await gap();
     }
   };
 
@@ -348,6 +426,10 @@ globalThis.osuFsFlush = async () => {
     await walk("/", 0);
     for (const p of prev.keys()) if (!seen.has(p)) deletes.push(p);
     await drain();
+    for (const p of deletes) {
+      prev.delete(p);
+      markDeleted(p);
+    }
     if (deferred) {
       // Retry deferred files directly so they eventually land once space or
       // an idle moment allows; each pass keeps memory bounded per file.
@@ -375,6 +457,8 @@ globalThis.osuFsFlush = async () => {
               .put({ path: chunkKey(p, i), data: data.subarray(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE) });
           tx.objectStore("meta").put({ path: p, size: st.size, mtime: saved[0].mtime, chunks: total });
           await txDone(tx);
+          prev.set(p, { path: p, size: st.size, mtime: saved[0].mtime, chunks: total });
+          markSaved(saved[0], total);
           console.info("[osu!] flushed large file " + p + " (" + (st.size / 1048576).toFixed(0) + " MB)");
         } catch (e) {
           if (e?.name === "QuotaExceededError")
@@ -386,7 +470,7 @@ globalThis.osuFsFlush = async () => {
   } catch (e) {
     console.warn("osu! data flush failed", e);
   }
-  console.info("[osu!] flush done: wrote " + writes + ", deferred " + deferred);
+  if (writes||deferred) console.info("[osu!] flush done: wrote " + writes + ", deferred " + deferred);
 };
 
 // ---------------------------------------------------------------------------

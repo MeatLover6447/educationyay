@@ -118,9 +118,12 @@ async function hasSplitIndex(pathname) {
   // gets picked up on the next load.
   const res = await fetch(pathname + ".piASu.index", { cache: "no-cache" });
   if (res.ok) {
-    const index = await res.json();
+    // Buffer once and build independent Responses — res.clone() after the
+    // body was read would throw and 404 the whole file on a cold cache.
+    const buf = await res.arrayBuffer();
+    const index = JSON.parse(new TextDecoder().decode(buf));
     splitIndex.set(pathname, index);
-    fw.put(pathname + ".piASu.index", res.clone()).catch(() => {});
+    fw.put(pathname + ".piASu.index", new Response(buf, { status: 200, headers: { "Content-Type": "application/json" } })).catch(() => {});
     return true;
   }
   return false;
@@ -157,10 +160,11 @@ async function reassemble(pathname) {
   }
   const headers = new Headers({ "Content-Type": index.type, "Content-Length": String(index.size) });
   headers.set("Cross-Origin-Resource-Policy", "same-origin");
-  const response = new Response(mergedBuf, { status: 200, headers });
-  fw.put(pathname, response.clone()).catch(() => {});
+  // Two independent Response objects over the same bytes — cloning a Response
+  // whose body may already be read throws under concurrency.
+  fw.put(pathname, new Response(mergedBuf, { status: 200, headers })).catch(() => {});
   postProgress(pathname.split("/").pop());
-  return response;
+  return new Response(mergedBuf, { status: 200, headers });
 }
 async function cachedIndex(pathname) {
   const fw = await caches.open(FWCACHE);
@@ -168,8 +172,15 @@ async function cachedIndex(pathname) {
   if (hit) return hit;
   const res = await fetch(pathname, { cache: "no-cache" });
   if (res.ok) {
-    fw.put(pathname, res.clone()).catch(() => {});
-    postProgress(pathname.split("/").pop());
+    try {
+      const buf = await res.arrayBuffer();
+      const headers = new Headers(res.headers);
+      fw.put(pathname, new Response(buf, { headers })).catch(() => {});
+      postProgress(pathname.split("/").pop());
+      return new Response(buf, { headers });
+    } catch (e) {
+      return fetch(pathname, { cache: "no-cache" });
+    }
   }
   return res;
 }
@@ -181,6 +192,10 @@ async function proxy(request, target) {
     return new Response("bad url", { status: 400 });
   }
   if (host !== "ppy.sh" && !host.endsWith(".ppy.sh")) return new Response("host not allowed", { status: 403 });
+  // Spectator/multiplayer realtime is unsupported in this build (the game
+  // logs that itself); fail fast instead of stalling the wisp tunnel 30s.
+  if (host === "spectator.osu.ppy.sh" || host === "bancho.osu.ppy.sh")
+    return new Response("realtime features unavailable in this build", { status: 503 });
   const headers = {};
   request.headers.forEach((v, k) => {
     if (!["host", "origin", "referer"].includes(k)) headers[k] = v;
@@ -225,8 +240,16 @@ async function cachedRaw(pathname) {
   if (hit) return hit;
   const res = await fetch(pathname, { cache: "no-cache" });
   if (res.ok) {
-    fw.put(pathname, res.clone()).catch(() => {});
-    postProgress(pathname.split("/").pop());
+    try {
+      const buf = await res.arrayBuffer();
+      const headers = new Headers(res.headers);
+      fw.put(pathname, new Response(buf, { headers })).catch(() => {});
+      postProgress(pathname.split("/").pop());
+      return new Response(buf, { headers });
+    } catch (e) {
+      console.warn("sw: could not cache " + pathname + ": " + (e?.message ?? e));
+      return fetch(pathname, { cache: "no-cache" });
+    }
   }
   return res;
 }
