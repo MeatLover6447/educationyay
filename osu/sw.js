@@ -72,7 +72,11 @@ self.addEventListener("fetch", (e) => {
 });
 async function respond(request, url) {
   const scopePath = new URL(registration.scope).pathname;
-  const path = url.pathname.slice(scopePath.length);
+  // The game builds proxy URLs root-absolute ("/proxy/https://..."), which on
+  // a subpath deployment (e.g. github.io/educationyay/osu/) lands outside the
+  // app scope. Requests from controlled pages still reach this handler, so
+  // accept both scope-relative and root-absolute paths.
+  const path = (url.pathname.startsWith(scopePath) ? url.pathname.slice(scopePath.length) : url.pathname).replace(/^\//, "");
   if (path.startsWith("proxy/"))
     return isolated(await proxy(request, request.url.slice(request.url.indexOf("/proxy/") + 7)));
   const packed = (await getManifest())[path];
