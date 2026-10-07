@@ -23,6 +23,38 @@ $("crash-copy").onclick = async ({ target }) => {
   }, 1500);
 };
 
+// --- crash watchdog ---------------------------------------------------------
+// A fatal runtime abort (GC suspend deadlock etc.) leaves the page frozen with
+// no way out. The game drives frames through requestAnimationFrame, so if
+// frames stop while the tab is visible, the runtime is wedged: explain and
+// auto-reload — the flusher has already saved everything, so a reload is safe.
+// Add ?nowatchdog to disable.
+let lastFrameAt = 0;
+let framesSeen = 0;
+let watchdogArmed = false;
+{
+  const rawRaf = window.requestAnimationFrame.bind(window);
+  window.requestAnimationFrame = (cb) =>
+    rawRaf((t) => {
+      framesSeen++;
+      lastFrameAt = performance.now();
+      if (framesSeen === 30) watchdogArmed = true; // render loop is alive
+      return cb(t);
+    });
+}
+setInterval(() => {
+  if (params.has("nowatchdog") || !watchdogArmed) return;
+  if (document.visibilityState !== "visible") return;
+  if (lastFrameAt && performance.now() - lastFrameAt > 8000) {
+    watchdogArmed = false;
+    osuShowFatal(
+      "osu! stopped responding — the game runtime hit a fatal internal error.\n\n" +
+        "Your library, skins and settings are already saved. Reloading in a moment…",
+    );
+    setTimeout(() => location.reload(), 2500);
+  }
+}, 1000);
+
 async function ensureServiceWorker() {
   const sw = navigator.serviceWorker;
   if (!sw) return;
@@ -576,11 +608,14 @@ try {
       // JS-simulated waits cost a little latency but keep the GC alive.
       runtimeOptions: ["--no-jiterpreter-traces-enabled"],
     })
-    .withEnvironmentVariable("MONO_SLEEP_ABORT_LIMIT", "60000")
     .withEnvironmentVariable(
       "MONO_GC_PARAMS",
       osuVeryLowRam ? "nursery-size=16m" : osuLowRam ? "nursery-size=32m" : "nursery-size=64m",
     )
+    // NOTE: deliberately no MONO_SLEEP_ABORT_LIMIT override — the 60s setting
+    // let threads stay un-suspendable in native blocking for a minute before a
+    // force-abort, which orphaned monitors and crashed the game with
+    // SynchronizationLockException storms (TimerQueueTimer.Dispose etc.).
     .withEnvironmentVariable("DOTNET_ThreadPool_ForceMinWorkerThreads", "8")
     .withApplicationArguments(...(params.has("debug") ? ["--debug"] : []))
     .create();
