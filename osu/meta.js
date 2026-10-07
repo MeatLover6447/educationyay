@@ -7,6 +7,8 @@ const osuParams = new URLSearchParams(
 const osuDeviceMem = navigator.deviceMemory || 8;
 // "highram" forces the full profile; otherwise <=4 GB devices get low and
 // <=2 GB get very-low. "?lowram"/"?verylowram" force it regardless.
+// Chromebooks commonly report deviceMemory 8 regardless of physical RAM, so
+// use ?lowram in the URL there; the profile below is safe on 4 GB devices.
 const osuNoLowram = osuParams.has("highram");
 const low = osuParams.has("lowram") || (!osuNoLowram && osuDeviceMem <= 4);
 const veryLow = osuParams.has("verylowram") || (low && osuDeviceMem <= 2);

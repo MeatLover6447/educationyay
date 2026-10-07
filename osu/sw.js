@@ -139,32 +139,37 @@ async function reassemble(pathname) {
     index = await res.json();
     splitIndex.set(pathname, index);
   }
-  const buffers = new Array(index.parts);
-  let size = 0;
-  for (let i = 0; i < index.parts; i++) {
-    const part = pathname + ".piASu.part" + String(i).padStart(3, "0");
-    const res = await fetch(part, { cache: "force-cache" });
-    if (!res.ok) throw new Error("split part missing: " + part + " HTTP " + res.status);
-    const buf = await res.arrayBuffer();
-    size += buf.byteLength;
-    buffers[i] = buf;
-    postReassemble(pathname.split("/").pop(), i + 1, index.parts);
-  }
-  if (size !== index.size)
-    throw new Error("reassembled " + pathname + " is " + size + " bytes, expected " + index.size);
-  const mergedBuf = new Uint8Array(size);
-  let offset = 0;
-  for (const buf of buffers) {
-    mergedBuf.set(new Uint8Array(buf), offset);
-    offset += buf.byteLength;
-  }
+  // Fetch all parts in parallel and join into a Blob instead of copying
+  // them into one merged Uint8Array: Blob wraps the existing buffers, so a
+  // cold-cache boot of the two big files peaks at roughly one copy of the
+  // data across the pipeline instead of two-to-three copies — noticeable
+  // headroom on 4 GB devices.
+  const parts = new Array(index.parts);
+  let failed = null;
+  await Promise.all(
+    Array.from({ length: index.parts }, async (_, i) => {
+      const part = pathname + ".piASu.part" + String(i).padStart(3, "0");
+      try {
+        const res = await fetch(part, { cache: "force-cache" });
+        if (!res.ok) throw new Error("split part missing: " + part + " HTTP " + res.status);
+        parts[i] = await res.arrayBuffer();
+        postReassemble(pathname.split("/").pop(), i + 1, index.parts);
+      } catch (e) {
+        failed ??= e;
+      }
+    }),
+  );
+  if (failed) throw failed;
+  const blob = new Blob(parts, { type: index.type });
+  if (blob.size !== index.size)
+    throw new Error("reassembled " + pathname + " is " + blob.size + " bytes, expected " + index.size);
   const headers = new Headers({ "Content-Type": index.type, "Content-Length": String(index.size) });
   headers.set("Cross-Origin-Resource-Policy", "same-origin");
   // Two independent Response objects over the same bytes — cloning a Response
   // whose body may already be read throws under concurrency.
-  fw.put(pathname, new Response(mergedBuf, { status: 200, headers })).catch(() => {});
+  fw.put(pathname, new Response(blob, { status: 200, headers })).catch(() => {});
   postProgress(pathname.split("/").pop());
-  return new Response(mergedBuf, { status: 200, headers });
+  return new Response(blob, { status: 200, headers });
 }
 async function cachedIndex(pathname) {
   const fw = await caches.open(FWCACHE);

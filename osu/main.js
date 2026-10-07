@@ -373,23 +373,27 @@ async function restoreAll() {
       }
       try {
         fs.mkdirTree(m.path.slice(0, m.path.lastIndexOf("/")));
+        // Single-pass reassembly: each file is one concat of its chunks (plus
+        // one zero-chunk write for single-chunk files) instead of O(n²)
+        // append-onto-a-growing-buffer copies — this was the multi-hundred-ms
+        // hitch per large file during boot on low-end devices.
+        let acc = null;
         for (let i = 0; i < total; i++) {
-        const rec = await new Promise((resolve, reject) => {
+          const rec = await new Promise((resolve, reject) => {
             const tx = db.transaction("chunks", "readonly");
             const out = req(tx.objectStore("chunks").get(chunkKey(m.path, i)));
             txDone(tx).then(() => resolve(out), reject);
           });
           const data = rec?.data ?? new Uint8Array(0);
-          if (i === 0) fs.writeFile(m.path, data);
-          else if (fs.appendFile) fs.appendFile(m.path, data);
+          if (acc === null) acc = data;
           else {
-            const cur = fs.readFile(m.path);
-            const merged = new Uint8Array(cur.length + data.length);
-            merged.set(cur, 0);
-            merged.set(data, cur.length);
-            fs.writeFile(m.path, merged);
+            const merged = new Uint8Array(acc.length + data.length);
+            merged.set(acc, 0);
+            merged.set(data, acc.length);
+            acc = merged;
           }
         }
+        fs.writeFile(m.path, acc ?? new Uint8Array(0));
         restored++;
       } catch (e) {
         console.warn("osu! data restore failed for", m.path, e);
@@ -720,18 +724,24 @@ try {
       },
     })
     .withConfig({
-      pthreadPoolInitialSize: 10,
-      // Warm spares: on-demand pthread spawns mid-game block the main thread
-      // (visible as mouse freezes). Keep a few pre-spawned.
-      pthreadPoolUnusedSize: 4,
-      maxParallelDownloads: osuLowRam ? 8 : 16,
+      // Thread pool sized per memory profile: on 4 GB devices only the min
+      // 4 .NET threads run and a single pthread stays warm — fewer spawned
+      // threads means less total memory, less GC pressure and fewer mid-game
+      // pthread spawns (each one hitches the main thread briefly). No visual
+      // or gameplay quality change.
+      pthreadPoolInitialSize: osuLowRam ? 8 : 10,
+      pthreadPoolUnusedSize: osuLowRam ? 2 : 4,
+      maxParallelDownloads: osuLowRam ? 6 : 16,
       // NOTE: deliberately NOT setting jsThreadBlockingMode to
       // "DangerousAllowBlockingWait" — it lets the runtime hard-block the
       // browser's main thread, which prevents GC thread suspension and
       // crashes the game ("WAITING for N threads, got M suspended" →
       // mono-threads assertion → SynchronizationLockException). The default
       // JS-simulated waits cost a little latency but keep the GC alive.
-      runtimeOptions: ["--no-jiterpreter-traces-enabled"],
+      // Low-RAM devices also skip the jiterpreter entirely: it is the
+      // single largest native-memory consumer on WASM and we can afford
+      // neither its cache nor its warm-up spikes.
+      runtimeOptions: osuLowRam ? ["--jiterpreter-traces-enabled=0"] : ["--no-jiterpreter-traces-enabled"],
     })
     .withEnvironmentVariable(
       "MONO_GC_PARAMS",
@@ -741,37 +751,43 @@ try {
     // let threads stay un-suspendable in native blocking for a minute before a
     // force-abort, which orphaned monitors and crashed the game with
     // SynchronizationLockException storms (TimerQueueTimer.Dispose etc.).
-    .withEnvironmentVariable("DOTNET_ThreadPool_ForceMinWorkerThreads", "8")
+    .withEnvironmentVariable("DOTNET_ThreadPool_ForceMinWorkerThreads", osuLowRam ? "4" : "8")
     .withApplicationArguments(...(params.has("debug") ? ["--debug"] : []))
     .create();
 
   bar.style.width = "66%";
   status.textContent = "restoring your data…";
-  await restoreAll().catch((e) => console.warn("osu! data restore failed", e));
-  status.textContent = "starting osu!…";
-  bar.style.width = "90%";
-  $("loading").classList.add("starting");
-  const hide = () => $("loading").classList.add("hide");
-  setTimeout(hide, 60000);
-  new MutationObserver((_, obs) => {
-    if ($("osu-canvas").style.cursor === "none") {
-      obs.disconnect();
-      setTimeout(hide, 500);
-    }
-  }).observe($("osu-canvas"), { attributes: true, attributeFilter: ["style"] });
-  addEventListener("pointerdown", hide, { once: true });
-  addEventListener("keydown", hide, { once: true });
-
-  const quickFlush = () => globalThis.osuFsFlush().catch((e) => console.warn("osu! data flush failed", e));
-  setInterval(scheduleFlush, 20000);
-  addEventListener("pagehide", quickFlush);
-  addEventListener("beforeunload", quickFlush);
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) quickFlush();
-  });
-
-  await runtime.runMain();
-  scheduleFlush();
+  // On low-RAM devices let the runtime allocate its heap first: a 100 MB+
+  // restore burst racing mono's setup is the main boot OOM risk, and the
+  // individual files stay small because the flusher caps them at 96 MB.
+  const restore = restoreAll().catch((e) => console.warn("osu! data restore failed", e));
+  const armOverlay = () => {
+    const hide = () => $("loading").classList.add("hide");
+    setTimeout(hide, 60000);
+    new MutationObserver((_, obs) => {
+      if ($("osu-canvas").style.cursor === "none") {
+        obs.disconnect();
+        setTimeout(hide, 500);
+      }
+    }).observe($("osu-canvas"), { attributes: true, attributeFilter: ["style"] });
+    addEventListener("pointerdown", hide, { once: true });
+    addEventListener("keydown", hide, { once: true });
+  };
+  armOverlay();
+  if (osuLowRam) {
+    status.textContent = "starting osu!…";
+    await runtime.runMain();
+    bar.style.width = "90%";
+    status.textContent = "restoring your data…";
+    await restore;
+    scheduleFlush();
+  } else {
+    await restore;
+    scheduleFlush();
+    status.textContent = "starting osu!…";
+    bar.style.width = "90%";
+    await runtime.runMain();
+  }
 } catch (e) {
   console.error(e);
   osuShowFatal("osu! failed to start.\n\n" + (e?.stack ?? e));
