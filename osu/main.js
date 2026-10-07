@@ -292,6 +292,11 @@ const markDeleted = (p) => {
 };
 
 let hugeWarnedAt = 0;
+// Files that failed to save with QuotaExceededError pause retries for a while —
+// re-attempting an 89 MB write every flush cycle both fails again and freezes
+// the game for hundreds of ms each time.
+const quotaSkip = new Map(); // path -> ms timestamp
+let quotaWarnedAt = 0;
 globalThis.osuFsFlush = async () => {
   const fs = globalThis.__osuFs;
   if (!fs) return;
@@ -340,6 +345,7 @@ globalThis.osuFsFlush = async () => {
           prev.set(r.path, { path: r.path, size: r.size, mtime: r.mtime, chunks: total });
           markSaved(r, total);
         } catch (e) {
+          if (e?.name === "QuotaExceededError") quotaSkip.set(r.path, Date.now() + 5 * 60 * 1000);
           console.warn("osu! data flush failed for", r.path, e);
         }
         await gap();
@@ -373,7 +379,16 @@ globalThis.osuFsFlush = async () => {
           markSaved(r, 1);
         }
       } catch (e) {
-        console.warn("osu! data flush failed", e);
+        if (e?.name === "QuotaExceededError") {
+          // One oversized file aborts the whole transaction; cool every file in
+          // the batch down instead of re-attempting (and stuttering) each cycle.
+          const until = Date.now() + 5 * 60 * 1000;
+          for (const r of batch) quotaSkip.set(r.path, until);
+          if (Date.now() - quotaWarnedAt > 60000) {
+            quotaWarnedAt = Date.now();
+            console.warn("[osu!] storage quota full — pausing saves of " + batch.length + " file(s) for 5 minutes");
+          }
+        } else console.warn("osu! data flush failed", e);
       }
       if (records.length || deletes.length) await gap();
     }
@@ -403,6 +418,7 @@ globalThis.osuFsFlush = async () => {
       }
       if (!fs.isFile(st.mode)) continue;
       seen.add(full);
+      if ((quotaSkip.get(full) ?? 0) > Date.now()) continue;
       const mtime = st.mtime?.getTime() ?? 0;
       const old = prev.get(full);
       if (old && old.mtime === mtime && old.size === st.size) continue;
@@ -548,7 +564,9 @@ try {
     })
     .withConfig({
       pthreadPoolInitialSize: 10,
-      pthreadPoolUnusedSize: 2,
+      // Warm spares: on-demand pthread spawns mid-game block the main thread
+      // (visible as mouse freezes). Keep a few pre-spawned.
+      pthreadPoolUnusedSize: 4,
       maxParallelDownloads: osuLowRam ? 8 : 16,
       jsThreadBlockingMode: "DangerousAllowBlockingWait",
       runtimeOptions: ["--no-jiterpreter-traces-enabled"],
