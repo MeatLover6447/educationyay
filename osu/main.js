@@ -99,10 +99,129 @@ globalThis.osuGetOrigin = () => location.origin;
 
 const fileInput = $("file-input");
 fileInput.onchange = () => {
-  if (globalThis.osuImportFiles && fileInput.files.length) osuImportFiles([...fileInput.files]);
+  if (globalThis.osuImportFiles && fileInput.files.length) globalThis.osuImportFiles([...fileInput.files]);
   fileInput.value = "";
 };
 navigator.storage?.persist?.().catch(() => {});
+
+// ---------------------------------------------------------------------------
+// Persistent import library (IndexedDB "osu-library", store "packs").
+// The game keeps its beatmap/skin catalog in an in-memory database (no
+// client.realm ever exists on disk and the default map is re-imported on
+// every boot), so imports would vanish on reload. We keep the raw
+// .osz/.osk packs and re-feed them to the game after every boot instead.
+// Console helpers: osuLibraryList(), osuLibraryForget(name).
+// ---------------------------------------------------------------------------
+function libDb() {
+  return new Promise((resolve, reject) => {
+    const open = indexedDB.open("osu-library", 1);
+    open.onupgradeneeded = () => {
+      if (!open.result.objectStoreNames.contains("packs"))
+        open.result.createObjectStore("packs", { keyPath: "key" });
+    };
+    open.onsuccess = () => resolve(open.result);
+    open.onerror = () => reject(open.error);
+  });
+}
+const libTx = (store, mode, run) =>
+  libDb().then(
+    (db) =>
+      new Promise((resolve, reject) => {
+        const tx = db.transaction(store, mode);
+        const out = run(tx.objectStore(store));
+        tx.oncomplete = () => {
+          try {
+            resolve(out instanceof IDBRequest ? out.result : out);
+          } catch {
+            resolve(undefined);
+          }
+        };
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      }),
+  );
+const libIsPack = (f) => /\.(osz|osk|olz)$/i.test(f?.name ?? "");
+
+async function libSavePack(file) {
+  if (!libIsPack(file) || file.size > 256 * 1024 * 1024) return;
+  try {
+    const data = new Uint8Array(await file.arrayBuffer());
+    await libTx("packs", "readwrite", (s) =>
+      s.put({ key: file.name + "#" + file.size, name: file.name, size: file.size, type: file.type, added: Date.now(), data }),
+    );
+    console.info("[osu!] saved " + file.name + " (" + (file.size / 1048576).toFixed(1) + " MB) to the persistent library");
+  } catch (e) {
+    console.warn("[osu!] could not save " + file.name + " to the persistent library", e);
+  }
+}
+globalThis.osuLibraryList = () =>
+  libTx("packs", "readonly", (s) => s.getAll()).then((all) =>
+    all.map((p) => ({ name: p.name, size: p.size, added: new Date(p.added).toISOString() })),
+  );
+globalThis.osuLibraryForget = (name) =>
+  libTx("packs", "readwrite", (s) => s.getAllKeys()).then((keys) =>
+    libTx("packs", "readwrite", (s) => {
+      for (const k of keys) if (String(k).startsWith(name + "#")) s.delete(k);
+    }),
+  );
+
+// The runtime assigns osuImportFiles during boot; capture it once available,
+// then replace it with a wrapper so every page-driven import (picker + our
+// drag-drop) also lands in the persistent library.
+let __rawImportFiles = null;
+let libraryRestoreStarted = false;
+async function restoreLibrary() {
+  if (libraryRestoreStarted || params.has("nolibrary")) return;
+  libraryRestoreStarted = true;
+  try {
+    const packs = await libTx("packs", "readonly", (s) => s.getAll());
+    if (!packs.length) return;
+    const files = packs.map((p) => new File([p.data], p.name, { type: p.type || "application/octet-stream" }));
+    console.info("[osu!] restoring " + packs.length + " saved beatmap pack(s) from the persistent library");
+    __rawImportFiles(files);
+  } catch (e) {
+    console.warn("[osu!] library restore failed", e);
+  }
+}
+const libraryWatch = setInterval(() => {
+  if (typeof globalThis.osuImportFiles !== "function") return;
+  clearInterval(libraryWatch);
+  __rawImportFiles = globalThis.osuImportFiles;
+  globalThis.osuImportFiles = (files) => {
+    for (const f of files) libSavePack(f);
+    return __rawImportFiles(files);
+  };
+  if ($("loading").classList.contains("hide")) restoreLibrary();
+  else
+    new MutationObserver((_, obs) => {
+      if ($("loading").classList.contains("hide")) {
+        obs.disconnect();
+        setTimeout(restoreLibrary, 3000); // let the menu settle first
+      }
+    }).observe($("loading"), { attributes: true, attributeFilter: ["class"] });
+}, 400);
+
+// Drag-drop import (the #drop overlay + body.osu-dragging styles exist but
+// no JS implemented them). Capture phase so we win over any in-game handler.
+addEventListener("dragenter", (e) => {
+  e.preventDefault();
+  document.body.classList.add("osu-dragging");
+});
+addEventListener("dragover", (e) => e.preventDefault());
+addEventListener("dragleave", (e) => {
+  if (!e.relatedTarget) document.body.classList.remove("osu-dragging");
+});
+addEventListener(
+  "drop",
+  (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    document.body.classList.remove("osu-dragging");
+    const files = [...(e.dataTransfer?.files ?? [])];
+    if (files.length) globalThis.osuImportFiles?.(files);
+  },
+  true,
+);
 
 // ---------------------------------------------------------------------------
 // Persistent file system (IndexedDB, database "osu-fs", version 2).
@@ -580,18 +699,24 @@ try {
     }
   });
 
-  const fmt = (bytes) => (bytes / 1048576).toFixed(0) + " MB";
+  const fmt = (bytes) => (bytes / 1048576).toFixed(1) + " MB";
   const runtime = await dotnet
     .withModuleConfig({
       onDownloadResourceProgress: (done, total) => {
-        if (!total) {
+        if (params.has("bootlog")) console.info("[bootlog] resource progress", done, total);
+        // The runtime reports either bytes or item counts depending on phase;
+        // below 1 MB totals the MB display is useless ("0 MB / 0 MB"), so
+        // show raw counts instead. Bytes use one decimal to always tick.
+        if (!total || done > total) {
           status.textContent = "downloading game files…";
           return;
         }
         const pct = Math.min(100, (done / total) * 100);
         bar.style.width = (33 + pct * 0.33).toFixed(1) + "%";
         status.textContent =
-          "downloading game files · " + fmt(done) + " / " + fmt(total) + " · " + pct.toFixed(0) + "%";
+          total >= 1048576
+            ? "downloading game files · " + fmt(done) + " / " + fmt(total) + " · " + pct.toFixed(0) + "%"
+            : "downloading game files · " + done + " / " + total;
       },
     })
     .withConfig({
