@@ -652,6 +652,7 @@ try {
   await import("./meta.js");
   const osuLowRam = globalThis.osuLowRam;
   const osuVeryLowRam = globalThis.osuVeryLowRam;
+  const osuPerfRam = globalThis.osuPerfRam;
   const osuMemProfile = globalThis.osuMemProfile;
   const osuDeviceMemory = globalThis.osuDeviceMemory;
   if (osuLowRam === undefined) osuShowFatal("meta.js failed to initialize");
@@ -665,7 +666,7 @@ try {
     const dsf = window.devicePixelRatio;
     const awkward = dsf !== 1 && dsf !== 2;
     if (osuVeryLowRam) globalThis.__osuDpr = "0.75";
-    else if (osuLowRam || awkward) globalThis.__osuDpr = "1";
+    else if (osuPerfRam || osuLowRam || awkward) globalThis.__osuDpr = "1";
   }
   console.info(
     "[osu!] memory profile: " + osuMemProfile + " (deviceMemory " + osuDeviceMemory + ", dpr " + (globalThis.__osuDpr ?? "auto") + ")",
@@ -727,10 +728,11 @@ try {
       // Thread pool sized per memory profile: on 4 GB devices only the min
       // 4 .NET threads run and a single pthread stays warm — fewer spawned
       // threads means less total memory, less GC pressure and fewer mid-game
-      // pthread spawns (each one hitches the main thread briefly). No visual
-      // or gameplay quality change.
-      pthreadPoolInitialSize: osuLowRam ? 8 : 10,
-      pthreadPoolUnusedSize: osuLowRam ? 2 : 4,
+      // pthread spawns (each one hitches the main thread briefly). The perf
+      // profile keeps 6 spares hot so mid-game spawns are rare: on a capable
+      // machine that trades memory for steady frame pacing.
+      pthreadPoolInitialSize: osuPerfRam ? 12 : osuLowRam ? 8 : 10,
+      pthreadPoolUnusedSize: osuPerfRam ? 6 : osuLowRam ? 2 : 4,
       maxParallelDownloads: osuLowRam ? 6 : 16,
       // NOTE: deliberately NOT setting jsThreadBlockingMode to
       // "DangerousAllowBlockingWait" — it lets the runtime hard-block the
@@ -740,8 +742,15 @@ try {
       // JS-simulated waits cost a little latency but keep the GC alive.
       // Low-RAM devices also skip the jiterpreter entirely: it is the
       // single largest native-memory consumer on WASM and we can afford
-      // neither its cache nor its warm-up spikes.
-      runtimeOptions: osuLowRam ? ["--jiterpreter-traces-enabled=0"] : ["--no-jiterpreter-traces-enabled"],
+      // neither its cache nor its warm-up spikes. The perf profile the
+      // opposite trade — jiterpreter ON for faster interpreted code (this
+      // build runs assemblies in interpreter mode, so it directly raises
+      // sustained FPS on dense maps).
+      runtimeOptions: osuLowRam
+        ? ["--jiterpreter-traces-enabled=0"]
+        : osuPerfRam && osuDeviceMemory >= 8
+          ? []
+          : ["--no-jiterpreter-traces-enabled"],
     })
     .withEnvironmentVariable(
       "MONO_GC_PARAMS",
@@ -751,7 +760,10 @@ try {
     // let threads stay un-suspendable in native blocking for a minute before a
     // force-abort, which orphaned monitors and crashed the game with
     // SynchronizationLockException storms (TimerQueueTimer.Dispose etc.).
-    .withEnvironmentVariable("DOTNET_ThreadPool_ForceMinWorkerThreads", osuLowRam ? "4" : "8")
+    .withEnvironmentVariable(
+      "DOTNET_ThreadPool_ForceMinWorkerThreads",
+      osuLowRam ? "4" : osuPerfRam ? "12" : "8",
+    )
     .withApplicationArguments(...(params.has("debug") ? ["--debug"] : []))
     .create();
 

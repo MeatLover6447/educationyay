@@ -9,13 +9,17 @@ const osuDeviceMem = navigator.deviceMemory || 8;
 // <=2 GB get very-low. "?lowram"/"?verylowram" force it regardless.
 // Chromebooks commonly report deviceMemory 8 regardless of physical RAM, so
 // use ?lowram in the URL there; the profile below is safe on 4 GB devices.
-const osuNoLowram = osuParams.has("highram");
+// "?perf" selects the FPS-oriented profile: jiterpreter on, 1x render
+// scale, deeper warm thread pool — max smoothness for capable machines.
+const osuNoLowram = osuParams.has("highram") || osuParams.has("perf");
+const perf = osuParams.has("perf") && !osuParams.has("lowram") && !osuParams.has("verylowram");
 const low = osuParams.has("lowram") || (!osuNoLowram && osuDeviceMem <= 4);
 const veryLow = osuParams.has("verylowram") || (low && osuDeviceMem <= 2);
 
 globalThis.osuLowRam = low;
 globalThis.osuVeryLowRam = veryLow;
-globalThis.osuMemProfile = veryLow ? "very-low" : low ? "low" : "high";
+globalThis.osuPerfRam = perf;
+globalThis.osuMemProfile = perf ? "performance" : veryLow ? "very-low" : low ? "low" : "high";
 globalThis.osuDeviceMemory = osuDeviceMem;
 
 if (typeof exports === "object" && typeof module !== "undefined") {
