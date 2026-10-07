@@ -568,7 +568,12 @@ try {
       // (visible as mouse freezes). Keep a few pre-spawned.
       pthreadPoolUnusedSize: 4,
       maxParallelDownloads: osuLowRam ? 8 : 16,
-      jsThreadBlockingMode: "DangerousAllowBlockingWait",
+      // NOTE: deliberately NOT setting jsThreadBlockingMode to
+      // "DangerousAllowBlockingWait" — it lets the runtime hard-block the
+      // browser's main thread, which prevents GC thread suspension and
+      // crashes the game ("WAITING for N threads, got M suspended" →
+      // mono-threads assertion → SynchronizationLockException). The default
+      // JS-simulated waits cost a little latency but keep the GC alive.
       runtimeOptions: ["--no-jiterpreter-traces-enabled"],
     })
     .withEnvironmentVariable("MONO_SLEEP_ABORT_LIMIT", "60000")
