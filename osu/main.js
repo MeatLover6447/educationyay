@@ -675,11 +675,24 @@ try {
   status.textContent = "checking game files…";
   const checked = new Set();
   const reassembling = new Map();
+  const fmt = (bytes) => (bytes / 1048576).toFixed(1) + " MB";
   let lastProgressUi = 0;
+  let dl = null; // latest { received, total } byte progress from the worker
   const showProgress = () => {
     const now = Date.now();
     if (now - lastProgressUi < 200) return;
     lastProgressUi = now;
+    // Byte totals from the worker are the most honest readout while the
+    // ~370 MB first-run download streams: the runtime's own progress callback
+    // is silent while the big split files reassemble, and part counts alone
+    // look frozen for minutes on a slow link.
+    if (dl && dl.total > 0 && dl.received < dl.total) {
+      const pct = Math.min(100, (dl.received / dl.total) * 100);
+      bar.style.width = (33 + pct * 0.33).toFixed(1) + "%";
+      status.textContent =
+        "downloading game files · " + fmt(dl.received) + " / " + fmt(dl.total) + " · " + pct.toFixed(0) + "%";
+      return;
+    }
     if (reassembling.size) {
       // split 2-part files reassemble in MB chunks; show the part being fetched
       let line = "unwrapping game files";
@@ -691,9 +704,18 @@ try {
     bar.style.width = (33 + Math.min(33, (checked.size / 260) * 33)) + "%";
     status.textContent = "checking game files · " + checked.size + " / 260";
   };
-  addEventListener("message", (e) => {
+  // SW client.postMessage events fire on the ServiceWorkerContainer, not on
+  // window — a window listener silently never sees them.
+  navigator.serviceWorker.addEventListener("message", (e) => {
     const d = e.data;
-    if (!d || !d.file) return;
+    if (!d) return;
+    if (d.type === "osu-fw-dl") {
+      dl = d;
+      if (params.has("bootlog")) console.info("[bootlog] worker dl", fmt(d.received), "/", fmt(d.total));
+      showProgress();
+      return;
+    }
+    if (!d.file) return;
     if (d.type === "osu-fw-progress") {
       checked.add(d.file);
       showProgress();
@@ -704,7 +726,6 @@ try {
     }
   });
 
-  const fmt = (bytes) => (bytes / 1048576).toFixed(1) + " MB";
   const runtime = await dotnet
     .withModuleConfig({
       onDownloadResourceProgress: (done, total) => {

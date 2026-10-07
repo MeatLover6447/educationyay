@@ -46,6 +46,48 @@ const postReassemble = (file, idx, total) => {
     })
     .catch(() => {});
 };
+// Byte-level download tracking: the runtime's own progress callback stays
+// silent while the big split files reassemble, which made the ~370 MB
+// first-run download look frozen. Count streamed bytes per file and repost
+// a running total to the page.
+const dlBytes = new Map(); // pathname -> { received, total }
+let lastDlPost = 0;
+const postDl = (force) => {
+  const now = Date.now();
+  if (!force && now - lastDlPost < 300) return;
+  lastDlPost = now;
+  let received = 0;
+  let total = 0;
+  for (const v of dlBytes.values()) {
+    received += v.received;
+    total += v.total;
+  }
+  self.clients
+    .matchAll({ includeUncontrolled: true, type: "window" })
+    .then((list) => {
+      for (const c of list) c.postMessage({ type: "osu-fw-dl", received, total });
+    })
+    .catch(() => {});
+};
+const countBytes = (res, key, total) => {
+  const rec = dlBytes.get(key) ?? { received: 0, total: 0 };
+  if (total) rec.total = total;
+  dlBytes.set(key, rec);
+  const reader = res.body.getReader();
+  const stream = new ReadableStream({
+    async pull(controller) {
+      const { done, value } = await reader.read();
+      if (done) {
+        controller.close();
+        return;
+      }
+      rec.received += value.byteLength;
+      postDl();
+      controller.enqueue(value);
+    },
+  });
+  return new Response(stream, { status: res.status, statusText: res.statusText, headers: res.headers });
+};
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) =>
   e.waitUntil(
@@ -135,7 +177,11 @@ async function hasSplitIndex(pathname) {
 async function reassemble(pathname) {
   const fw = await caches.open(FWCACHE);
   const hit = await fw.match(pathname);
-  if (hit) return hit;
+  if (hit) {
+    dlBytes.delete(pathname);
+    postDl(true);
+    return hit;
+  }
   let index = splitIndex.get(pathname);
   if (!index) {
     const res = await fetch(pathname + ".piASu.index", { cache: "no-cache" });
@@ -148,13 +194,14 @@ async function reassemble(pathname) {
   // cold-cache boot of the two big files peaks at roughly one copy of the
   // data across the pipeline instead of two-to-three copies — noticeable
   // headroom on 4 GB devices.
+  dlBytes.set(pathname, { received: 0, total: index.size });
   const parts = new Array(index.parts);
   let failed = null;
   await Promise.all(
     Array.from({ length: index.parts }, async (_, i) => {
       const part = pathname + ".piASu.part" + String(i).padStart(3, "0");
       try {
-        const res = await fetch(part, { cache: "force-cache" });
+        const res = countBytes(await fetch(part, { cache: "force-cache" }), pathname);
         if (!res.ok) throw new Error("split part missing: " + part + " HTTP " + res.status);
         parts[i] = await res.arrayBuffer();
         postReassemble(pathname.split("/").pop(), i + 1, index.parts);
@@ -172,6 +219,8 @@ async function reassemble(pathname) {
   // Two independent Response objects over the same bytes — cloning a Response
   // whose body may already be read throws under concurrency.
   fw.put(pathname, new Response(blob, { status: 200, headers })).catch(() => {});
+  postDl(true);
+  dlBytes.delete(pathname);
   postProgress(pathname.split("/").pop());
   return new Response(blob, { status: 200, headers });
 }
@@ -250,7 +299,9 @@ async function cachedRaw(pathname) {
   const res = await fetch(pathname, { cache: "no-cache" });
   if (res.ok) {
     try {
-      const buf = await res.arrayBuffer();
+      const buf = await countBytes(res, pathname, Number(res.headers.get("content-length")) || 0).arrayBuffer();
+      postDl(true);
+      dlBytes.delete(pathname);
       const headers = new Headers(res.headers);
       fw.put(pathname, new Response(buf, { headers })).catch(() => {});
       postProgress(pathname.split("/").pop());
