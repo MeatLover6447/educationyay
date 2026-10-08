@@ -61,7 +61,7 @@ const resetBtn = $("loading-reset");
 // picking a different one saves it and reloads, and meta.js applies it on
 // the next boot. ?perf-style URL params still override for shareable links.
 const MODES = [
-  ["auto", "Auto", "Picked by device memory — recommended"],
+  ["auto", "Auto", "Picked by device memory / ChromeOS — recommended"],
   ["perf", "Performance", "Max FPS: jiterpreter on, 1x render scale, warm thread pool"],
   ["lowram", "Low memory", "For ~4 GB devices: fewer threads, smaller GC heap, jiterpreter off"],
   ["verylowram", "Very low memory", "For ~2 GB devices: tiny GC nursery, 0.75x render scale"],
@@ -433,14 +433,17 @@ function cleanupChunks(chunks, path, chunkIndex, keepTotal) {
   if (keepTotal > 0) entry.maxKnown = Math.max(entry.maxKnown, keepTotal - 1);
 }
 
-async function restoreAll() {
+async function restoreAll({ yieldEvery = 8 } = {}) {
   const fs = globalThis.__osuFs;
   if (!fs) return;
   const { metas, chunkIndex } = await loadVersions();
   let restored = 0;
   const db = await fsDb();
+  const yieldUi = () => new Promise((resolve) => setTimeout(resolve, 0));
   {
+    let restoreIndex = 0;
     for (const m of metas) {
+      if (yieldEvery > 0 && restoreIndex++ > 0 && restoreIndex % yieldEvery === 0) await yieldUi();
       const total = m.chunks ?? 1;
       const entry = chunkIndex.get(m.path);
       const complete =
@@ -457,7 +460,8 @@ async function restoreAll() {
         // one zero-chunk write for single-chunk files) instead of O(n²)
         // append-onto-a-growing-buffer copies — this was the multi-hundred-ms
         // hitch per large file during boot on low-end devices.
-        let acc = null;
+        const joined = new Uint8Array(m.size);
+        let offset = 0;
         for (let i = 0; i < total; i++) {
           const rec = await new Promise((resolve, reject) => {
             const tx = db.transaction("chunks", "readonly");
@@ -465,15 +469,17 @@ async function restoreAll() {
             txDone(tx).then(() => resolve(out), reject);
           });
           const data = rec?.data ?? new Uint8Array(0);
-          if (acc === null) acc = data;
-          else {
-            const merged = new Uint8Array(acc.length + data.length);
-            merged.set(acc, 0);
-            merged.set(data, acc.length);
-            acc = merged;
-          }
+          if (offset + data.length > joined.length)
+            throw new Error("stored chunks exceed recorded size for " + m.path);
+          joined.set(data, offset);
+          offset += data.length;
+          if (i + 1 < total) await yieldUi();
         }
-        fs.writeFile(m.path, acc ?? new Uint8Array(0));
+        if (offset !== joined.length)
+          throw new Error("stored chunks are " + offset + " bytes, expected " + joined.length + " for " + m.path);
+        // Preallocate once and copy sequentially: avoids both O(n²) repeated
+        // concatenation and retaining every chunk alongside a whole-file copy.
+        fs.writeFile(m.path, joined);
         restored++;
       } catch (e) {
         console.warn("osu! data restore failed for", m.path, e);
@@ -487,6 +493,7 @@ async function restoreAll() {
 let flushing = false;
 let flushQueued = false;
 function scheduleFlush() {
+  if (typeof globalThis.osuFsFlush !== "function") return;
   // A pending reset is about to wipe this database — don't resurrect data
   // with an unload flush racing the delete.
   if (sessionStorage.getItem("osu-reset")) return;
@@ -511,9 +518,13 @@ function scheduleFlush() {
 // the in-memory VFS and died on reload. Flush on a light cadence, and
 // immediately when the tab is hidden or closed (pagehide/beforeunload).
 // The flush is incremental (mtime/size diff), so idle rounds read nothing.
-setInterval(() => {
-  if (document.visibilityState === "visible") scheduleFlush();
-}, 20000);
+let periodicFlushTimer = null;
+function startPeriodicFlush(lowRam) {
+  clearInterval(periodicFlushTimer);
+  periodicFlushTimer = setInterval(() => {
+    if (document.visibilityState === "visible") scheduleFlush();
+  }, lowRam ? 90000 : 20000);
+}
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") scheduleFlush();
 });
@@ -671,6 +682,7 @@ globalThis.osuFsFlush = async () => {
     // Yield to the event loop regularly so managed code keeps pumping.
     let scanned = 0;
     for (const name of names) {
+      if (++scanned % 16 === 0) await gap();
       if (name === "." || name === "..") continue;
       const full = (p === "/" ? "" : p) + "/" + name;
       if (fsSkip(full)) continue;
@@ -686,7 +698,6 @@ globalThis.osuFsFlush = async () => {
         continue;
       }
       if (!fs.isFile(st.mode)) continue;
-      if (++scanned % 32 === 0) await gap();
       seen.add(full);
       if ((quotaSkip.get(full) ?? 0) > Date.now()) continue;
       const mtime = st.mtime?.getTime() ?? 0;
@@ -734,6 +745,7 @@ globalThis.osuFsFlush = async () => {
           records = [];
           await gap();
           const data = new Uint8Array(fs.readFile(p));
+          await gap();
           const total = Math.ceil(data.length / CHUNK_SIZE);
           const db = await fsDb();
           const tx = db.transaction(["meta", "chunks"], "readwrite");
@@ -771,6 +783,8 @@ try {
   const osuPerfRam = globalThis.osuPerfRam;
   const osuMemProfile = globalThis.osuMemProfile;
   const osuDeviceMemory = globalThis.osuDeviceMemory;
+  const osuHardwareConcurrency = globalThis.osuHardwareConcurrency;
+  startPeriodicFlush(osuLowRam);
   if (osuLowRam === undefined) osuShowFatal("meta.js failed to initialize");
 
   // Render scale: user override wins, else pick a value the browser canvas
@@ -785,7 +799,7 @@ try {
     else if (osuPerfRam || osuLowRam || awkward) globalThis.__osuDpr = "1";
   }
   console.info(
-    "[osu!] memory profile: " + osuMemProfile + " (deviceMemory " + osuDeviceMemory + ", dpr " + (globalThis.__osuDpr ?? "auto") + ")",
+    "[osu!] memory profile: " + osuMemProfile + " (" + (globalThis.osuChromeOS ? "ChromeOS, " : "") + "deviceMemory " + osuDeviceMemory + " GB, " + osuHardwareConcurrency + " logical cores, dpr " + (globalThis.__osuDpr ?? "auto") + ")",
   );
 
   status.textContent = "checking game files…";
@@ -868,9 +882,9 @@ try {
       // pthread spawns (each one hitches the main thread briefly). The perf
       // profile keeps 6 spares hot so mid-game spawns are rare: on a capable
       // machine that trades memory for steady frame pacing.
-      pthreadPoolInitialSize: osuPerfRam ? 12 : osuLowRam ? 8 : 10,
-      pthreadPoolUnusedSize: osuPerfRam ? 6 : osuLowRam ? 2 : 4,
-      maxParallelDownloads: osuLowRam ? 6 : 16,
+      pthreadPoolInitialSize: osuPerfRam ? 12 : osuLowRam ? Math.max(4, Math.min(6, osuHardwareConcurrency - 2)) : 10,
+      pthreadPoolUnusedSize: osuPerfRam ? 6 : osuLowRam ? 1 : 4,
+      maxParallelDownloads: osuLowRam ? 4 : 16,
       // NOTE: deliberately NOT setting jsThreadBlockingMode to
       // "DangerousAllowBlockingWait" — it lets the runtime hard-block the
       // browser's main thread, which prevents GC thread suspension and
@@ -899,7 +913,7 @@ try {
     // SynchronizationLockException storms (TimerQueueTimer.Dispose etc.).
     .withEnvironmentVariable(
       "DOTNET_ThreadPool_ForceMinWorkerThreads",
-      osuLowRam ? "4" : osuPerfRam ? "12" : "8",
+      osuLowRam ? "3" : osuPerfRam ? "12" : "8",
     )
     .withApplicationArguments(...(params.has("debug") ? ["--debug"] : []))
     .create();
@@ -909,7 +923,9 @@ try {
   // On low-RAM devices let the runtime allocate its heap first: a 100 MB+
   // restore burst racing mono's setup is the main boot OOM risk, and the
   // individual files stay small because the flusher caps them at 96 MB.
-  const restore = restoreAll().catch((e) => console.warn("osu! data restore failed", e));
+  const restore = restoreAll({ yieldEvery: osuVeryLowRam ? 4 : osuLowRam ? 8 : 0 }).catch((e) =>
+    console.warn("osu! data restore failed", e),
+  );
   const armOverlay = () => {
     const hide = () => $("loading").classList.add("hide");
     setTimeout(hide, 60000);
