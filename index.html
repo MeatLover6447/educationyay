@@ -439,16 +439,191 @@
   }
   .todo-item.no .todo-note { color: #7A7566; }
 
+  /* ===== CREDITS BUTTON & MODAL ===== */
+  .credits-btn {
+    position: fixed;
+    top: 20px;
+    right: 24px;
+    z-index: 9999;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--serif);
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    padding: 8px 20px;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    background: rgba(42, 46, 36, 0.9);
+  }
+  .credits-btn:hover {
+    background: var(--accent);
+    color: var(--paper);
+    border-color: var(--accent);
+    transform: scale(1.03);
+  }
+  .credits-btn:active { transform: scale(0.97); }
+
+  /* Modal overlay */
+  .credits-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 10, 8, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+  }
+  .credits-overlay.active {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .credits-modal {
+    background: #1E1E1A;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    max-width: 560px;
+    width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 32px 32px 28px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+    transform: scale(0.95);
+    transition: transform 0.25s ease;
+    color: var(--ink);
+  }
+  .credits-overlay.active .credits-modal {
+    transform: scale(1);
+  }
+
+  .credits-modal h2 {
+    font-family: var(--serif);
+    font-size: 26px;
+    font-weight: 500;
+    margin: 0 0 20px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 16px;
+  }
+
+  .credits-modal p {
+    font-size: 15.5px;
+    color: #D8D4C7;
+    margin: 0 0 16px;
+    line-height: 1.7;
+  }
+
+  .credits-modal ul {
+    margin: 0 0 20px;
+    padding-left: 20px;
+    color: #D8D4C7;
+    font-size: 15.5px;
+  }
+  .credits-modal ul li { margin-bottom: 6px; }
+
+  .credits-modal .highlight {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .credits-modal .divider {
+    height: 1px;
+    background: var(--line);
+    margin: 20px 0;
+  }
+
+  .credits-modal .footnote {
+    font-size: 13.5px;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--line);
+  }
+
+  .credits-close {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+  .credits-close:hover {
+    color: var(--ink);
+    background: var(--accent-soft);
+  }
+
   @media (max-width: 760px) {
     .tabs { padding: 0 20px; }
     .games-wrap, .guides-wrap { padding: 0 20px 80px; }
     .game-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 18px 14px; }
     .todo-wrap { padding: 0 20px 80px; }
     .todo-tag { display: none; }
+    .credits-btn {
+      top: 14px;
+      right: 16px;
+      padding: 6px 16px;
+      font-size: 13px;
+    }
+    .credits-modal {
+      padding: 24px 20px;
+    }
+    .credits-modal h2 { font-size: 22px; }
   }
 </style>
 </head>
 <body>
+
+<!-- ===== CREDITS BUTTON (top right) ===== -->
+<button class="credits-btn" id="creditsBtn" aria-label="Show credits">Credits</button>
+
+<!-- ===== CREDITS MODAL ===== -->
+<div class="credits-overlay" id="creditsOverlay">
+  <div class="credits-modal" style="position: relative;">
+    <button class="credits-close" id="creditsCloseBtn" aria-label="Close credits">&times;</button>
+    <h2>Credits</h2>
+
+    <p><span class="highlight">All credits</span> go to the original creators of these proxies/games/webports/exploits.</p>
+
+    <p><strong>None of these proxies or games are mine.</strong> Most of the big games are webports created by other people.</p>
+
+    <div class="divider"></div>
+
+    <p>The only things I did:</p>
+    <ul>
+      <li>Made this website</li>
+      <li>Wrote the guides</li>
+      <li>Ported <strong>Kiwi Clicker</strong></li>
+    </ul>
+
+    <p style="font-size: 14px; color: var(--muted);">
+      AI was used to help make this website (partially).
+    </p>
+
+    <div class="footnote">
+      Respect to all original creators. ✦
+    </div>
+  </div>
+</div>
 
 <div class="announcement-bar">
   <strong>⚠️ UPDATE</strong>added cookie clicker and minecraft/eaglercraft. added GeForce NOW guide.
@@ -514,7 +689,6 @@
           <a href="https://best95trend.com/">link 8</a>
           <a href="https://september.pound4poundmma.ca/">link 9</a>
           <a href="https://spanish-class.scottbaptist.com/">link 10</a>
-          
         </div>
       </section>
 
@@ -644,7 +818,6 @@
         </div>
       </section>
 
-      
       <section id="b1-s10">
         <h2>⭐☁️opium</h2>
         <div class="note-body">
@@ -654,11 +827,11 @@
             <li>proxy</li>
           </ul>
           <a href="https://s3.amazonaws.com/opiumbull/index.html">link 1</a>
-<a href="https://storage.googleapis.com/opiumbull/index.html">link 2</a>
-<a href="https://cdn.jsdelivr.net/gh/opiumbest/bull33/index.svg">link 3</a>
-<a href="https://raw.esm.sh/gh/OpiumBest/bull33/index.svg">link 4</a>
-<a href="https://cdn.statically.io/gh/OpiumBest/bull33@main/index.svg">link 5</a>
-<a href="https://opiumbull.s3.amazonaws.com/index.html">link 6</a>
+          <a href="https://storage.googleapis.com/opiumbull/index.html">link 2</a>
+          <a href="https://cdn.jsdelivr.net/gh/opiumbest/bull33/index.svg">link 3</a>
+          <a href="https://raw.esm.sh/gh/OpiumBest/bull33/index.svg">link 4</a>
+          <a href="https://cdn.statically.io/gh/OpiumBest/bull33@main/index.svg">link 5</a>
+          <a href="https://opiumbull.s3.amazonaws.com/index.html">link 6</a>
         </div>
       </section>
 
@@ -671,47 +844,45 @@
             <li>games</li>
           </ul>
           <a href="https://dapper-n.b-cdn.net/">link 1</a>
-<a href="https://a-b-c-d-e-f-g-h-i-j-k-l-m-n-o-p-q-r-s-t-u-v-w-x-y-and-z.b-cdn.net/">link 2</a>
+          <a href="https://a-b-c-d-e-f-g-h-i-j-k-l-m-n-o-p-q-r-s-t-u-v-w-x-y-and-z.b-cdn.net/">link 2</a>
         </div>
       </section>
 
-            <section id="b1-s12">
+      <section id="b1-s12">
         <h2>⭐velara</h2>
         <div class="note-body">
           <ul>
             <li>proxy</li>
             <li>webports</li>
-                        <li>games</li>
-
+            <li>games</li>
           </ul>
-<a href="https://biology.report.essay.robertschulze.org">link 1</a>
-<a href="https://hiking.video.physics.broshan.com.np">link 2</a>
-<a href="https://camping-writing.dj8.org">link 3</a>
-<a href="https://music.project.molonlabe.com.ar">link 4</a>
-<a href="https://weekly.essay.uhaneingenieria.com">link 5</a>
-<a href="https://chemistry.kitchen.brianneburnell.com">link 6</a>
-<a href="https://biology.podcast.paken.net">link 7</a>
-<a href="https://notes688.symen.ir">link 8</a>
-<a href="https://summary.report.glamourfreaks.com">link 9</a>
-<a href="https://draft9.robertschulze.org">link idk i forgot</a>
-<a href="https://math.kitchen.mori-baum.com">link something</a>
-<a href="https://coding.biology.dj8.org">link something</a>
-<a href="https://jmsg2.molonlabe.com.ar">link something</a>
-<a href="https://reading.uhaneingenieria.com">link something</a>
-<a href="https://podcast.class.history.brianneburnell.com">link something</a>
-<a href="https://18034m.digitalminds.com.ar">link something</a>
-<a href="https://recipe.blog.report.paken.net">link something</a>
-<a href="https://summary.symen.ir">link something</a>
-<a href="https://weekly.coding.robertschulze.org">link something</a>
-<a href="https://writing.notes.art.dj8.org">link something</a>
-<a href="https://essay.glamourfreaks.com">link something</a>
-<a href="https://video775.molonlabe.com.ar">link something</a>
-<a href="https://library.homework.review.uhaneingenieria.com">link something</a>
-          
+          <a href="https://biology.report.essay.robertschulze.org">link 1</a>
+          <a href="https://hiking.video.physics.broshan.com.np">link 2</a>
+          <a href="https://camping-writing.dj8.org">link 3</a>
+          <a href="https://music.project.molonlabe.com.ar">link 4</a>
+          <a href="https://weekly.essay.uhaneingenieria.com">link 5</a>
+          <a href="https://chemistry.kitchen.brianneburnell.com">link 6</a>
+          <a href="https://biology.podcast.paken.net">link 7</a>
+          <a href="https://notes688.symen.ir">link 8</a>
+          <a href="https://summary.report.glamourfreaks.com">link 9</a>
+          <a href="https://draft9.robertschulze.org">link idk i forgot</a>
+          <a href="https://math.kitchen.mori-baum.com">link something</a>
+          <a href="https://coding.biology.dj8.org">link something</a>
+          <a href="https://jmsg2.molonlabe.com.ar">link something</a>
+          <a href="https://reading.uhaneingenieria.com">link something</a>
+          <a href="https://podcast.class.history.brianneburnell.com">link something</a>
+          <a href="https://18034m.digitalminds.com.ar">link something</a>
+          <a href="https://recipe.blog.report.paken.net">link something</a>
+          <a href="https://summary.symen.ir">link something</a>
+          <a href="https://weekly.coding.robertschulze.org">link something</a>
+          <a href="https://writing.notes.art.dj8.org">link something</a>
+          <a href="https://essay.glamourfreaks.com">link something</a>
+          <a href="https://video775.molonlabe.com.ar">link something</a>
+          <a href="https://library.homework.review.uhaneingenieria.com">link something</a>
         </div>
       </section>
 
-            <section id="b1-s13">
+      <section id="b1-s13">
         <h2>⭐☁️quasar</h2>
         <div class="note-body">
           <ul>
@@ -721,8 +892,8 @@
             <li>games</li>
           </ul>
           <a href="https://bakersfieldps.com/">link 1</a>
-<a href="https://thermowavetherapy.com/">link 2</a>
-<a href="https://danvilledyslexiacenter.org/">link 3</a>
+          <a href="https://thermowavetherapy.com/">link 2</a>
+          <a href="https://danvilledyslexiacenter.org/">link 3</a>
         </div>
       </section>
 
@@ -877,25 +1048,6 @@
 
     <div class="game-grid" id="gameGrid">
 
-      <!--
-      ==========================================================
-      📋 TEMPLATE — copy this block to add a new game:
-
-      <a class="game-tile" href="LINK_HERE">
-        <div class="game-icon">
-          <span class="fallback">B</span>
-          <img src="icons/balatro.png" alt="Balatro">
-        </div>
-        <div class="game-title">Balatro</div>
-      </a>
-
-      • href      = where the tile goes
-      • fallback  = the letter shown until the icon loads
-      • img src   = your icon file (put them in an /icons folder)
-      • game-title = text under the square
-      ==========================================================
-      -->
-
       <a class="game-tile" href="math.html">
         <div class="game-icon"><span class="fallback">B</span><img src="icons/balatro.jpeg" alt="Balatro"></div>
         <div class="game-title">Balatro</div>
@@ -942,23 +1094,22 @@
       </a>
 
       <a class="game-tile" href="undertalesave.html">
-        <div class="game-icon"><span class="fallback">undertale save editor</span><!--<img src="icons/undertalesave.png" alt="Undertale Save Editor">--></div>
+        <div class="game-icon"><span class="fallback">undertale save editor</span></div>
         <div class="game-title">Undertale Save Editor</div>
       </a>
 
       <a class="game-tile" href="deltarunesave.html">
-        <div class="game-icon"><span class="fallback">deltarune save editor</span><!--<img src="icons/deltarunesave.png" alt="Deltarune Save Editor">--></div>
+        <div class="game-icon"><span class="fallback">deltarune save editor</span></div>
         <div class="game-title">Deltarune Save Editor</div>
       </a>
 
       <a class="game-tile" href="undertalebosses">
-        <div class="game-icon"><span class="fallback">undertale bosses</span><!--<img src="icons/undertalesave.png" alt="Undertale Save Editor">--></div>
+        <div class="game-icon"><span class="fallback">undertale bosses</span></div>
         <div class="game-title">undertale bosses guide</div>
       </a>
-      
 
       <a class="game-tile" href="shadowcrystal.dev/shadowcrystal.dev/DEVICE_KNIGHT/">
-        <div class="game-icon"><span class="fallback">black knife simulator</span><!--<img src="icons/blackknife.png" alt="Black Knife Simulator">--></div>
+        <div class="game-icon"><span class="fallback">black knife simulator</span></div>
         <div class="game-title">Black Knife Simulator</div>
       </a>
 
@@ -967,81 +1118,71 @@
         <div class="game-title">CloudMoon Bypass</div>
       </a>
 
-        <a class="game-tile" href="https://filipposcaramuzza.dev/online-chess">
-        <div class="game-icon"><span class="fallback">chess</span><!--<img src="icons/cloudmoon.png" alt="CloudMoon Bypass">--></div>
+      <a class="game-tile" href="https://filipposcaramuzza.dev/online-chess">
+        <div class="game-icon"><span class="fallback">chess</span></div>
         <div class="game-title">multiplayer chess and like yeah</div>
-      </a> 
+      </a>
 
-  <a class="game-tile" href="gd" onclick="alert('if its not working, be patient or go to https://truffled.cv/games/geo/index.html');">
+      <a class="game-tile" href="gd" onclick="alert('if its not working, be patient or go to https://truffled.cv/games/geo/index.html');">
         <div class="game-icon"><span class="fallback">gd</span><img src="icons/gd.png" alt="Geometry Dash"></div>
         <div class="game-title">Geometry Dash</div>
       </a>
 
-        <a class="game-tile" href="ddlcplus">
+      <a class="game-tile" href="ddlcplus">
         <div class="game-icon"><span class="fallback">ddlc+</span><img src="icons/ddlc.png" alt="Doki Doki Literature Club Plus"></div>
         <div class="game-title">Doki Doki Literature Club Plus</div>
       </a>
 
-            <a class="game-tile" href="kiwi">
+      <a class="game-tile" href="kiwi">
         <div class="game-icon"><span class="fallback">kiwi</span><img src="icons/kiwi.png" alt="Kiwi Clicker"></div>
         <div class="game-title">Kiwi Clicker</div>
       </a>
 
-             <a class="game-tile" href="tboir.html">
+      <a class="game-tile" href="tboir.html">
         <div class="game-icon"><span class="fallback">tboir</span><img src="icons/tboir.png" alt="The Binding of Isaac: Repentance"></div>
         <div class="game-title">The Binding of Isaac: Repentance</div>
       </a>
 
-
-         <a class="game-tile" href="golf">
+      <a class="game-tile" href="golf">
         <div class="game-icon"><span class="fallback">golf oribt</span><img src="icons/golf.png" alt="Golf Orbit"></div>
         <div class="game-title">Golf Orbit</div>
       </a>
 
-
-         <a class="game-tile" href="cookie">
+      <a class="game-tile" href="cookie">
         <div class="game-icon"><span class="fallback">cookie</span><img src="icons/cookie.png" alt="Cookie Clicker"></div>
         <div class="game-title">Cookie Clicker</div>
       </a>
 
-     <a class="game-tile" href="eagler1.8.8.html">
+      <a class="game-tile" href="eagler1.8.8.html">
         <div class="game-icon"><span class="fallback">MC 1.8.8</span><img src="icons/minecraft.png" alt="Minecraft 1.8.8"></div>
         <div class="game-title">Minecraft 1.8.8</div>
       </a>
 
-     <a class="game-tile" href="eagler1.12.2.html">
+      <a class="game-tile" href="eagler1.12.2.html">
         <div class="game-icon"><span class="fallback">MC 1.12.2</span><img src="icons/minecraft.png" alt="Minecraft 1.12.2"></div>
         <div class="game-title">Minecraft 1.12.2</div>
       </a>
 
-          <a class="game-tile" href="granny.html">
+      <a class="game-tile" href="granny.html">
         <div class="game-icon"><span class="fallback">Granny</span><img src="icons/granny.png" alt="Granny"></div>
         <div class="game-title">Granny</div>
       </a>
 
-
-          <a class="game-tile" href="https://www.hakari.io/">
+      <a class="game-tile" href="https://www.hakari.io/">
         <div class="game-icon"><span class="fallback">Hakari</span><img src="icons/hakari.png" alt="Hakari"></div>
         <div class="game-title">Hakari</div>
       </a>
 
-      
-          <a class="game-tile" href="retro">
+      <a class="game-tile" href="retro">
         <div class="game-icon"><span class="fallback">Retro Bowl</span><img src="icons/retro.png" alt="Retro Bowl"></div>
         <div class="game-title">Retro Bowl</div>
       </a>
 
-                 <a class="game-tile" href="retroc">
+      <a class="game-tile" href="retroc">
         <div class="game-icon"><span class="fallback">Retro Bowl College</span><img src="icons/retroc.png" alt="Retro Bowl College"></div>
         <div class="game-title">Retro Bowl College</div>
       </a>
 
-
-
-
-    
-
-      
     </div>
 
     <div class="game-no-results" id="gameNoResults">no games match that search.</div>
@@ -1050,7 +1191,7 @@
 </div><!-- /#tab-games -->
 
 <!-- ============================================================
-     TAB 3 : GUIDES  (now with sidebar like home)
+     TAB 3 : GUIDES
      ============================================================ -->
 <div class="tab-panel" id="tab-guides">
   <div class="layout">
@@ -1120,10 +1261,10 @@
           </div>
         </section>
 
-                <section id="g-s4">
+        <section id="g-s4">
           <h2>geforce now guide</h2>
           <div class="note-body">
-           <a href="geforce">click here</a>
+            <a href="geforce">click here</a>
           </div>
         </section>
 
@@ -1135,44 +1276,6 @@
 
 <!-- ============================================================
      TAB 4 : TO-DO LIST
-     ============================================================
-
-     ⚙️  THIS TAB IS STATIC — visitors cannot edit it.
-         To change the list, edit the HTML below directly.
-
-     📋  HOW TO ADD A NEW ITEM:
-         Copy the block between the dashed lines and paste it
-         inside the appropriate <ul class="todo-list">.
-
-     ┌─────────────────────────────────────────────────────
-     │ <li class="todo-item">
-     │   <span class="todo-box"></span>
-     │   <span class="todo-text">your task here</span>
-     │   <span class="todo-tag">tag</span>
-     │ </li>
-     └─────────────────────────────────────────────────────
-
-     • To mark an item as DONE, add class "done" to the <li>:
-         <li class="todo-item done">
-
-     • To mark an item as DECLINED / WON'T ADD, add class "no":
-         <li class="todo-item no">
-       (shows an ✕ box and muted text — use for the
-        "can't / won't add" section)
-
-     • The <span class="todo-tag"> is optional — delete it if
-       you don't want a tag.
-
-     • To highlight a tag, add class "high":
-         <span class="todo-tag high">high</span>
-
-     • For a smaller sub-note under the main text, put this
-       inside the .todo-text span:
-         <span class="todo-note">extra detail here</span>
-
-     • Each <li> must have exactly one .todo-box and one
-       .todo-text. The .todo-tag is optional.
-
      ============================================================ -->
 <div class="tab-panel" id="tab-todo">
   <div class="todo-wrap">
@@ -1181,94 +1284,71 @@
 
     <p class="todo-intro">stuff i will add/change. taking suggestions from your responses</p>
 
-    <!-- ======================================================
-         SECTION: PLANNED
-         ====================================================== -->
     <section class="todo-section">
       <h2>planned</h2>
       <ul class="todo-list">
 
-        <!-- 📋 COPY THIS BLOCK TO ADD A NEW PLANNED ITEM -->
-
-
-
-                          <li class="todo-item">
+        <li class="todo-item">
           <span class="todo-box"></span>
           <span class="todo-text">fix tboi lag, tboi save editor. this will take a while and may not be possible</span>
           <span class="todo-tag">games</span>
         </li>
 
-                          <li class="todo-item">
+        <li class="todo-item">
           <span class="todo-box"></span>
           <span class="todo-text">add pokemon roms</span>
           <span class="todo-tag">games</span>
         </li>
 
-                                  <li class="todo-item">
+        <li class="todo-item">
           <span class="todo-box"></span>
           <span class="todo-text">golf orbit (bypass domain lock)</span>
           <span class="todo-tag">games</span>
         </li>
-                          <li class="todo-item">
+
+        <li class="todo-item">
           <span class="todo-box"></span>
           <span class="todo-text">add suika game</span>
           <span class="todo-tag">games</span>
         </li>
 
-                          <li class="todo-item">
+        <li class="todo-item">
           <span class="todo-box"></span>
           <span class="todo-text">maybe garry's mod/half life 2/portal</span>
           <span class="todo-tag">games(webports)</span>
         </li>
 
-          <li class="todo-item">
+        <li class="todo-item">
           <span class="todo-box"></span>
           <span class="todo-text">add cuphead</span>
           <span class="todo-tag">games(webport)</span>
         </li>
 
-          <li class="todo-item">
+        <li class="todo-item">
           <span class="todo-box"></span>
           <span class="todo-text">add hello neighbor and happy wheels and maybe amazing frog?</span>
           <span class="todo-tag">games(webport)</span>
         </li>
-        <!-- Add more planned items below this line -->
 
       </ul>
     </section>
 
-    <!-- ======================================================
-         SECTION: DONE
-         ====================================================== -->
     <section class="todo-section">
       <h2>done</h2>
       <ul class="todo-list">
 
-        <!-- 📋 COPY THIS BLOCK TO ADD A NEW DONE ITEM
-             (make sure to include class "done" on the <li>) -->
-        
-                <li class="todo-item done">
+        <li class="todo-item done">
           <span class="todo-box"></span>
           <span class="todo-text">add minecraft/eaglercraft 1.12.2 or 1.8.8</span>
           <span class="todo-tag">games</span>
         </li>
 
-
-
-
-
-                          <li class="todo-item done">
+        <li class="todo-item done">
           <span class="todo-box"></span>
           <span class="todo-text">add cookie clicker</span>
-          <span class="todo-tag">games</span>                   
+          <span class="todo-tag">games</span>
         </li>
 
-
-
-        
-
-        
-        
         <li class="todo-item done">
           <span class="todo-box"></span>
           <span class="todo-text">add the binding of isaac: repentance</span>
@@ -1281,34 +1361,14 @@
           <span class="todo-tag">cloud</span>
         </li>
 
-
-        <!-- Add more completed items below this line -->
-
       </ul>
     </section>
 
-    <!-- ======================================================
-         SECTION: CAN'T / WON'T ADD
-         ======================================================
-         📋 COPY THIS BLOCK TO ADD A NEW DECLINED ITEM.
-            The <li> MUST have class "no" so it renders with
-            the ✕ box and muted text.
-
-            <li class="todo-item no">
-              <span class="todo-box"></span>
-              <span class="todo-text">thing you're not adding</span>
-              <span class="todo-tag">reason</span>
-            </li>
-
-         💡 Tip: use the .todo-note span inside .todo-text to
-            explain WHY you're not adding it.
-         ====================================================== -->
     <section class="todo-section">
       <h2>can't / won't add</h2>
       <ul class="todo-list">
 
-        
-       <li class="todo-item no">
+        <li class="todo-item no">
           <span class="todo-box"></span>
           <span class="todo-text">
             real minecraft
@@ -1316,7 +1376,6 @@
           </span>
           <span class="todo-tag">games</span>
         </li>
-
 
         <li class="todo-item no">
           <span class="todo-box"></span>
@@ -1327,7 +1386,6 @@
           <span class="todo-tag">games</span>
         </li>
 
-        
         <li class="todo-item no">
           <span class="todo-box"></span>
           <span class="todo-text">
@@ -1337,7 +1395,6 @@
           <span class="todo-tag">games</span>
         </li>
 
-               
         <li class="todo-item no">
           <span class="todo-box"></span>
           <span class="todo-text">
@@ -1347,11 +1404,6 @@
           <span class="todo-tag">games</span>
         </li>
 
-
-        
-
-        <!-- Add more declined items below this line -->
-
       </ul>
     </section>
 
@@ -1359,6 +1411,36 @@
 </div><!-- /#tab-todo -->
 
 <script>
+  /* ---------- Credits Modal ---------- */
+  (function() {
+    const creditsBtn = document.getElementById('creditsBtn');
+    const creditsOverlay = document.getElementById('creditsOverlay');
+    const creditsCloseBtn = document.getElementById('creditsCloseBtn');
+
+    function openCredits() {
+      creditsOverlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeCredits() {
+      creditsOverlay.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    creditsBtn.addEventListener('click', openCredits);
+    creditsCloseBtn.addEventListener('click', closeCredits);
+
+    creditsOverlay.addEventListener('click', function(e) {
+      if (e.target === creditsOverlay) closeCredits();
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && creditsOverlay.classList.contains('active')) {
+        closeCredits();
+      }
+    });
+  })();
+
   /* ---------- Tabs ---------- */
   document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
     btn.addEventListener('click', () => {
