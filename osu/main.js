@@ -23,6 +23,59 @@ $("crash-copy").onclick = async ({ target }) => {
   }, 1500);
 };
 
+// --- reset-all-data (loading-screen button) --------------------------------
+// First click arms, second click confirms. The click only clears caches and
+// the service worker, then reloads with a flag; the actual IndexedDB wipe
+// happens at the top of the fresh boot, before anything reopens a
+// connection (deleteDatabase blocks while connections are open).
+const idbDelete = async (name) => {
+  for (let i = 0; i < 6; i++) {
+    // A connection left by the dying page (e.g. the unload flush) blocks the
+    // delete: wait it out and retry instead of silently keeping the data.
+    const gone = await new Promise((resolve) => {
+      const rq = indexedDB.deleteDatabase(name);
+      rq.onsuccess = () => resolve(true);
+      rq.onerror = () => resolve(false);
+      rq.onblocked = () => setTimeout(() => resolve(false), 600);
+    });
+    if (gone) return true;
+    await new Promise((r) => setTimeout(r, 400));
+  }
+  return false;
+};
+if (sessionStorage.getItem("osu-reset")) {
+  sessionStorage.removeItem("osu-reset");
+  try {
+    await idbDelete("osu-fs");
+    await idbDelete("osu-library");
+    for (const k of await caches.keys()) await caches.delete(k);
+    for (const r of await navigator.serviceWorker?.getRegistrations() ?? []) await r.unregister();
+    console.info("[osu!] reset complete: game files, library and settings wiped");
+  } catch (e) {
+    console.warn("[osu!] reset failed", e);
+  }
+}
+const resetBtn = $("loading-reset");
+let resetArmed = false;
+resetBtn.onclick = async () => {
+  if (!resetArmed) {
+    resetArmed = true;
+    resetBtn.classList.add("armed");
+    resetBtn.textContent = "click again to confirm — wipes EVERYTHING";
+    return;
+  }
+  resetBtn.disabled = true;
+  resetBtn.textContent = "clearing…";
+  try {
+    sessionStorage.setItem("osu-reset", "1");
+    for (const k of await caches.keys()) await caches.delete(k);
+    for (const r of await navigator.serviceWorker?.getRegistrations() ?? []) await r.unregister();
+  } catch (e) {
+    console.warn("[osu!] reset cleanup failed", e);
+  }
+  location.reload();
+};
+
 // --- crash watchdog ---------------------------------------------------------
 // A fatal runtime abort (GC suspend deadlock etc.) leaves the page frozen with
 // no way out. The game drives frames through requestAnimationFrame, so if
@@ -407,6 +460,9 @@ async function restoreAll() {
 let flushing = false;
 let flushQueued = false;
 function scheduleFlush() {
+  // A pending reset is about to wipe this database — don't resurrect data
+  // with an unload flush racing the delete.
+  if (sessionStorage.getItem("osu-reset")) return;
   if (flushing) {
     flushQueued = true;
     return;
