@@ -555,6 +555,7 @@ globalThis.osuFsFlush = async () => {
         const r = batch.splice(multiIdx, 1)[0];
         records.unshift(...batch);
         try {
+          await gap();
           const data = new Uint8Array(fs.readFile(r.path));
           const total = Math.ceil(data.length / CHUNK_SIZE);
           const db = await fsDb();
@@ -576,6 +577,24 @@ globalThis.osuFsFlush = async () => {
         continue;
       }
       try {
+        // Reads happen outside the transaction: IndexedDB transactions
+        // auto-commit the moment the event loop turns with no pending
+        // requests, so nothing may yield between opening one and its last
+        // put. Yields between reads are also what lets the runtime pump
+        // GC safepoints and service blocking interop from other threads
+        // (see the walk() note) without ever tearing a transaction.
+        const datas = [];
+        for (const r of batch) {
+          let data;
+          try {
+            if (datas.length) await gap();
+            data = new Uint8Array(fs.readFile(r.path));
+          } catch (e) {
+            console.warn("osu! data flush failed for", r.path, e);
+            continue;
+          }
+          datas.push([r, data]);
+        }
         const db = await fsDb();
         const tx = db.transaction(["meta", "chunks"], "readwrite");
         const meta = tx.objectStore("meta");
@@ -584,21 +603,14 @@ globalThis.osuFsFlush = async () => {
           meta.delete(path);
           cleanupChunks(chunks, path, chunkIndex, 0);
         }
-        for (const r of batch) {
-          let data;
-          try {
-            data = new Uint8Array(fs.readFile(r.path));
-          } catch (e) {
-            console.warn("osu! data flush failed for", r.path, e);
-            continue;
-          }
+        for (const [r, data] of datas) {
           cleanupChunks(chunks, r.path, chunkIndex, 1);
           chunks.put({ path: chunkKey(r.path, 0), data });
           meta.put({ path: r.path, size: r.size, mtime: r.mtime, chunks: 1 });
         }
         await txDone(tx);
-        writes += batch.length;
-        for (const r of batch) {
+        writes += datas.length;
+        for (const [r] of datas) {
           prev.set(r.path, { path: r.path, size: r.size, mtime: r.mtime, chunks: 1 });
           markSaved(r, 1);
         }
@@ -625,6 +637,12 @@ globalThis.osuFsFlush = async () => {
     } catch {
       return;
     }
+    // Every fs.* call here is synchronous emscripten interop on the UI
+    // thread; back-to-back calls pin the thread where the runtime cannot
+    // service GC suspension or blocking interop from other threads (jsww
+    // proxies its calls to us), which has deadlocked the GC mid-game.
+    // Yield to the event loop regularly so managed code keeps pumping.
+    let scanned = 0;
     for (const name of names) {
       if (name === "." || name === "..") continue;
       const full = (p === "/" ? "" : p) + "/" + name;
@@ -641,6 +659,7 @@ globalThis.osuFsFlush = async () => {
         continue;
       }
       if (!fs.isFile(st.mode)) continue;
+      if (++scanned % 32 === 0) await gap();
       seen.add(full);
       if ((quotaSkip.get(full) ?? 0) > Date.now()) continue;
       const mtime = st.mtime?.getTime() ?? 0;
@@ -686,10 +705,11 @@ globalThis.osuFsFlush = async () => {
         try {
           const saved = records;
           records = [];
-          const db = await fsDb();
-          const tx = db.transaction(["meta", "chunks"], "readwrite");
+          await gap();
           const data = new Uint8Array(fs.readFile(p));
           const total = Math.ceil(data.length / CHUNK_SIZE);
+          const db = await fsDb();
+          const tx = db.transaction(["meta", "chunks"], "readwrite");
           cleanupChunks(tx.objectStore("chunks"), p, chunkIndex, total);
           for (let i = 0; i < total; i++)
             tx
