@@ -56,6 +56,33 @@ if (sessionStorage.getItem("osu-reset")) {
   }
 }
 const resetBtn = $("loading-reset");
+// --- optimization mode selector --------------------------------------------
+// The game boots immediately with the stored (or auto-detected) profile;
+// picking a different one saves it and reloads, and meta.js applies it on
+// the next boot. ?perf-style URL params still override for shareable links.
+const MODES = [
+  ["auto", "Auto", "Picked by device memory — recommended"],
+  ["perf", "Performance", "Max FPS: jiterpreter on, 1x render scale, warm thread pool"],
+  ["lowram", "Low memory", "For ~4 GB devices: fewer threads, smaller GC heap, jiterpreter off"],
+  ["verylowram", "Very low memory", "For ~2 GB devices: tiny GC nursery, 0.75x render scale"],
+  ["highram", "Full", "No limits — overrides the low-RAM auto-detection"],
+];
+{
+  const modeBox = $("mode-select");
+  const savedMode = localStorage.getItem("osu-mode") ?? "auto";
+  for (const [id, label, hint] of MODES) {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.title = hint;
+    if (savedMode === id) b.classList.add("active");
+    b.onclick = () => {
+      if ((localStorage.getItem("osu-mode") ?? "auto") === id) return;
+      localStorage.setItem("osu-mode", id);
+      location.reload();
+    };
+    modeBox.appendChild(b);
+  }
+}
 let resetArmed = false;
 resetBtn.onclick = async () => {
   if (!resetArmed) {

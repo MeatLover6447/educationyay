@@ -5,16 +5,32 @@ const osuParams = new URLSearchParams(
   globalThis.location && globalThis.location.search ? globalThis.location.search : "",
 );
 const osuDeviceMem = navigator.deviceMemory || 8;
-// "highram" forces the full profile; otherwise <=4 GB devices get low and
-// <=2 GB get very-low. "?lowram"/"?verylowram" force it regardless.
+// The loading-screen selector stores the user's choice in localStorage
+// ("osu-mode"); explicit URL params still win so ?perf etc. keep working
+// as shareable links.
+const storedMode =
+  typeof localStorage === "object" && localStorage !== null ? localStorage.getItem("osu-mode") : null;
+const urlMode = osuParams.has("perf")
+  ? "perf"
+  : osuParams.has("verylowram")
+    ? "verylowram"
+    : osuParams.has("lowram")
+      ? "lowram"
+      : osuParams.has("highram")
+        ? "highram"
+        : null;
+const mode =
+  urlMode ??
+  (storedMode === "perf" || storedMode === "lowram" || storedMode === "verylowram" || storedMode === "highram"
+    ? storedMode
+    : "auto");
 // Chromebooks commonly report deviceMemory 8 regardless of physical RAM, so
-// use ?lowram in the URL there; the profile below is safe on 4 GB devices.
-// "?perf" selects the FPS-oriented profile: jiterpreter on, 1x render
-// scale, deeper warm thread pool — max smoothness for capable machines.
-const osuNoLowram = osuParams.has("highram") || osuParams.has("perf");
-const perf = osuParams.has("perf") && !osuParams.has("lowram") && !osuParams.has("verylowram");
-const low = osuParams.has("lowram") || (!osuNoLowram && osuDeviceMem <= 4);
-const veryLow = osuParams.has("verylowram") || (low && osuDeviceMem <= 2);
+// the loading-screen selector (or ?lowram) is the way to force the low
+// profile there; auto keeps it safe on ≤4 GB devices.
+const perf = mode === "perf";
+const full = mode === "highram";
+const low = mode === "lowram" || (!perf && !full && osuDeviceMem <= 4);
+const veryLow = mode === "verylowram" || (low && osuDeviceMem <= 2);
 
 globalThis.osuLowRam = low;
 globalThis.osuVeryLowRam = veryLow;
