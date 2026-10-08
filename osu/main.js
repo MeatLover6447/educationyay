@@ -423,6 +423,19 @@ function scheduleFlush() {
       }
     });
 }
+// The runtime never flushes again after the boot-time call: settings,
+// keybinds, skin choices — anything the game saves mid-session — stayed in
+// the in-memory VFS and died on reload. Flush on a light cadence, and
+// immediately when the tab is hidden or closed (pagehide/beforeunload).
+// The flush is incremental (mtime/size diff), so idle rounds read nothing.
+setInterval(() => {
+  if (document.visibilityState === "visible") scheduleFlush();
+}, 20000);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") scheduleFlush();
+});
+addEventListener("pagehide", scheduleFlush);
+addEventListener("beforeunload", scheduleFlush);
 
 // Keep both the per-flush diff map and the page-cached snapshot in sync —
 // otherwise every flush re-writes everything against a stale snapshot.
