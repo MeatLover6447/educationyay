@@ -229,6 +229,46 @@
     background: var(--line);
     margin-bottom: 36px;
   }
+
+  /* ===== GitHub-style TIP alert ===== */
+  .gh-tip {
+    background: #1F2A1F;
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: -8px 0 32px;
+    font-size: 15px;
+    color: #D8D4C7;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .gh-tip .tip-icon {
+    font-size: 18px;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .gh-tip .tip-body { flex: 1 1 auto; min-width: 0; }
+  .gh-tip .tip-label {
+    font-family: var(--serif);
+    font-weight: 600;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 2px;
+    font-size: 15.5px;
+  }
+  .gh-tip .tip-body a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid var(--accent);
+  }
+  .gh-tip .tip-body a:hover,
+  .gh-tip .tip-body a:focus-visible {
+    color: var(--ink);
+    border-bottom-color: var(--ink);
+  }
+
   .game-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -1117,6 +1157,15 @@
   <div class="games-wrap">
     <h1>games</h1>
     <div class="rule"></div>
+
+    <!-- ===== GitHub-style TIP alert ===== -->
+    <div class="gh-tip">
+      <span class="tip-icon">💡</span>
+      <div class="tip-body">
+        <span class="tip-label">Tip</span>
+        most games you are looking for are on webport games sites. like <a href="#b1-s4">selenite</a>/<a href="#b1-s5">mizumath</a>/<a href="#b1-s6">korona</a>/<a href="#b1-s1">truffled</a>/<a href="#b1-s2">gn-math</a>/<a href="#b1-s7">fern</a>
+      </div>
+    </div>
 
     <div class="game-search-wrap">
       <input type="text" id="gameSearch" class="game-search" placeholder="Search games..." autocomplete="off" spellcheck="false" aria-label="Search games">
