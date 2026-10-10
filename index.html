@@ -365,6 +365,42 @@
   .game-no-results.show { display: block; }
   .game-tile.hidden { display: none; }
 
+  /* ===== Games page sub-tabs (meatlover / selenite) ===== */
+  .subtabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 26px;
+    flex-wrap: wrap;
+  }
+  .subtab-btn {
+    font-family: var(--serif);
+    font-size: 14.5px;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 7px 20px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .subtab-btn:hover, .subtab-btn:focus-visible {
+    color: var(--ink);
+    border-color: var(--accent);
+    outline: none;
+  }
+  .subtab-btn.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .subtab-count {
+    font-size: 11.5px;
+    opacity: 0.7;
+    margin-left: 7px;
+  }
+  .subtab-panel { display: none; }
+  .subtab-panel.active { display: block; }
+
   /* Guides tab layout (mirrors home) */
   .guides-wrap section { margin-bottom: 48px; }
   .guides-wrap section h2 {
@@ -1167,6 +1203,14 @@
       </div>
     </div>
 
+    <div class="subtabs" role="tablist" aria-label="Game libraries">
+      <button class="subtab-btn active" type="button" data-subtab="meatlover" role="tab" aria-selected="true">meatlover</button>
+      <button class="subtab-btn" type="button" data-subtab="selenite" role="tab" aria-selected="false">selenite<span class="subtab-count">269 games</span></button>
+    </div>
+
+    <!-- ===== SUB-TAB 1 : MEATLOVER (hand-picked) ===== -->
+    <div class="subtab-panel active" id="sub-meatlover">
+
     <div class="game-search-wrap">
       <input type="text" id="gameSearch" class="game-search" placeholder="Search games..." autocomplete="off" spellcheck="false" aria-label="Search games">
       <span class="game-search-icon">🔍</span>
@@ -1312,6 +1356,1099 @@
     </div>
 
     <div class="game-no-results" id="gameNoResults">no games match that search.</div>
+
+    </div><!-- /#sub-meatlover -->
+
+    <!-- ===== SUB-TAB 2 : SELENITE (all 269 games) ===== -->
+    <div class="subtab-panel" id="sub-selenite">
+
+    <div class="game-search-wrap">
+      <input type="text" id="seleniteSearch" class="game-search" placeholder="Search selenite games..." autocomplete="off" spellcheck="false" aria-label="Search selenite games">
+      <span class="game-search-icon">🔍</span>
+    </div>
+
+    <div class="game-grid" id="seleniteGrid">
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/1on1soccer/">
+        <div class="game-icon"><span class="fallback">1</span><img src="https://meatlover6447.github.io/selenite/1on1soccer/logo.jpg" alt="1 on 1 Soccer" loading="lazy" decoding="async"></div>
+        <div class="game-title">1 on 1 Soccer</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/1v1lol/">
+        <div class="game-icon"><span class="fallback">1</span><img src="https://meatlover6447.github.io/selenite/1v1lol/splash.png" alt="1v1.lol" loading="lazy" decoding="async"></div>
+        <div class="game-title">1v1.lol</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/2048/">
+        <div class="game-icon"><span class="fallback">2</span><img src="https://meatlover6447.github.io/selenite/2048/icon.png" alt="2048" loading="lazy" decoding="async"></div>
+        <div class="game-title">2048</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/2drocketleague/">
+        <div class="game-icon"><span class="fallback">2</span><img src="https://meatlover6447.github.io/selenite/2drocketleague/unnamed.png" alt="2D Rocket League" loading="lazy" decoding="async"></div>
+        <div class="game-title">2D Rocket League</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/60sburgerrun/">
+        <div class="game-icon"><span class="fallback">6</span><img src="https://meatlover6447.github.io/selenite/60sburgerrun/icon.png" alt="60s Burger Run" loading="lazy" decoding="async"></div>
+        <div class="game-title">60s Burger Run</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/adofai/">
+        <div class="game-icon"><span class="fallback">A</span><img src="https://meatlover6447.github.io/selenite/adofai/icon.png" alt="A Dance of Fire &amp; Ice" loading="lazy" decoding="async"></div>
+        <div class="game-title">A Dance of Fire &amp; Ice</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/adarkroom/">
+        <div class="game-icon"><span class="fallback">A</span><img src="https://meatlover6447.github.io/selenite/adarkroom/favicon.ico" alt="A Dark Room" loading="lazy" decoding="async"></div>
+        <div class="game-title">A Dark Room</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/achieveunlocked/">
+        <div class="game-icon"><span class="fallback">A</span><img src="https://meatlover6447.github.io/selenite/achieveunlocked/icon.png" alt="Achievement Unlocked" loading="lazy" decoding="async"></div>
+        <div class="game-title">Achievement Unlocked</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/achieveunlocked2/">
+        <div class="game-icon"><span class="fallback">A</span><img src="https://meatlover6447.github.io/selenite/achieveunlocked2/icon.png" alt="Achievement Unlocked 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Achievement Unlocked 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/adventure-capitalist/">
+        <div class="game-icon"><span class="fallback">A</span><img src="https://meatlover6447.github.io/selenite/adventure-capitalist/logo.webp" alt="Adventure Capitalist" loading="lazy" decoding="async"></div>
+        <div class="game-title">Adventure Capitalist</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/ageofwar/">
+        <div class="game-icon"><span class="fallback">A</span><img src="https://meatlover6447.github.io/selenite/ageofwar/warofage.jpg" alt="Age of War" loading="lazy" decoding="async"></div>
+        <div class="game-title">Age of War</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/amazing-rope-police/">
+        <div class="game-icon"><span class="fallback">A</span><img src="https://meatlover6447.github.io/selenite/amazing-rope-police/splash.jpeg" alt="Amazing Rope Police" loading="lazy" decoding="async"></div>
+        <div class="game-title">Amazing Rope Police</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/amongus/">
+        <div class="game-icon"><span class="fallback">A</span><img src="https://meatlover6447.github.io/selenite/amongus/amgojs%5D_.png" alt="Among Us" loading="lazy" decoding="async"></div>
+        <div class="game-title">Among Us</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/avalanche/">
+        <div class="game-icon"><span class="fallback">A</span><img src="https://meatlover6447.github.io/selenite/avalanche/icon.png" alt="Avalanche" loading="lazy" decoding="async"></div>
+        <div class="game-title">Avalanche</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/awesometanks/">
+        <div class="game-icon"><span class="fallback">A</span><img src="https://meatlover6447.github.io/selenite/awesometanks/cover.svg" alt="Awesome Tanks" loading="lazy" decoding="async"></div>
+        <div class="game-title">Awesome Tanks</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/ayun/">
+        <div class="game-icon"><span class="fallback">A</span><img src="https://meatlover6447.github.io/selenite/ayun/cover.svg" alt="Ayuncraft 1.5.2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Ayuncraft 1.5.2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/badicecream/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/badicecream/bad-ice-cream.png" alt="Bad Ice Cream" loading="lazy" decoding="async"></div>
+        <div class="game-title">Bad Ice Cream</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/badicecream2/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/badicecream2/bad-ice-cream-2.png" alt="Bad Ice Cream 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Bad Ice Cream 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/badicecream3/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/badicecream3/bad-ice-cream-3.png" alt="Bad Ice Cream 3" loading="lazy" decoding="async"></div>
+        <div class="game-title">Bad Ice Cream 3</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/badpiggies/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/badpiggies/badpiggies.png" alt="Bad Piggies" loading="lazy" decoding="async"></div>
+        <div class="game-title">Bad Piggies</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/badtimesimulator/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/badtimesimulator/icon-114.png" alt="Bad Time Simulator" loading="lazy" decoding="async"></div>
+        <div class="game-title">Bad Time Simulator</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/baldis-basics/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/baldis-basics/splash.png" alt="Baldi's Basics" loading="lazy" decoding="async"></div>
+        <div class="game-title">Baldi's Basics</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/ballisticchickens/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/ballisticchickens/logo.png" alt="Ballistic Chickens" loading="lazy" decoding="async"></div>
+        <div class="game-title">Ballistic Chickens</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/basketbros/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/basketbros/thumb.jpg" alt="Basket Bros" loading="lazy" decoding="async"></div>
+        <div class="game-title">Basket Bros</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/basketrandom/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/basketrandom/test.png" alt="Basket Random" loading="lazy" decoding="async"></div>
+        <div class="game-title">Basket Random</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/basketball-stars/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/basketball-stars/icon.png" alt="Basketball Stars" loading="lazy" decoding="async"></div>
+        <div class="game-title">Basketball Stars</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/bit-planes/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/bit-planes/bitplanes.png" alt="Bit Planes" loading="lazy" decoding="async"></div>
+        <div class="game-title">Bit Planes</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/bitlife/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/bitlife/bitlife.png" alt="Bitlife" loading="lazy" decoding="async"></div>
+        <div class="game-title">Bitlife</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/bloodtournament/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/bloodtournament/blood-tournament.jpg" alt="Blood Tournament" loading="lazy" decoding="async"></div>
+        <div class="game-title">Blood Tournament</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/btd/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/btd/logo.webp" alt="Bloons Tower Defense" loading="lazy" decoding="async"></div>
+        <div class="game-title">Bloons Tower Defense</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/btd2/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/btd2/logo.webp" alt="Bloons Tower Defense 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Bloons Tower Defense 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/btd3/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/btd3/icon.png" alt="Bloons Tower Defense 3" loading="lazy" decoding="async"></div>
+        <div class="game-title">Bloons Tower Defense 3</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/btd4/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/btd4/logo.jpg" alt="Bloons Tower Defense 4" loading="lazy" decoding="async"></div>
+        <div class="game-title">Bloons Tower Defense 4</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/btd5/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/btd5/wogo.png" alt="Bloons Tower Defense 5" loading="lazy" decoding="async"></div>
+        <div class="game-title">Bloons Tower Defense 5</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/btd6/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/btd6/uwu.png" alt="Bloons Tower Defense 6" loading="lazy" decoding="async"></div>
+        <div class="game-title">Bloons Tower Defense 6</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/bobtherobber2/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/bobtherobber2/icon.png" alt="Bob the Robber 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Bob the Robber 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/boxingphysics2/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/boxingphysics2/icon.png" alt="Boxing Physics 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Boxing Physics 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/boxingrandom/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/boxingrandom/512x512.jpg" alt="Boxing Random" loading="lazy" decoding="async"></div>
+        <div class="game-title">Boxing Random</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/bubbleshooter/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/bubbleshooter/cover.svg" alt="Bubble Shooter" loading="lazy" decoding="async"></div>
+        <div class="game-title">Bubble Shooter</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/burgerandfrights/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/burgerandfrights/icon.png" alt="Burger and Frights" loading="lazy" decoding="async"></div>
+        <div class="game-title">Burger and Frights</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/burritobison/">
+        <div class="game-icon"><span class="fallback">B</span><img src="https://meatlover6447.github.io/selenite/burritobison/Build/logo.png" alt="Burrito Bison" loading="lazy" decoding="async"></div>
+        <div class="game-title">Burrito Bison</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/celeste/">
+        <div class="game-icon"><span class="fallback">C</span><img src="https://meatlover6447.github.io/selenite/celeste/icon.png" alt="Celeste" loading="lazy" decoding="async"></div>
+        <div class="game-title">Celeste</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/cell-machine/">
+        <div class="game-icon"><span class="fallback">C</span><img src="https://meatlover6447.github.io/selenite/cell-machine/img/icon.png" alt="Cell Machine" loading="lazy" decoding="async"></div>
+        <div class="game-title">Cell Machine</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/championisland/">
+        <div class="game-icon"><span class="fallback">C</span><img src="https://meatlover6447.github.io/selenite/championisland/icon.png" alt="Champion Island" loading="lazy" decoding="async"></div>
+        <div class="game-title">Champion Island</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/chess/">
+        <div class="game-icon"><span class="fallback">C</span><img src="https://meatlover6447.github.io/selenite/chess/icon.png" alt="Chess" loading="lazy" decoding="async"></div>
+        <div class="game-title">Chess</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/chibiknight/">
+        <div class="game-icon"><span class="fallback">C</span><img src="https://meatlover6447.github.io/selenite/chibiknight/icon.png" alt="Chibi Knight" loading="lazy" decoding="async"></div>
+        <div class="game-title">Chibi Knight</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/circloo/">
+        <div class="game-icon"><span class="fallback">C</span><img src="https://meatlover6447.github.io/selenite/circloo/icon.png" alt="CircloO" loading="lazy" decoding="async"></div>
+        <div class="game-title">CircloO</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/clickerheroes/">
+        <div class="game-icon"><span class="fallback">C</span><img src="https://meatlover6447.github.io/selenite/clickerheroes/clicker-heroes.png" alt="Clicker Heroes" loading="lazy" decoding="async"></div>
+        <div class="game-title">Clicker Heroes</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/cluster-rush/">
+        <div class="game-icon"><span class="fallback">C</span><img src="https://meatlover6447.github.io/selenite/cluster-rush/icon.jpg" alt="Cluster Rush" loading="lazy" decoding="async"></div>
+        <div class="game-title">Cluster Rush</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/cmm-client/">
+        <div class="game-icon"><span class="fallback">C</span><img src="https://meatlover6447.github.io/selenite/cmm-client/cover.svg" alt="CMM Client" loading="lazy" decoding="async"></div>
+        <div class="game-title">CMM Client</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/colorswitch/">
+        <div class="game-icon"><span class="fallback">C</span><img src="https://meatlover6447.github.io/selenite/colorswitch/colorswitch.png" alt="Color Switch" loading="lazy" decoding="async"></div>
+        <div class="game-title">Color Switch</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/commodoreclicker/">
+        <div class="game-icon"><span class="fallback">C</span><img src="https://meatlover6447.github.io/selenite/commodoreclicker/test.jpg" alt="Commodore 64 Clicker" loading="lazy" decoding="async"></div>
+        <div class="game-title">Commodore 64 Clicker</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/cookieclicker/">
+        <div class="game-icon"><span class="fallback">C</span><img src="https://meatlover6447.github.io/selenite/cookieclicker/img/perfectCookie.png" alt="Cookie Clicker" loading="lazy" decoding="async"></div>
+        <div class="game-title">Cookie Clicker</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/crossyroad/">
+        <div class="game-icon"><span class="fallback">C</span><img src="https://meatlover6447.github.io/selenite/crossyroad/chicken.png" alt="Crossy Road" loading="lazy" decoding="async"></div>
+        <div class="game-title">Crossy Road</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/csgoclicker/">
+        <div class="game-icon"><span class="fallback">C</span><img src="https://meatlover6447.github.io/selenite/csgoclicker/images/case1.png" alt="CSGO Case Clicker" loading="lazy" decoding="async"></div>
+        <div class="game-title">CSGO Case Clicker</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/cubefield/">
+        <div class="game-icon"><span class="fallback">C</span><img src="https://meatlover6447.github.io/selenite/cubefield/assets/unnamed.png" alt="Cubefield" loading="lazy" decoding="async"></div>
+        <div class="game-title">Cubefield</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/cuttherope/">
+        <div class="game-icon"><span class="fallback">C</span><img src="https://meatlover6447.github.io/selenite/cuttherope/icon.png" alt="Cut The Rope" loading="lazy" decoding="async"></div>
+        <div class="game-title">Cut The Rope</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/cuttherope-holiday/">
+        <div class="game-icon"><span class="fallback">C</span><img src="https://meatlover6447.github.io/selenite/cuttherope-holiday/Holiday_Gift.webp" alt="Cut The Rope Holday" loading="lazy" decoding="async"></div>
+        <div class="game-title">Cut The Rope Holday</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/dadish/">
+        <div class="game-icon"><span class="fallback">D</span><img src="https://meatlover6447.github.io/selenite/dadish/favicon.png" alt="Dadish" loading="lazy" decoding="async"></div>
+        <div class="game-title">Dadish</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/dadish2/">
+        <div class="game-icon"><span class="fallback">D</span><img src="https://meatlover6447.github.io/selenite/dadish2/favicon.png" alt="Dadish 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Dadish 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/dadish3/">
+        <div class="game-icon"><span class="fallback">D</span><img src="https://meatlover6447.github.io/selenite/dadish3/splash.png" alt="Dadish 3" loading="lazy" decoding="async"></div>
+        <div class="game-title">Dadish 3</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/dante/">
+        <div class="game-icon"><span class="fallback">D</span><img src="https://meatlover6447.github.io/selenite/dante/icon.png" alt="Dante" loading="lazy" decoding="async"></div>
+        <div class="game-title">Dante</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/deal/">
+        <div class="game-icon"><span class="fallback">D</span><img src="https://meatlover6447.github.io/selenite/deal/cover.svg" alt="Deal or No Deal" loading="lazy" decoding="async"></div>
+        <div class="game-title">Deal or No Deal</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/death-run-3d/">
+        <div class="game-icon"><span class="fallback">D</span><img src="https://meatlover6447.github.io/selenite/death-run-3d/img/death.png" alt="Death Run 3D" loading="lazy" decoding="async"></div>
+        <div class="game-title">Death Run 3D</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/dino/">
+        <div class="game-icon"><span class="fallback">D</span><img src="https://meatlover6447.github.io/selenite/dino/icon.png" alt="Dino" loading="lazy" decoding="async"></div>
+        <div class="game-title">Dino</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/dogeminer/">
+        <div class="game-icon"><span class="fallback">D</span><img src="https://meatlover6447.github.io/selenite/dogeminer/img/dogeminer_300x300.png" alt="Doge Miner" loading="lazy" decoding="async"></div>
+        <div class="game-title">Doge Miner</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/doodlejump/">
+        <div class="game-icon"><span class="fallback">D</span><img src="https://meatlover6447.github.io/selenite/doodlejump/icon.png" alt="Doodle Jump" loading="lazy" decoding="async"></div>
+        <div class="game-title">Doodle Jump</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/doom/">
+        <div class="game-icon"><span class="fallback">D</span><img src="https://meatlover6447.github.io/selenite/doom/cover.svg" alt="DOOM" loading="lazy" decoding="async"></div>
+        <div class="game-title">DOOM</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/dragonballdevolution/">
+        <div class="game-icon"><span class="fallback">D</span><img src="https://meatlover6447.github.io/selenite/dragonballdevolution/images.jpeg" alt="Dragon Ball Devolution" loading="lazy" decoding="async"></div>
+        <div class="game-title">Dragon Ball Devolution</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/drag/">
+        <div class="game-icon"><span class="fallback">D</span><img src="https://meatlover6447.github.io/selenite/drag/cover.svg" alt="Dragon Client" loading="lazy" decoding="async"></div>
+        <div class="game-title">Dragon Client</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/drift-boss/">
+        <div class="game-icon"><span class="fallback">D</span><img src="https://meatlover6447.github.io/selenite/drift-boss/icon.png" alt="Drift Boss" loading="lazy" decoding="async"></div>
+        <div class="game-title">Drift Boss</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/drifthunters/">
+        <div class="game-icon"><span class="fallback">D</span><img src="https://meatlover6447.github.io/selenite/drifthunters/icon.png" alt="Drift Hunters" loading="lazy" decoding="async"></div>
+        <div class="game-title">Drift Hunters</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/drivemad/">
+        <div class="game-icon"><span class="fallback">D</span><img src="https://meatlover6447.github.io/selenite/drivemad/icons/icon-128.png" alt="Drive Mad" loading="lazy" decoding="async"></div>
+        <div class="game-title">Drive Mad</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/ducklife1/">
+        <div class="game-icon"><span class="fallback">D</span><img src="https://meatlover6447.github.io/selenite/ducklife1/ducklife1.png" alt="Duck Life 1" loading="lazy" decoding="async"></div>
+        <div class="game-title">Duck Life 1</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/ducklife2/">
+        <div class="game-icon"><span class="fallback">D</span><img src="https://meatlover6447.github.io/selenite/ducklife2/ducklife2.png" alt="Duck Life 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Duck Life 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/ducklife3/">
+        <div class="game-icon"><span class="fallback">D</span><img src="https://meatlover6447.github.io/selenite/ducklife3/ducklife3.png" alt="Duck Life 3" loading="lazy" decoding="async"></div>
+        <div class="game-title">Duck Life 3</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/ducklife4/">
+        <div class="game-icon"><span class="fallback">D</span><img src="https://meatlover6447.github.io/selenite/ducklife4/icon.png" alt="Duck Life 4" loading="lazy" decoding="async"></div>
+        <div class="game-title">Duck Life 4</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/ducklife5/">
+        <div class="game-icon"><span class="fallback">D</span><img src="https://meatlover6447.github.io/selenite/ducklife5/ducklife5.png" alt="Duck Life 5" loading="lazy" decoding="async"></div>
+        <div class="game-title">Duck Life 5</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/ducklife6/">
+        <div class="game-icon"><span class="fallback">D</span><img src="https://meatlover6447.github.io/selenite/ducklife6/ducklife5.png" alt="Duck Life 6" loading="lazy" decoding="async"></div>
+        <div class="game-title">Duck Life 6</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/offline-mc/">
+        <div class="game-icon"><span class="fallback">E</span><img src="https://meatlover6447.github.io/selenite/offline-mc/logo.png" alt="Eaglercraft 1.5.2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Eaglercraft 1.5.2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/emulatorjs/">
+        <div class="game-icon"><span class="fallback">E</span><img src="https://meatlover6447.github.io/selenite/emulatorjs/logo.png" alt="emulatorJS" loading="lazy" decoding="async"></div>
+        <div class="game-title">emulatorJS</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/factoryballs/">
+        <div class="game-icon"><span class="fallback">F</span><img src="https://meatlover6447.github.io/selenite/factoryballs/fac.png" alt="Factory Balls" loading="lazy" decoding="async"></div>
+        <div class="game-title">Factory Balls</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/factoryballsforever/">
+        <div class="game-icon"><span class="fallback">F</span><img src="https://meatlover6447.github.io/selenite/factoryballsforever/fac.png" alt="Factory Balls Forever" loading="lazy" decoding="async"></div>
+        <div class="game-title">Factory Balls Forever</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/fancypantsadventures/">
+        <div class="game-icon"><span class="fallback">F</span><img src="https://meatlover6447.github.io/selenite/fancypantsadventures/fpa.webp" alt="Fancy Pants Adventures" loading="lazy" decoding="async"></div>
+        <div class="game-title">Fancy Pants Adventures</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/fancypantsadventures2/">
+        <div class="game-icon"><span class="fallback">F</span><img src="https://meatlover6447.github.io/selenite/fancypantsadventures2/fpa2.avif" alt="Fancy Pants Adventures 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Fancy Pants Adventures 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/fireboywatergirl/">
+        <div class="game-icon"><span class="fallback">F</span><img src="https://meatlover6447.github.io/selenite/fireboywatergirl/icon.png" alt="Fireboy &amp; Watergirl 1" loading="lazy" decoding="async"></div>
+        <div class="game-title">Fireboy &amp; Watergirl 1</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/fireboywatergirl2/">
+        <div class="game-icon"><span class="fallback">F</span><img src="https://meatlover6447.github.io/selenite/fireboywatergirl2/Untitled.jpeg" alt="Fireboy &amp; Watergirl 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Fireboy &amp; Watergirl 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/fireboywatergirl3/">
+        <div class="game-icon"><span class="fallback">F</span><img src="https://meatlover6447.github.io/selenite/fireboywatergirl3/icon.png" alt="Fireboy &amp; Watergirl 3" loading="lazy" decoding="async"></div>
+        <div class="game-title">Fireboy &amp; Watergirl 3</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/fireboywatergirl4/">
+        <div class="game-icon"><span class="fallback">F</span><img src="https://meatlover6447.github.io/selenite/fireboywatergirl4/300.jpg" alt="Fireboy &amp; Watergirl 4" loading="lazy" decoding="async"></div>
+        <div class="game-title">Fireboy &amp; Watergirl 4</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/fnaf/">
+        <div class="game-icon"><span class="fallback">F</span><img src="https://meatlover6447.github.io/selenite/fnaf/splash.jpg" alt="Five Nights at Freddy's" loading="lazy" decoding="async"></div>
+        <div class="game-title">Five Nights at Freddy's</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/fnaf2/">
+        <div class="game-icon"><span class="fallback">F</span><img src="https://meatlover6447.github.io/selenite/fnaf2/project/splash.webp" alt="Five Nights at Freddy's 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Five Nights at Freddy's 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/fnaf3/">
+        <div class="game-icon"><span class="fallback">F</span><img src="https://meatlover6447.github.io/selenite/fnaf3/project/splash.webp" alt="Five Nights at Freddy's 3" loading="lazy" decoding="async"></div>
+        <div class="game-title">Five Nights at Freddy's 3</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/fnaf4/">
+        <div class="game-icon"><span class="fallback">F</span><img src="https://meatlover6447.github.io/selenite/fnaf4/project/splash.webp" alt="Five Nights at Freddy's 4" loading="lazy" decoding="async"></div>
+        <div class="game-title">Five Nights at Freddy's 4</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/flappybird/">
+        <div class="game-icon"><span class="fallback">F</span><img src="https://meatlover6447.github.io/selenite/flappybird/icon.png" alt="Flappy Bird" loading="lazy" decoding="async"></div>
+        <div class="game-title">Flappy Bird</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/flappyplane/">
+        <div class="game-icon"><span class="fallback">F</span><img src="https://meatlover6447.github.io/selenite/flappyplane/favicon.ico" alt="Flappy Plane" loading="lazy" decoding="async"></div>
+        <div class="game-title">Flappy Plane</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/flippyfish/">
+        <div class="game-icon"><span class="fallback">F</span><img src="https://meatlover6447.github.io/selenite/flippyfish/icon.png" alt="Flippy Fish" loading="lazy" decoding="async"></div>
+        <div class="game-title">Flippy Fish</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/fridaynightfunkin/">
+        <div class="game-icon"><span class="fallback">F</span><img src="https://meatlover6447.github.io/selenite/fridaynightfunkin/fnf-icon.jpg" alt="Friday Night Funkin" loading="lazy" decoding="async"></div>
+        <div class="game-title">Friday Night Funkin</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/fruitninja/">
+        <div class="game-icon"><span class="fallback">F</span><img src="https://meatlover6447.github.io/selenite/fruitninja/FruitNinjaTeaser.jpg" alt="Fruit Ninja" loading="lazy" decoding="async"></div>
+        <div class="game-title">Fruit Ninja</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/funnyballgame/">
+        <div class="game-icon"><span class="fallback">F</span><img src="https://meatlover6447.github.io/selenite/funnyballgame/ball.jpg" alt="Funny Ball Game" loading="lazy" decoding="async"></div>
+        <div class="game-title">Funny Ball Game</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/funnymadracing/">
+        <div class="game-icon"><span class="fallback">F</span><img src="https://meatlover6447.github.io/selenite/funnymadracing/logo.webp" alt="Funny Mad Racing" loading="lazy" decoding="async"></div>
+        <div class="game-title">Funny Mad Racing</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/funnyshooter/">
+        <div class="game-icon"><span class="fallback">F</span><img src="https://meatlover6447.github.io/selenite/funnyshooter/icon.jpeg" alt="Funny Shooter" loading="lazy" decoding="async"></div>
+        <div class="game-title">Funny Shooter</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/funnyshooter2/">
+        <div class="game-icon"><span class="fallback">F</span><img src="https://meatlover6447.github.io/selenite/funnyshooter2/894abba63a6b23fed823f404831f444f.jpeg" alt="Funny Shooter 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Funny Shooter 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/gamemaker/">
+        <div class="game-icon"><span class="fallback">G</span><img src="https://meatlover6447.github.io/selenite/gamemaker/images.jpeg" alt="Game Maker Doodle" loading="lazy" decoding="async"></div>
+        <div class="game-title">Game Maker Doodle</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/gba/">
+        <div class="game-icon"><span class="fallback">G</span><img src="https://meatlover6447.github.io/selenite/gba/icon.png" alt="GBA Emulator" loading="lazy" decoding="async"></div>
+        <div class="game-title">GBA Emulator</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/geometrydash/">
+        <div class="game-icon"><span class="fallback">G</span><img src="https://meatlover6447.github.io/selenite/geometrydash/icon.png" alt="Geometry Dash" loading="lazy" decoding="async"></div>
+        <div class="game-title">Geometry Dash</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/gdlite/">
+        <div class="game-icon"><span class="fallback">G</span></div>
+        <div class="game-title">Geometry Dash Lite</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/geometryrash/">
+        <div class="game-icon"><span class="fallback">G</span><img src="https://meatlover6447.github.io/selenite/geometryrash/icon-114.png" alt="Geometry Rash" loading="lazy" decoding="async"></div>
+        <div class="game-title">Geometry Rash</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/getawayshooter/">
+        <div class="game-icon"><span class="fallback">G</span><img src="https://meatlover6447.github.io/selenite/getawayshooter/Untitled.jpeg" alt="Getaway Shooter" loading="lazy" decoding="async"></div>
+        <div class="game-title">Getaway Shooter</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/golddiggerfrvr/">
+        <div class="game-icon"><span class="fallback">G</span><img src="https://meatlover6447.github.io/selenite/golddiggerfrvr/images.jpeg" alt="Gold Digger FRVR" loading="lazy" decoding="async"></div>
+        <div class="game-title">Gold Digger FRVR</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/guiltygear/">
+        <div class="game-icon"><span class="fallback">G</span><img src="https://meatlover6447.github.io/selenite/guiltygear/ggx.jpg" alt="Guilty Gear" loading="lazy" decoding="async"></div>
+        <div class="game-title">Guilty Gear</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/gunmayhem/">
+        <div class="game-icon"><span class="fallback">G</span><img src="https://meatlover6447.github.io/selenite/gunmayhem/icon.png" alt="Gun Mayhem" loading="lazy" decoding="async"></div>
+        <div class="game-title">Gun Mayhem</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/gunmayhem2/">
+        <div class="game-icon"><span class="fallback">G</span><img src="https://meatlover6447.github.io/selenite/gunmayhem2/icon.png" alt="Gun Mayhem 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Gun Mayhem 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/gunmayhemredux/">
+        <div class="game-icon"><span class="fallback">G</span><img src="https://meatlover6447.github.io/selenite/gunmayhemredux/icon.png" alt="Gun Mayhem Redux" loading="lazy" decoding="async"></div>
+        <div class="game-title">Gun Mayhem Redux</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/halloween2016/">
+        <div class="game-icon"><span class="fallback">H</span><img src="https://meatlover6447.github.io/selenite/halloween2016/logo.png" alt="Halloween 2016" loading="lazy" decoding="async"></div>
+        <div class="game-title">Halloween 2016</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/happywheels/">
+        <div class="game-icon"><span class="fallback">H</span><img src="https://meatlover6447.github.io/selenite/happywheels/Untitled.jpeg" alt="Happy Wheels" loading="lazy" decoding="async"></div>
+        <div class="game-title">Happy Wheels</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/helixjump/">
+        <div class="game-icon"><span class="fallback">H</span><img src="https://meatlover6447.github.io/selenite/helixjump/gameIcon.png" alt="Helix Jump" loading="lazy" decoding="async"></div>
+        <div class="game-title">Helix Jump</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/breakingthebank/">
+        <div class="game-icon"><span class="fallback">H</span><img src="https://meatlover6447.github.io/selenite/breakingthebank/balling.avif" alt="Henry Stickmin - Breaking the Bank" loading="lazy" decoding="async"></div>
+        <div class="game-title">Henry Stickmin - Breaking the Bank</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/escapingtheprison/">
+        <div class="game-icon"><span class="fallback">H</span><img src="https://meatlover6447.github.io/selenite/escapingtheprison/pwison.avif" alt="Henry Stickmin - Escaping the Prison" loading="lazy" decoding="async"></div>
+        <div class="game-title">Henry Stickmin - Escaping the Prison</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/fleeingthecomplex/">
+        <div class="game-icon"><span class="fallback">H</span><img src="https://meatlover6447.github.io/selenite/fleeingthecomplex/flee.jpg" alt="Henry Stickmin - Fleeing the Complex" loading="lazy" decoding="async"></div>
+        <div class="game-title">Henry Stickmin - Fleeing the Complex</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/infiltratingtheairship/">
+        <div class="game-icon"><span class="fallback">H</span><img src="https://meatlover6447.github.io/selenite/infiltratingtheairship/air.avif" alt="Henry Stickmin - Infiltrating the Airship" loading="lazy" decoding="async"></div>
+        <div class="game-title">Henry Stickmin - Infiltrating the Airship</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/stealingthediamond/">
+        <div class="game-icon"><span class="fallback">H</span><img src="https://meatlover6447.github.io/selenite/stealingthediamond/diamante.avif" alt="Henry Stickmin - Stealing the Diamond" loading="lazy" decoding="async"></div>
+        <div class="game-title">Henry Stickmin - Stealing the Diamond</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/hexgl/">
+        <div class="game-icon"><span class="fallback">H</span><img src="https://meatlover6447.github.io/selenite/hexgl/icon_128.png" alt="HexGL" loading="lazy" decoding="async"></div>
+        <div class="game-title">HexGL</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/hextris/">
+        <div class="game-icon"><span class="fallback">H</span><img src="https://meatlover6447.github.io/selenite/hextris/images/icons/apple-touch-152.png" alt="Hextris" loading="lazy" decoding="async"></div>
+        <div class="game-title">Hextris</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/hillclimbracing2/">
+        <div class="game-icon"><span class="fallback">H</span><img src="https://meatlover6447.github.io/selenite/hillclimbracing2/cover.svg" alt="Hill Climb Racing 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Hill Climb Racing 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/holeio/">
+        <div class="game-icon"><span class="fallback">H</span><img src="https://meatlover6447.github.io/selenite/holeio/feature800x470.png" alt="hole.io" loading="lazy" decoding="async"></div>
+        <div class="game-title">hole.io</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/iwbtc/">
+        <div class="game-icon"><span class="fallback">I</span><img src="https://meatlover6447.github.io/selenite/iwbtc/icon.png" alt="I Wanna Be Thy Copy" loading="lazy" decoding="async"></div>
+        <div class="game-title">I Wanna Be Thy Copy</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/idlebreakout/">
+        <div class="game-icon"><span class="fallback">I</span><img src="https://meatlover6447.github.io/selenite/idlebreakout/image.png" alt="Idle Breakout" loading="lazy" decoding="async"></div>
+        <div class="game-title">Idle Breakout</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/jetpackjoyride/">
+        <div class="game-icon"><span class="fallback">J</span><img src="https://meatlover6447.github.io/selenite/jetpackjoyride/logo.jpeg" alt="Jetpack Joyride" loading="lazy" decoding="async"></div>
+        <div class="game-title">Jetpack Joyride</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/justfalllol/">
+        <div class="game-icon"><span class="fallback">J</span><img src="https://meatlover6447.github.io/selenite/justfalllol/unnamed.png" alt="justfall.lol" loading="lazy" decoding="async"></div>
+        <div class="game-title">justfall.lol</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/knifehit/">
+        <div class="game-icon"><span class="fallback">K</span><img src="https://meatlover6447.github.io/selenite/knifehit/icon.png" alt="Knife Hit" loading="lazy" decoding="async"></div>
+        <div class="game-title">Knife Hit</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/lasthorizon/">
+        <div class="game-icon"><span class="fallback">L</span><img src="https://meatlover6447.github.io/selenite/lasthorizon/wogo%20owo.jpg" alt="Last Horizon" loading="lazy" decoding="async"></div>
+        <div class="game-title">Last Horizon</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/lazyjump3d/">
+        <div class="game-icon"><span class="fallback">L</span><img src="https://meatlover6447.github.io/selenite/lazyjump3d/icon.png" alt="Lazy Jump 3D" loading="lazy" decoding="async"></div>
+        <div class="game-title">Lazy Jump 3D</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/learntofly/">
+        <div class="game-icon"><span class="fallback">L</span><img src="https://meatlover6447.github.io/selenite/learntofly/icon.png" alt="Learn to Fly" loading="lazy" decoding="async"></div>
+        <div class="game-title">Learn to Fly</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/learntofly2/">
+        <div class="game-icon"><span class="fallback">L</span><img src="https://meatlover6447.github.io/selenite/learntofly2/logo.jpg" alt="Learn to Fly 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Learn to Fly 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/learntoflyidle/">
+        <div class="game-icon"><span class="fallback">L</span><img src="https://meatlover6447.github.io/selenite/learntoflyidle/icon.jpg" alt="Learn to Fly Idle" loading="lazy" decoding="async"></div>
+        <div class="game-title">Learn to Fly Idle</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/ocarinaoftime/">
+        <div class="game-icon"><span class="fallback">L</span><img src="https://meatlover6447.github.io/selenite/ocarinaoftime/oc.jpg" alt="Legend of Zelda - Ocarina of Time" loading="lazy" decoding="async"></div>
+        <div class="game-title">Legend of Zelda - Ocarina of Time</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/linerider/">
+        <div class="game-icon"><span class="fallback">L</span><img src="https://meatlover6447.github.io/selenite/linerider/boosh.png" alt="Line Rider" loading="lazy" decoding="async"></div>
+        <div class="game-title">Line Rider</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/littlealchemy/">
+        <div class="game-icon"><span class="fallback">L</span><img src="https://meatlover6447.github.io/selenite/littlealchemy/images/192-alpha.png" alt="Little Alchemy" loading="lazy" decoding="async"></div>
+        <div class="game-title">Little Alchemy</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/lowsadventures2/">
+        <div class="game-icon"><span class="fallback">L</span><img src="https://meatlover6447.github.io/selenite/lowsadventures2/icon.png" alt="Lows Adventures 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Lows Adventures 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/madalincars/">
+        <div class="game-icon"><span class="fallback">M</span><img src="https://meatlover6447.github.io/selenite/madalincars/icon.png" alt="Madalin Cars" loading="lazy" decoding="async"></div>
+        <div class="game-title">Madalin Cars</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/mario/">
+        <div class="game-icon"><span class="fallback">M</span><img src="https://meatlover6447.github.io/selenite/mario/icon.png" alt="Mario" loading="lazy" decoding="async"></div>
+        <div class="game-title">Mario</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/metroidzeromission/">
+        <div class="game-icon"><span class="fallback">M</span><img src="https://meatlover6447.github.io/selenite/metroidzeromission/zero.jpeg" alt="Metroid: Zero Mission" loading="lazy" decoding="async"></div>
+        <div class="game-title">Metroid: Zero Mission</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/mcclassic/">
+        <div class="game-icon"><span class="fallback">M</span><img src="https://meatlover6447.github.io/selenite/mcclassic/assets/textures/previews/2.png" alt="Minecraft Classic" loading="lazy" decoding="async"></div>
+        <div class="game-title">Minecraft Classic</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/inf/">
+        <div class="game-icon"><span class="fallback">M</span><img src="https://meatlover6447.github.io/selenite/inf/cover.svg" alt="Minecraft Infdev" loading="lazy" decoding="async"></div>
+        <div class="game-title">Minecraft Infdev</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/minecraft-tower-defence-2/">
+        <div class="game-icon"><span class="fallback">M</span><img src="https://meatlover6447.github.io/selenite/minecraft-tower-defence-2/cover.svg" alt="Minecraft Tower Defence 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Minecraft Tower Defence 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/minesweeper/">
+        <div class="game-icon"><span class="fallback">M</span><img src="https://meatlover6447.github.io/selenite/minesweeper/cover.svg" alt="Minesweeper" loading="lazy" decoding="async"></div>
+        <div class="game-title">Minesweeper</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/monkeymart/">
+        <div class="game-icon"><span class="fallback">M</span><img src="https://meatlover6447.github.io/selenite/monkeymart/unnamed.png" alt="Monkey Mart" loading="lazy" decoding="async"></div>
+        <div class="game-title">Monkey Mart</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/monstertracks/">
+        <div class="game-icon"><span class="fallback">M</span><img src="https://meatlover6447.github.io/selenite/monstertracks/webapp/cover.jpg" alt="Monster Tracks" loading="lazy" decoding="async"></div>
+        <div class="game-title">Monster Tracks</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/motox3m/">
+        <div class="game-icon"><span class="fallback">M</span><img src="https://meatlover6447.github.io/selenite/motox3m/splash.jpg" alt="Moto X3M" loading="lazy" decoding="async"></div>
+        <div class="game-title">Moto X3M</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/motox3m-pool/">
+        <div class="game-icon"><span class="fallback">M</span><img src="https://meatlover6447.github.io/selenite/motox3m-pool/splash.jpg" alt="Moto X3M Pool Party" loading="lazy" decoding="async"></div>
+        <div class="game-title">Moto X3M Pool Party</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/motox3m-spooky/">
+        <div class="game-icon"><span class="fallback">M</span><img src="https://meatlover6447.github.io/selenite/motox3m-spooky/icon.png" alt="Moto X3M Spooky" loading="lazy" decoding="async"></div>
+        <div class="game-title">Moto X3M Spooky</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/motox3m-winter/">
+        <div class="game-icon"><span class="fallback">M</span><img src="https://meatlover6447.github.io/selenite/motox3m-winter/download.jpeg" alt="Moto X3M Winter" loading="lazy" decoding="async"></div>
+        <div class="game-title">Moto X3M Winter</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/ngon/">
+        <div class="game-icon"><span class="fallback">N</span><img src="https://meatlover6447.github.io/selenite/ngon/favicon.ico" alt="n-gon" loading="lazy" decoding="async"></div>
+        <div class="game-title">n-gon</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/nutsim/">
+        <div class="game-icon"><span class="fallback">N</span><img src="https://meatlover6447.github.io/selenite/nutsim/images/icon.png" alt="Nut Simulator" loading="lazy" decoding="async"></div>
+        <div class="game-title">Nut Simulator</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/offlineparadise/">
+        <div class="game-icon"><span class="fallback">O</span><img src="https://meatlover6447.github.io/selenite/offlineparadise/icon.png" alt="Offline Paradise" loading="lazy" decoding="async"></div>
+        <div class="game-title">Offline Paradise</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/osu/">
+        <div class="game-icon"><span class="fallback">O</span><img src="https://meatlover6447.github.io/selenite/osu/icon.png" alt="osu!" loading="lazy" decoding="async"></div>
+        <div class="game-title">osu!</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/osumania/">
+        <div class="game-icon"><span class="fallback">O</span><img src="https://meatlover6447.github.io/selenite/osumania/mania.jpg" alt="osu!mania" loading="lazy" decoding="async"></div>
+        <div class="game-title">osu!mania</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/ovo/">
+        <div class="game-icon"><span class="fallback">O</span><img src="https://meatlover6447.github.io/selenite/ovo/ovo3.png" alt="ovo" loading="lazy" decoding="async"></div>
+        <div class="game-title">ovo</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/pacman/">
+        <div class="game-icon"><span class="fallback">P</span><img src="https://meatlover6447.github.io/selenite/pacman/icon.png" alt="Pacman" loading="lazy" decoding="async"></div>
+        <div class="game-title">Pacman</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/pandemic/">
+        <div class="game-icon"><span class="fallback">P</span><img src="https://meatlover6447.github.io/selenite/pandemic/sddefault.jpg" alt="Pandemic" loading="lazy" decoding="async"></div>
+        <div class="game-title">Pandemic</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/pandemic2/">
+        <div class="game-icon"><span class="fallback">P</span><img src="https://meatlover6447.github.io/selenite/pandemic2/pan2.webp" alt="Pandemic 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Pandemic 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/papasburgeria/">
+        <div class="game-icon"><span class="fallback">P</span><img src="https://meatlover6447.github.io/selenite/papasburgeria/images.jpeg" alt="Papas Burgeria" loading="lazy" decoding="async"></div>
+        <div class="game-title">Papas Burgeria</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/papasfreezeria/">
+        <div class="game-icon"><span class="fallback">P</span><img src="https://meatlover6447.github.io/selenite/papasfreezeria/images.jpeg" alt="Papas Freezeria" loading="lazy" decoding="async"></div>
+        <div class="game-title">Papas Freezeria</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/papaspizzeria/">
+        <div class="game-icon"><span class="fallback">P</span><img src="https://meatlover6447.github.io/selenite/papaspizzeria/images.jpeg" alt="Papas Pizzeria" loading="lazy" decoding="async"></div>
+        <div class="game-title">Papas Pizzeria</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/paperio/">
+        <div class="game-icon"><span class="fallback">P</span><img src="https://meatlover6447.github.io/selenite/paperio/icon.png" alt="paper.io" loading="lazy" decoding="async"></div>
+        <div class="game-title">paper.io</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/pizzatower/">
+        <div class="game-icon"><span class="fallback">P</span><img src="https://meatlover6447.github.io/selenite/pizzatower/images/menubg.png" alt="Pizza Tower" loading="lazy" decoding="async"></div>
+        <div class="game-title">Pizza Tower</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/pokemon/">
+        <div class="game-icon"><span class="fallback">P</span><img src="https://meatlover6447.github.io/selenite/pokemon/logo.jpg" alt="Pokemon" loading="lazy" decoding="async"></div>
+        <div class="game-title">Pokemon</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/pong/">
+        <div class="game-icon"><span class="fallback">P</span><img src="https://meatlover6447.github.io/selenite/pong/cover.svg" alt="Pong" loading="lazy" decoding="async"></div>
+        <div class="game-title">Pong</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/pool/">
+        <div class="game-icon"><span class="fallback">P</span><img src="https://meatlover6447.github.io/selenite/pool/cover.svg" alt="Pool" loading="lazy" decoding="async"></div>
+        <div class="game-title">Pool</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/poom/">
+        <div class="game-icon"><span class="fallback">P</span><img src="https://meatlover6447.github.io/selenite/poom/cover.svg" alt="POOM" loading="lazy" decoding="async"></div>
+        <div class="game-title">POOM</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/pre/">
+        <div class="game-icon"><span class="fallback">P</span><img src="https://meatlover6447.github.io/selenite/pre/cover.svg" alt="Precision Client" loading="lazy" decoding="async"></div>
+        <div class="game-title">Precision Client</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/redball3/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/redball3/redball3.png" alt="Red Ball 3" loading="lazy" decoding="async"></div>
+        <div class="game-title">Red Ball 3</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/redball4/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/redball4/redball4.webp" alt="Red Ball 4" loading="lazy" decoding="async"></div>
+        <div class="game-title">Red Ball 4</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/redball4vol2/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/redball4vol2/redball4vol2.webp" alt="Red Ball 4 Vol 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Red Ball 4 Vol 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/redball4vol3/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/redball4vol3/redball4vol3.webp" alt="Red Ball 4 Vol 3" loading="lazy" decoding="async"></div>
+        <div class="game-title">Red Ball 4 Vol 3</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/online-mc/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/online-mc/logo.png" alt="Resent Client" loading="lazy" decoding="async"></div>
+        <div class="game-title">Resent Client</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/retrobowl/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/retrobowl/img/icon.jpg" alt="Retro Bowl" loading="lazy" decoding="async"></div>
+        <div class="game-title">Retro Bowl</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/retrobowlcollege/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/retrobowlcollege/unnamed.png" alt="Retro Bowl College" loading="lazy" decoding="async"></div>
+        <div class="game-title">Retro Bowl College</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/riddleschool/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/riddleschool/RiddleSchool2.png" alt="Riddle School" loading="lazy" decoding="async"></div>
+        <div class="game-title">Riddle School</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/riddleschool2/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/riddleschool2/icon.png" alt="Riddle School 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Riddle School 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/riddleschool3/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/riddleschool3/riddle-school-3.webp" alt="Riddle School 3" loading="lazy" decoding="async"></div>
+        <div class="game-title">Riddle School 3</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/riddleschool4/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/riddleschool4/Untitled.jpeg" alt="Riddle School 4" loading="lazy" decoding="async"></div>
+        <div class="game-title">Riddle School 4</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/riddleschool5/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/riddleschool5/Untitled.jpeg" alt="Riddle School 5" loading="lazy" decoding="async"></div>
+        <div class="game-title">Riddle School 5</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/riddleschooltransfer/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/riddleschooltransfer/Untitled.jpeg" alt="Riddle Transfer" loading="lazy" decoding="async"></div>
+        <div class="game-title">Riddle Transfer</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/riddleschooltransfer2/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/riddleschooltransfer2/aUntitled.jpeg" alt="Riddle Transfer 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Riddle Transfer 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/risehigher/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/risehigher/media/graphics/promo/Icons/128x128.png" alt="Rise Higher" loading="lazy" decoding="async"></div>
+        <div class="game-title">Rise Higher</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/rocketleague/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/rocketleague/splash.webp" alt="Rocket League" loading="lazy" decoding="async"></div>
+        <div class="game-title">Rocket League</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/rooftopsnipers/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/rooftopsnipers/logo.png" alt="Rooftop Snipers" loading="lazy" decoding="async"></div>
+        <div class="game-title">Rooftop Snipers</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/rooftopsnipers2/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/rooftopsnipers2/icon.png" alt="Rooftop Snipers 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Rooftop Snipers 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/ruffle/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/ruffle/favicon-180.png" alt="Ruffle" loading="lazy" decoding="async"></div>
+        <div class="game-title">Ruffle</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/run/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/run/icon.jpeg" alt="Run" loading="lazy" decoding="async"></div>
+        <div class="game-title">Run</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/run2/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/run2/icon.jpg" alt="Run 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Run 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/run3/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/run3/icon.jpeg" alt="Run 3" loading="lazy" decoding="async"></div>
+        <div class="game-title">Run 3</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/russiancardriver/">
+        <div class="game-icon"><span class="fallback">R</span><img src="https://meatlover6447.github.io/selenite/russiancardriver/russian-car-driver.webp" alt="Russian Car Driver" loading="lazy" decoding="async"></div>
+        <div class="game-title">Russian Car Driver</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/sand/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/sand/icon.png" alt="Sand Game" loading="lazy" decoding="async"></div>
+        <div class="game-title">Sand Game</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/sandtrix/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/sandtrix/assets/sprites/appicon.png" alt="Sandtrix" loading="lazy" decoding="async"></div>
+        <div class="game-title">Sandtrix</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/shadow/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/shadow/cover.svg" alt="Shadow Client" loading="lazy" decoding="async"></div>
+        <div class="game-title">Shadow Client</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/skibiditoilet/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/skibiditoilet/logo.png" alt="Skibidi 1 v 100" loading="lazy" decoding="async"></div>
+        <div class="game-title">Skibidi 1 v 100</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/skibiditoiletattack/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/skibiditoiletattack/logo.png" alt="Skibidi Toilet Attack" loading="lazy" decoding="async"></div>
+        <div class="game-title">Skibidi Toilet Attack</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/slope/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/slope/slope4.jpeg" alt="Slope" loading="lazy" decoding="async"></div>
+        <div class="game-title">Slope</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/slope2/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/slope2/slope-2-logo.png" alt="Slope 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Slope 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/slope3/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/slope3/cover.svg" alt="Slope 3" loading="lazy" decoding="async"></div>
+        <div class="game-title">Slope 3</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/slope-ball/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/slope-ball/icon.jpg" alt="Slope Ball" loading="lazy" decoding="async"></div>
+        <div class="game-title">Slope Ball</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/snake/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/snake/snake.png" alt="Snake" loading="lazy" decoding="async"></div>
+        <div class="game-title">Snake</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/snowrider3d/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/snowrider3d/snow.png" alt="Snow Rider 3D" loading="lazy" decoding="async"></div>
+        <div class="game-title">Snow Rider 3D</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/snow/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/snow/cover.svg" alt="Snowball Fighter" loading="lazy" decoding="async"></div>
+        <div class="game-title">Snowball Fighter</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/soccerrandom/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/soccerrandom/test.png" alt="Soccer Random" loading="lazy" decoding="async"></div>
+        <div class="game-title">Soccer Random</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/skills/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/skills/cover.svg" alt="Soccer Skills" loading="lazy" decoding="async"></div>
+        <div class="game-title">Soccer Skills</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/solitaire/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/solitaire/cover.svg" alt="Solitaire" loading="lazy" decoding="async"></div>
+        <div class="game-title">Solitaire</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/soundboard/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/soundboard/bleep.png" alt="Soundboard" loading="lazy" decoding="async"></div>
+        <div class="game-title">Soundboard</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/space/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/space/cover.svg" alt="Spacebar Clicker" loading="lazy" decoding="async"></div>
+        <div class="game-title">Spacebar Clicker</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/spankthemonkey/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/spankthemonkey/cover.svg" alt="Spank the Monkey" loading="lazy" decoding="async"></div>
+        <div class="game-title">Spank the Monkey</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/sprinter/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/sprinter/icon.jpeg" alt="Sprinter" loading="lazy" decoding="async"></div>
+        <div class="game-title">Sprinter</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/stack/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/stack/icon.png" alt="Stack" loading="lazy" decoding="async"></div>
+        <div class="game-title">Stack</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/stickmanboost/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/stickmanboost/base/img1.jpg" alt="Stickman Boost" loading="lazy" decoding="async"></div>
+        <div class="game-title">Stickman Boost</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/stickmanclimb/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/stickmanclimb/icon.avif" alt="Stickman Climb" loading="lazy" decoding="async"></div>
+        <div class="game-title">Stickman Climb</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/stickmangolf/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/stickmangolf/gold.png" alt="Stickman Golf" loading="lazy" decoding="async"></div>
+        <div class="game-title">Stickman Golf</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/stickman-hook/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/stickman-hook/icon.jpg" alt="Stickman Hook" loading="lazy" decoding="async"></div>
+        <div class="game-title">Stickman Hook</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/subway-surfers-ny/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/subway-surfers-ny/NewYorkIcon.png" alt="Subway Surfers" loading="lazy" decoding="async"></div>
+        <div class="game-title">Subway Surfers</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/supermario64/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/supermario64/icon.png" alt="Super Mario 64" loading="lazy" decoding="async"></div>
+        <div class="game-title">Super Mario 64</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/supermeatboy/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/supermeatboy/icon.png" alt="Super Meat Boy" loading="lazy" decoding="async"></div>
+        <div class="game-title">Super Meat Boy</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/supersmashbros/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/supersmashbros/logo.jpg" alt="Super Smash Bros" loading="lazy" decoding="async"></div>
+        <div class="game-title">Super Smash Bros</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/supersmashflash/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/supersmashflash/ssf.jpg" alt="Super Smash Flash" loading="lazy" decoding="async"></div>
+        <div class="game-title">Super Smash Flash</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/superhot/">
+        <div class="game-icon"><span class="fallback">S</span><img src="https://meatlover6447.github.io/selenite/superhot/icon.png" alt="Superhot" loading="lazy" decoding="async"></div>
+        <div class="game-title">Superhot</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/templerun2/">
+        <div class="game-icon"><span class="fallback">T</span><img src="https://meatlover6447.github.io/selenite/templerun2/img/icons/icon-128x128.png" alt="Temple Run 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Temple Run 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/tetris/">
+        <div class="game-icon"><span class="fallback">T</span><img src="https://meatlover6447.github.io/selenite/tetris/icon.png" alt="Tetris" loading="lazy" decoding="async"></div>
+        <div class="game-title">Tetris</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/thefinalearth2/">
+        <div class="game-icon"><span class="fallback">T</span><img src="https://meatlover6447.github.io/selenite/thefinalearth2/icons/favicon.png" alt="The Final Earth 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">The Final Earth 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/theimpossiblegame/">
+        <div class="game-icon"><span class="fallback">T</span><img src="https://meatlover6447.github.io/selenite/theimpossiblegame/image.jpg" alt="The Impossible Game" loading="lazy" decoding="async"></div>
+        <div class="game-title">The Impossible Game</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/theimpossiblequiz/">
+        <div class="game-icon"><span class="fallback">T</span><img src="https://meatlover6447.github.io/selenite/theimpossiblequiz/tiq.avif" alt="The Impossible Quiz" loading="lazy" decoding="async"></div>
+        <div class="game-title">The Impossible Quiz</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/thereisnogame/">
+        <div class="game-icon"><span class="fallback">T</span><img src="https://meatlover6447.github.io/selenite/thereisnogame/icon-256.png" alt="There Is No Game" loading="lazy" decoding="async"></div>
+        <div class="game-title">There Is No Game</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/thirtydollarwebsite/">
+        <div class="game-icon"><span class="fallback">T</span><img src="https://meatlover6447.github.io/selenite/thirtydollarwebsite/assets/%F0%9F%97%BF.png" alt="Thirty Dollar Website" loading="lazy" decoding="async"></div>
+        <div class="game-title">Thirty Dollar Website</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/thisistheonlylevel/">
+        <div class="game-icon"><span class="fallback">T</span><img src="https://meatlover6447.github.io/selenite/thisistheonlylevel/logo.png" alt="This Is The Only Level" loading="lazy" decoding="async"></div>
+        <div class="game-title">This Is The Only Level</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/thisistheonlylevel2/">
+        <div class="game-icon"><span class="fallback">T</span><img src="https://meatlover6447.github.io/selenite/thisistheonlylevel2/icon.png" alt="This Is The Only Level 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">This Is The Only Level 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/timeshooter1/">
+        <div class="game-icon"><span class="fallback">T</span><img src="https://meatlover6447.github.io/selenite/timeshooter1/logo.png" alt="Time Shooter" loading="lazy" decoding="async"></div>
+        <div class="game-title">Time Shooter</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/timeshooter2/">
+        <div class="game-icon"><span class="fallback">T</span><img src="https://meatlover6447.github.io/selenite/timeshooter2/ts2.jpg" alt="Time Shooter 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Time Shooter 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/timeshooter3/">
+        <div class="game-icon"><span class="fallback">T</span><img src="https://meatlover6447.github.io/selenite/timeshooter3/logo.png" alt="Time Shooter 3" loading="lazy" decoding="async"></div>
+        <div class="game-title">Time Shooter 3</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/tinyfishing/">
+        <div class="game-icon"><span class="fallback">T</span><img src="https://meatlover6447.github.io/selenite/tinyfishing/thumb.png" alt="Tiny Fishing" loading="lazy" decoding="async"></div>
+        <div class="game-title">Tiny Fishing</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/tabs/">
+        <div class="game-icon"><span class="fallback">T</span><img src="https://meatlover6447.github.io/selenite/tabs/unnamed.png" alt="Totally Accurate Battle Simulator" loading="lazy" decoding="async"></div>
+        <div class="game-title">Totally Accurate Battle Simulator</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/townscaper/">
+        <div class="game-icon"><span class="fallback">T</span><img src="https://meatlover6447.github.io/selenite/townscaper/icon.png" alt="Townscaper" loading="lazy" decoding="async"></div>
+        <div class="game-title">Townscaper</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/tron/">
+        <div class="game-icon"><span class="fallback">T</span><img src="https://meatlover6447.github.io/selenite/tron/icon.png" alt="Tron" loading="lazy" decoding="async"></div>
+        <div class="game-title">Tron</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/tu46/">
+        <div class="game-icon"><span class="fallback">T</span><img src="https://meatlover6447.github.io/selenite/tu46/tu-46.webp" alt="TU-46" loading="lazy" decoding="async"></div>
+        <div class="game-title">TU-46</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/tu95/">
+        <div class="game-icon"><span class="fallback">T</span><img src="https://meatlover6447.github.io/selenite/tu95/tu-95.webp" alt="TU-95" loading="lazy" decoding="async"></div>
+        <div class="game-title">TU-95</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/tube-jumpers/">
+        <div class="game-icon"><span class="fallback">T</span><img src="https://meatlover6447.github.io/selenite/tube-jumpers/cover.svg" alt="Tube Jumpers" loading="lazy" decoding="async"></div>
+        <div class="game-title">Tube Jumpers</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/tunnelrush/">
+        <div class="game-icon"><span class="fallback">T</span><img src="https://meatlover6447.github.io/selenite/tunnelrush/tunnel.jpg" alt="Tunnel Rush" loading="lazy" decoding="async"></div>
+        <div class="game-title">Tunnel Rush</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/turbowarp/">
+        <div class="game-icon"><span class="fallback">T</span><img src="https://meatlover6447.github.io/selenite/turbowarp/icon.png" alt="Turbowarp" loading="lazy" decoding="async"></div>
+        <div class="game-title">Turbowarp</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/universal-paperclips/">
+        <div class="game-icon"><span class="fallback">U</span><img src="https://meatlover6447.github.io/selenite/universal-paperclips/universal-paperclips.png" alt="Universal Paperclips" loading="lazy" decoding="async"></div>
+        <div class="game-title">Universal Paperclips</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/vex/">
+        <div class="game-icon"><span class="fallback">V</span><img src="https://meatlover6447.github.io/selenite/vex/icon.png" alt="Vex" loading="lazy" decoding="async"></div>
+        <div class="game-title">Vex</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/vex2/">
+        <div class="game-icon"><span class="fallback">V</span><img src="https://meatlover6447.github.io/selenite/vex2/icon.png" alt="Vex 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Vex 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/vex3/">
+        <div class="game-icon"><span class="fallback">V</span><img src="https://meatlover6447.github.io/selenite/vex3/icon.png" alt="Vex 3" loading="lazy" decoding="async"></div>
+        <div class="game-title">Vex 3</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/vex4/">
+        <div class="game-icon"><span class="fallback">V</span><img src="https://meatlover6447.github.io/selenite/vex4/vex4.png" alt="Vex 4" loading="lazy" decoding="async"></div>
+        <div class="game-title">Vex 4</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/vex5/">
+        <div class="game-icon"><span class="fallback">V</span><img src="https://meatlover6447.github.io/selenite/vex5/icon.png" alt="Vex 5" loading="lazy" decoding="async"></div>
+        <div class="game-title">Vex 5</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/vex6/">
+        <div class="game-icon"><span class="fallback">V</span><img src="https://meatlover6447.github.io/selenite/vex6/icon.png" alt="Vex 6" loading="lazy" decoding="async"></div>
+        <div class="game-title">Vex 6</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/vex7/">
+        <div class="game-icon"><span class="fallback">V</span><img src="https://meatlover6447.github.io/selenite/vex7/icon.jpeg" alt="Vex 7" loading="lazy" decoding="async"></div>
+        <div class="game-title">Vex 7</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/wallsmash/">
+        <div class="game-icon"><span class="fallback">W</span><img src="https://meatlover6447.github.io/selenite/wallsmash/icon.png" alt="Wall Smash" loading="lazy" decoding="async"></div>
+        <div class="game-title">Wall Smash</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/watermelongame/">
+        <div class="game-icon"><span class="fallback">W</span><img src="https://meatlover6447.github.io/selenite/watermelongame/assets/sprites/tittle.png" alt="Watermelon Game" loading="lazy" decoding="async"></div>
+        <div class="game-title">Watermelon Game</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/wbwwb/">
+        <div class="game-icon"><span class="fallback">W</span><img src="https://meatlover6447.github.io/selenite/wbwwb/wbwwb.webp" alt="We Become What We Behold" loading="lazy" decoding="async"></div>
+        <div class="game-title">We Become What We Behold</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/weavesilk/">
+        <div class="game-icon"><span class="fallback">W</span><img src="https://meatlover6447.github.io/selenite/weavesilk/icon.png" alt="Weave Silk" loading="lazy" decoding="async"></div>
+        <div class="game-title">Weave Silk</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/fluidsim/">
+        <div class="game-icon"><span class="fallback">W</span><img src="https://meatlover6447.github.io/selenite/fluidsim/icon.png" alt="WebGL Fluid Sim" loading="lazy" decoding="async"></div>
+        <div class="game-title">WebGL Fluid Sim</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/webretro/">
+        <div class="game-icon"><span class="fallback">W</span><img src="https://meatlover6447.github.io/selenite/webretro/assets/icons/icon204.png" alt="webretro" loading="lazy" decoding="async"></div>
+        <div class="game-title">webretro</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/win11/">
+        <div class="game-icon"><span class="fallback">W</span><img src="https://meatlover6447.github.io/selenite/win11/favicon.png" alt="Windows 11" loading="lazy" decoding="async"></div>
+        <div class="game-title">Windows 11</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/xp/">
+        <div class="game-icon"><span class="fallback">W</span><img src="https://meatlover6447.github.io/selenite/xp/cover.svg" alt="Windows XP" loading="lazy" decoding="async"></div>
+        <div class="game-title">Windows XP</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/wordle/">
+        <div class="game-icon"><span class="fallback">W</span><img src="https://meatlover6447.github.io/selenite/wordle/icon.png" alt="Wordle" loading="lazy" decoding="async"></div>
+        <div class="game-title">Wordle</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/wordlebot/">
+        <div class="game-icon"><span class="fallback">W</span><img src="https://meatlover6447.github.io/selenite/wordlebot/icon.png" alt="Wordle Bot" loading="lazy" decoding="async"></div>
+        <div class="game-title">Wordle Bot</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/worldshardestgame/">
+        <div class="game-icon"><span class="fallback">W</span><img src="https://meatlover6447.github.io/selenite/worldshardestgame/icon.png" alt="Worlds Hardest Game" loading="lazy" decoding="async"></div>
+        <div class="game-title">Worlds Hardest Game</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/worldhardestgame2/">
+        <div class="game-icon"><span class="fallback">W</span><img src="https://meatlover6447.github.io/selenite/worldhardestgame2/the-worlds-hardest-game-2.jpg" alt="Worlds Hardest Game 2" loading="lazy" decoding="async"></div>
+        <div class="game-title">Worlds Hardest Game 2</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/xx142-b2.exe/">
+        <div class="game-icon"><span class="fallback">X</span><img src="https://meatlover6447.github.io/selenite/xx142-b2.exe/icon.png" alt="xx142-b2.exe" loading="lazy" decoding="async"></div>
+        <div class="game-title">xx142-b2.exe</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/yohoho/">
+        <div class="game-icon"><span class="fallback">Y</span><img src="https://meatlover6447.github.io/selenite/yohoho/cover.svg" alt="Yohoho.io" loading="lazy" decoding="async"></div>
+        <div class="game-title">Yohoho.io</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/zombocalypse/">
+        <div class="game-icon"><span class="fallback">Z</span><img src="https://meatlover6447.github.io/selenite/zombocalypse/zombocalypse-2.webp" alt="Zombocalypse" loading="lazy" decoding="async"></div>
+        <div class="game-title">Zombocalypse</div>
+      </a>
+      <a class="game-tile" href="https://meatlover6447.github.io/selenite/pi/">
+        <div class="game-icon"><span class="fallback">Π</span><img src="https://meatlover6447.github.io/selenite/pi/cover.svg" alt="π Client" loading="lazy" decoding="async"></div>
+        <div class="game-title">π Client</div>
+      </a>
+</div>
+
+    <div class="game-no-results" id="seleniteNoResults">no games match that search.</div>
+
+    </div><!-- /#sub-selenite -->
 
   </div>
 </div><!-- /#tab-games -->
@@ -1621,16 +2758,31 @@
   buildToc('toc', '#sections');
   buildToc('guideToc', '#guideSections');
 
-  /* ---------- Game search filter ---------- */
-  const gameSearch = document.getElementById('gameSearch');
-  const gameGrid = document.getElementById('gameGrid');
-  const gameNoResults = document.getElementById('gameNoResults');
+  /* ---------- Games page sub-tabs (meatlover / selenite) ---------- */
+  document.querySelectorAll('.subtab-btn[data-subtab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.subtab-btn[data-subtab]').forEach(b => {
+        b.classList.toggle('active', b === btn);
+        b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+      });
+      document.querySelectorAll('.subtab-panel').forEach(p => {
+        p.classList.toggle('active', p.id === 'sub-' + btn.dataset.subtab);
+      });
+    });
+  });
 
-  if (gameSearch && gameGrid) {
-    const tiles = Array.from(gameGrid.querySelectorAll('.game-tile'));
+  /* ---------- Game search filter (one independent filter per sub-tab) ---------- */
+  function attachGameFilter(searchId, gridId, noResultsId) {
+    const search = document.getElementById(searchId);
+    const grid = document.getElementById(gridId);
+    const noResults = document.getElementById(noResultsId);
+
+    if (!search || !grid) return;
+
+    const tiles = Array.from(grid.querySelectorAll('.game-tile'));
 
     const filterGames = () => {
-      const q = gameSearch.value.trim().toLowerCase();
+      const q = search.value.trim().toLowerCase();
       let visible = 0;
 
       tiles.forEach(tile => {
@@ -1640,17 +2792,20 @@
         if (matches) visible++;
       });
 
-      gameNoResults.classList.toggle('show', visible === 0);
+      if (noResults) noResults.classList.toggle('show', visible === 0);
     };
 
-    gameSearch.addEventListener('input', filterGames);
-    gameSearch.addEventListener('keydown', e => {
+    search.addEventListener('input', filterGames);
+    search.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
-        gameSearch.value = '';
+        search.value = '';
         filterGames();
       }
     });
   }
+
+  attachGameFilter('gameSearch', 'gameGrid', 'gameNoResults');
+  attachGameFilter('seleniteSearch', 'seleniteGrid', 'seleniteNoResults');
 </script>
 
 <script>
