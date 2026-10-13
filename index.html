@@ -515,13 +515,24 @@
   }
   .todo-item.no .todo-note { color: #7A7566; }
 
-  /* ===== CREDITS BUTTON & MODAL ===== */
-  .credits-btn {
+  /* ===== FLOATING BUTTONS (credits + new AD + BPA) ===== */
+  .floating-buttons {
     position: fixed;
     top: 20px;
     right: 24px;
     z-index: 9999;
-    background: var(--accent-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-end;
+    pointer-events: none;
+  }
+  .floating-buttons > * {
+    pointer-events: auto;
+  }
+
+  .credits-btn, .ad-btn, .bpa-btn {
+    background: rgba(42, 46, 36, 0.9);
     border: 1px solid var(--accent);
     color: var(--accent);
     font-family: var(--serif);
@@ -534,17 +545,22 @@
     transition: all 0.2s ease;
     box-shadow: 0 4px 14px rgba(0,0,0,0.5);
     backdrop-filter: blur(4px);
-    background: rgba(42, 46, 36, 0.9);
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    white-space: nowrap;
+    line-height: 1.2;
   }
-  .credits-btn:hover {
+
+  .credits-btn:hover, .ad-btn:hover, .bpa-btn:hover {
     background: var(--accent);
     color: var(--paper);
     border-color: var(--accent);
     transform: scale(1.03);
   }
-  .credits-btn:active { transform: scale(0.97); }
+  .credits-btn:active, .ad-btn:active, .bpa-btn:active { transform: scale(0.97); }
 
-  /* Modal overlay */
+  /* Overlay */
   .credits-overlay {
     position: fixed;
     inset: 0;
@@ -654,11 +670,14 @@
     .game-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 18px 14px; }
     .todo-wrap { padding: 0 20px 80px; }
     .todo-tag { display: none; }
-    .credits-btn {
+    .floating-buttons {
       top: 14px;
       right: 16px;
+      gap: 8px;
+    }
+    .credits-btn, .ad-btn, .bpa-btn {
       padding: 6px 16px;
-      font-size: 13px;
+      font-size: 12px;
     }
     .credits-modal {
       padding: 24px 20px;
@@ -669,8 +688,12 @@
 </head>
 <body>
 
-<!-- ===== CREDITS BUTTON (top right) ===== -->
-<button class="credits-btn" id="creditsBtn" aria-label="Show credits">Credits</button>
+<!-- ===== FLOATING BUTTONS (credits + AD + BPA) ===== -->
+<div class="floating-buttons">
+  <button class="credits-btn" id="creditsBtn" aria-label="Show credits">Credits</button>
+  <a class="ad-btn" href="https://twitch.tv/tavi_moya" target="_blank" rel="noopener noreferrer">AD: follow tavi</a>
+  <a class="bpa-btn" href="https://bpa.org/" target="_blank" rel="noopener noreferrer">Join BPA</a>
+</div>
 
 <!-- ===== CREDITS MODAL ===== -->
 <div class="credits-overlay" id="creditsOverlay">
@@ -711,7 +734,6 @@
   <button class="tab-btn" data-tab="guides" role="tab">Guides</button>
   <a class="tab-btn" href="https://forms.gle/PeesBwPgkGKy4UjH8" target="_blank" rel="noopener noreferrer" role="tab">suggestions/feedback</a>
   <button class="tab-btn" data-tab="todo" role="tab">To-Do List</button>
-  <a class="tab-btn" href="https://twitch.tv/tavi_moya" target="_blank" rel="noopener noreferrer">AD: follow tavi on twitch</a>
 </div>
 
 <!-- ============================================================
