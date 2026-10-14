@@ -105,9 +105,14 @@
     font-size: 14px;
     border-bottom: 1px solid var(--line);
   }
-  .featured-links a:hover, .featured-links a:focus-visible {
+  .featured-links a:link,
+  .featured-links a:visited,
+  .featured-links a:hover,
+  .featured-links a:focus,
+  .featured-links a:focus-visible,
+  .featured-links a:active {
     color: #ffffff;
-    border-bottom-color: #ffffff;
+    border-bottom-color: var(--line);
   }
   .big-section { margin-bottom: 72px; }
   .big-section h1 {
