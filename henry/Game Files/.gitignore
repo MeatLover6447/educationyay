@@ -1,0 +1,4 @@
+# The SWFs are >100 MB, which GitHub refuses, so they are stored split into
+# chunks in swf_parts\ and rebuilt from there. Run rebuild.bat to restore them.
+*.swf
+*.rebuilding

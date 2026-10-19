@@ -1,0 +1,62 @@
+{
+    "version":  1,
+    "chunkSize":  94371840,
+    "files":  [
+                  {
+                      "name":  "Henry.swf",
+                      "size":  122379723,
+                      "sha256":  "CD46E21A887C51BECF6FB39719EA758AA25D09D960FA244180A3E86907510F4F",
+                      "parts":  [
+                                    {
+                                        "file":  "Henry.swf.00",
+                                        "size":  94371840
+                                    },
+                                    {
+                                        "file":  "Henry.swf.01",
+                                        "size":  28007883
+                                    }
+                                ]
+                  },
+                  {
+                      "name":  "HenryCtM.swf",
+                      "size":  119207967,
+                      "sha256":  "456BFA99FC7BAAF249AFA221568CEEE3F098094F169F91592BB1C3420BD3CDB8",
+                      "parts":  [
+                                    {
+                                        "file":  "HenryCtM.swf.00",
+                                        "size":  94371840
+                                    },
+                                    {
+                                        "file":  "HenryCtM.swf.01",
+                                        "size":  24836127
+                                    }
+                                ]
+                  },
+                  {
+                      "name":  "HenryCtM2.swf",
+                      "size":  128648127,
+                      "sha256":  "EBDEC3E89105D5F4CE6D157804444E9B6F746DD7171C713566D0026D75A8748D",
+                      "parts":  [
+                                    {
+                                        "file":  "HenryCtM2.swf.00",
+                                        "size":  94371840
+                                    },
+                                    {
+                                        "file":  "HenryCtM2.swf.01",
+                                        "size":  34276287
+                                    }
+                                ]
+                  },
+                  {
+                      "name":  "HenryFtC.swf",
+                      "size":  54251086,
+                      "sha256":  "5B3153915C3042A981AAD6012C645DB0D95DE7B9A0110D7FFA82E8B3B669E835",
+                      "parts":  [
+                                    {
+                                        "file":  "HenryFtC.swf.00",
+                                        "size":  54251086
+                                    }
+                                ]
+                  }
+              ]
+}
