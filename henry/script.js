@@ -112,11 +112,18 @@
   async function fileSize(file) {
     try {
       const res = await fetch(GAME_FILES_DIR + file, { method: "HEAD", cache: "no-cache" });
-      if (!res.ok) return null;
-      return Number(res.headers.get("content-length")) || 0;
-    } catch (e) {
-      return null;
-    }
+      if (res.ok) return Number(res.headers.get("content-length")) || 0;
+    } catch (e) { /* not served as a whole file */ }
+    // The whole .swf isn't on the server: it ships split into swf_parts/ and
+    // ruffle-loader.js joins the chunks when the game fetches it. Report the
+    // reassembled size so the progress bar still adds up.
+    try {
+      const manifest = await window.AIRRuntime.swfManifest();
+      const entry = manifest && Array.isArray(manifest.files)
+        && manifest.files.find((f) => f && f.name && f.name.toLowerCase() === file.toLowerCase());
+      if (entry) return entry.size;
+    } catch (e) { /* no manifest either */ }
+    return null;
   }
 
   // ---------------------------------------------------------------------------

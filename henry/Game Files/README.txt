@@ -15,6 +15,7 @@ started directly; the others are loaded by it.
 
 The .swf files themselves are not committed to git: each one is split into
 chunks under 100 MB in swf_parts\ (GitHub rejects files bigger than that),
-next to manifest.json which holds the SHA-256 checksums. After cloning this
-repo, run rebuild.bat once - it stitches the chunks back into the original
-.swf files and verifies each one before keeping it.
+next to manifest.json which holds the SHA-256 checksums. The page reassembles
+them in the browser automatically while downloading, so nothing is required
+of you. To get the real .swf files on disk instead, run rebuild.bat - it
+stitches the chunks back together and verifies each one.

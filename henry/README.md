@@ -2,11 +2,11 @@
 
 Web port for the game [The Henry Stickmin Collection](https://store.steampowered.com/app/1089980/The_Henry_Stickmin_Collection/) originally made in Adobe AIR with Action Script 3 and Haxe.
 
-The SWF files are over 100 MB, which GitHub refuses to store, so they live in this repo split into chunks under "Game Files\swf_parts". Run "Game Files\rebuild.bat" once after cloning and the original .swf files are stitched back together and SHA-256 verified. You can also provide the files yourself, see below.
+The SWF files are over 100 MB, which GitHub refuses to store, so they live in this repo split into chunks under "Game Files\swf_parts". The page reassembles them in the browser automatically - no setup needed. If you want the real .swf files on disk (for offline use), run "Game Files\rebuild.bat", which stitches them back together and SHA-256 verifies them. You can also provide the files yourself, see below.
 
 # How to set this up correctly
 
-1. Run "Game Files\rebuild.bat" - it rebuilds "Henry.swf", "HenryCtM.swf", "HenryFtC.swf" and "HenryCtM2.swf" from the parts in "Game Files\swf_parts".
+1. Nothing to install - just host and open the page. It joins "Henry.swf", "HenryCtM.swf", "HenryFtC.swf" and "HenryCtM2.swf" from the chunks in "Game Files\swf_parts" as it downloads them. Running "Game Files\rebuild.bat" first is optional (it materialises the same four files on disk).
 
 Alternatively, put your own SWF and TXT files from "Steam\steamapps\common\HenryStickmin" (Or where ever you have the game downloaded) into the "\Game Files" folder
 
