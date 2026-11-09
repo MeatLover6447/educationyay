@@ -606,6 +606,8 @@
     margin: 0 0 12px;
   }
   .proxy-row { display: flex; gap: 10px; }
+  .proxy-row + .proxy-row { margin-top: 10px; }
+
   .proxy-row input[type="text"] {
     flex: 1 1 auto;
     min-width: 0;
@@ -703,13 +705,16 @@
 
   <main id="sections">
 
-    <div class="proxy-box">
-      <h3>truffled proxy</h3>
-      <div class="proxy-row">
-        <input type="text" id="urlInput" placeholder="paste full url (https://example.com)" autocomplete="off" spellcheck="false" aria-label="Paste full URL">
-        <button type="button" id="goButton">Go</button>
-      </div>
-    </div>
+<div class="proxy-box">
+  <h3>truffled proxy</h3>
+  <div class="proxy-row">
+    <input type="text" id="urlInput" placeholder="paste full url (https://example.com)" autocomplete="off" spellcheck="false" aria-label="Paste full URL">
+    <button type="button" id="goButton">Go</button>
+  </div>
+  <div class="proxy-row">
+    <a href="https://truffled.cv/studying/frame/?mode=preview&url=https://krillion.io" target="_blank" rel="noopener noreferrer"><button type="button">krillion</button></a>
+  </div>
+</div>
 
     <div class="featured">
       <div class="featured-row"><span class="featured-label">proxy</span><span class="featured-links"><a href="#b1-s1">truffled</a><a href="#b1-s3">dogeub</a><a href="#b1-s8">overcloaked</a><a href="#b1-s9">invisiproxy</a><a href="#b1-s11">interstellar</a><a href="#b1-s10">daydreamx</a><a href="#b1-s16">velara</a><a href="#b1-s7">fern</a></span></div>
