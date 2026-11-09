@@ -416,111 +416,6 @@
     margin: 0 0 16px;
   }
 
-  /* ===== To-Do tab ===== */
-  .todo-wrap {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 0 32px 120px;
-  }
-  .todo-wrap h1 {
-    font-family: var(--serif);
-    font-size: 32px;
-    font-weight: 500;
-    margin: 0 0 8px;
-  }
-  .todo-wrap .rule {
-    height: 1px;
-    background: var(--line);
-    margin-bottom: 36px;
-  }
-  .todo-intro {
-    font-size: 15.5px;
-    color: var(--muted);
-    margin: -18px 0 40px;
-  }
-  .todo-section { margin-bottom: 48px; }
-  .todo-section h2 {
-    font-family: var(--serif);
-    font-size: 22px;
-    font-weight: 500;
-    margin: 0 0 14px;
-  }
-  .todo-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    border-top: 1px solid var(--line);
-  }
-  .todo-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 11px 2px;
-    border-bottom: 1px solid var(--line);
-    font-size: 15.5px;
-    color: #D8D4C7;
-  }
-  .todo-box {
-    flex-shrink: 0;
-    width: 17px;
-    height: 17px;
-    margin-top: 4px;
-    border: 1px solid var(--muted);
-    border-radius: 4px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1;
-    color: transparent;
-    user-select: none;
-  }
-  .todo-text { flex: 1 1 auto; min-width: 0; }
-  .todo-text a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent); }
-  .todo-text a:hover, .todo-text a:focus-visible { color: var(--ink); border-bottom-color: var(--ink); }
-  .todo-note { display: block; font-size: 13.5px; color: var(--muted); margin-top: 2px; }
-  .todo-tag {
-    flex-shrink: 0;
-    align-self: center;
-    font-size: 11.5px;
-    letter-spacing: 0.02em;
-    color: var(--muted);
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    padding: 1px 9px;
-    white-space: nowrap;
-  }
-  .todo-tag.high { color: var(--accent); border-color: var(--accent); }
-
-  /* done state */
-  .todo-item.done .todo-box {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--paper);
-  }
-  .todo-item.done .todo-box::after { content: '✓'; }
-  .todo-item.done .todo-text {
-    color: var(--muted);
-    text-decoration: line-through;
-    text-decoration-color: var(--muted);
-  }
-  .todo-item.done .todo-tag { opacity: 0.5; }
-
-  /* ===== declined state (can't / won't add) ===== */
-  .todo-item.no .todo-box {
-    border-color: #5A5648;
-    color: #7A7566;
-  }
-  .todo-item.no .todo-box::after { content: '✕'; font-size: 10px; }
-  .todo-item.no .todo-text { color: #8A8577; }
-  .todo-item.no .todo-tag {
-    color: #7A7566;
-    border-color: #4A4638;
-    opacity: 0.7;
-  }
-  .todo-item.no .todo-note { color: #7A7566; }
-
   /* ===== FLOATING BUTTONS (credits + new AD + BPA) ===== */
   .floating-buttons {
     position: fixed;
@@ -680,8 +575,6 @@
     .tabs { padding: 0 20px; }
     .games-wrap, .guides-wrap { padding: 0 20px 80px; }
     .game-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 18px 14px; }
-    .todo-wrap { padding: 0 20px 80px; }
-    .todo-tag { display: none; }
     .floating-buttons {
       top: 14px;
       right: 16px;
@@ -695,6 +588,53 @@
       padding: 24px 20px;
     }
     .credits-modal h2 { font-size: 22px; }
+  }
+
+  /* ===== Truffled proxy box ===== */
+  .proxy-box {
+    background: var(--accent-soft);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .proxy-box h3 {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--accent);
+    margin: 0 0 12px;
+  }
+  .proxy-row { display: flex; gap: 10px; }
+  .proxy-row input[type="text"] {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    outline: none;
+  }
+  .proxy-row input[type="text"]:focus { border-color: var(--accent); }
+  .proxy-row input[type="text"]::placeholder { color: var(--muted); }
+  .proxy-row button {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--serif);
+    font-size: 15px;
+    padding: 10px 22px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .proxy-row button:hover, .proxy-row button:focus-visible {
+    background: var(--accent);
+    color: var(--paper);
+    outline: none;
   }
 </style>
 </head>
@@ -748,7 +688,6 @@
   <button class="tab-btn" data-tab="games" role="tab">Games</button>
   <button class="tab-btn" data-tab="guides" role="tab">Guides</button>
   <a class="tab-btn" href="https://forms.gle/PeesBwPgkGKy4UjH8" target="_blank" rel="noopener noreferrer" role="tab">suggestions/feedback</a>
-  <button class="tab-btn" data-tab="todo" role="tab">To-Do List</button>
 </div>
 
 <!-- ============================================================
@@ -764,8 +703,16 @@
 
   <main id="sections">
 
+    <div class="proxy-box">
+      <h3>truffled proxy</h3>
+      <div class="proxy-row">
+        <input type="text" id="urlInput" placeholder="paste full url (https://example.com)" autocomplete="off" spellcheck="false" aria-label="Paste full URL">
+        <button type="button" id="goButton">Go</button>
+      </div>
+    </div>
+
     <div class="featured">
-      <div class="featured-row"><span class="featured-label">proxy</span><span class="featured-links"><a href="truffledproxy">⭐direct truffled proxy</a><a href="#b1-s1">truffled</a><a href="#b1-s3">dogeub</a><a href="#b1-s8">overcloaked</a><a href="#b1-s9">invisiproxy</a><a href="#b1-s11">interstellar</a><a href="#b1-s10">daydreamx</a><a href="#b1-s16">velara</a><a href="#b1-s7">fern</a></span></div>
+      <div class="featured-row"><span class="featured-label">proxy</span><span class="featured-links"><a href="#b1-s1">truffled</a><a href="#b1-s3">dogeub</a><a href="#b1-s8">overcloaked</a><a href="#b1-s9">invisiproxy</a><a href="#b1-s11">interstellar</a><a href="#b1-s10">daydreamx</a><a href="#b1-s16">velara</a><a href="#b1-s7">fern</a></span></div>
       <div class="featured-row"><span class="featured-label">webport games</span><span class="featured-links"><a href="#b1-s4">selenite</a><a href="#b1-s5">mizumath</a><a href="#b1-s6">korona</a><a href="#b1-s1">truffled</a><a href="#b1-s2">gn-math</a><a href="#b1-s7">fern</a></span></div>
       <div class="featured-row"><span class="featured-label">cloud gaming</span><span class="featured-links"><a href="#b1-s5">mizumath</a><a href="#b1-s6">korona</a><a href="#b1-s13">astra</a><a href="#b1-s14">opium</a><a href="#b1-s17">quasar</a></span></div>
       <div class="featured-row"><span class="featured-label">works with geforce now</span><span class="featured-links"><a href="geforce" rel="noopener noreferrer">guide here!</a></span></div>
@@ -2662,149 +2609,6 @@
   </div>
 </div><!-- /#tab-guides -->
 
-<!-- ============================================================
-     TAB 4 : TO-DO LIST
-     ============================================================ -->
-<div class="tab-panel" id="tab-todo">
-  <div class="todo-wrap">
-    <h1>to-do list</h1>
-    <div class="rule"></div>
-
-    <p class="todo-intro">stuff i will add/change. taking suggestions from your responses</p>
-
-    <section class="todo-section">
-      <h2>planned</h2>
-      <ul class="todo-list">
-
-        <li class="todo-item">
-          <span class="todo-box"></span>
-          <span class="todo-text">fix tboi lag, tboi save editor. this will take a while and may not be possible</span>
-          <span class="todo-tag">games</span>
-        </li>
-
-        <li class="todo-item">
-          <span class="todo-box"></span>
-          <span class="todo-text">add pokemon roms</span>
-          <span class="todo-tag">games</span>
-        </li>
-
-        <li class="todo-item">
-          <span class="todo-box"></span>
-          <span class="todo-text">golf orbit (bypass domain lock)</span>
-          <span class="todo-tag">games</span>
-        </li>
-
-        <li class="todo-item">
-          <span class="todo-box"></span>
-          <span class="todo-text">add suika game</span>
-          <span class="todo-tag">games</span>
-        </li>
-
-        <li class="todo-item">
-          <span class="todo-box"></span>
-          <span class="todo-text">maybe garry's mod/half life 2/portal</span>
-          <span class="todo-tag">games(webports)</span>
-        </li>
-
-        <li class="todo-item">
-          <span class="todo-box"></span>
-          <span class="todo-text">add cuphead</span>
-          <span class="todo-tag">games(webport)</span>
-        </li>
-
-        <li class="todo-item">
-          <span class="todo-box"></span>
-          <span class="todo-text">add hello neighbor and happy wheels and maybe amazing frog?</span>
-          <span class="todo-tag">games(webport)</span>
-        </li>
-
-        <li class="todo-item">
-          <span class="todo-box"></span>
-          <span class="todo-text">add flappy bird</span>
-          <span class="todo-tag">games</span>
-        </li>
-
-        
-      </ul>
-    </section>
-
-    <section class="todo-section">
-      <h2>done</h2>
-      <ul class="todo-list">
-
-        <li class="todo-item done">
-          <span class="todo-box"></span>
-          <span class="todo-text">add minecraft/eaglercraft 1.12.2 or 1.8.8</span>
-          <span class="todo-tag">games</span>
-        </li>
-
-        <li class="todo-item done">
-          <span class="todo-box"></span>
-          <span class="todo-text">add cookie clicker</span>
-          <span class="todo-tag">games</span>
-        </li>
-
-        <li class="todo-item done">
-          <span class="todo-box"></span>
-          <span class="todo-text">add the binding of isaac: repentance</span>
-          <span class="todo-tag">games</span>
-        </li>
-
-        <li class="todo-item done">
-          <span class="todo-box"></span>
-          <span class="todo-text">add cloud gaming section</span>
-          <span class="todo-tag">cloud</span>
-        </li>
-
-      </ul>
-    </section>
-
-    <section class="todo-section">
-      <h2>can't / won't add</h2>
-      <ul class="todo-list">
-
-        <li class="todo-item no">
-          <span class="todo-box"></span>
-          <span class="todo-text">
-            real minecraft
-            <span class="todo-note">impossible</span>
-          </span>
-          <span class="todo-tag">games</span>
-        </li>
-
-        <li class="todo-item no">
-          <span class="todo-box"></span>
-          <span class="todo-text">
-            steam
-            <span class="todo-note">i cant add steam bro just use geforce now</span>
-          </span>
-          <span class="todo-tag">games</span>
-        </li>
-
-        <li class="todo-item no">
-          <span class="todo-box"></span>
-          <span class="todo-text">
-            castle crashers
-            <span class="todo-note">cant find a webport</span>
-          </span>
-          <span class="todo-tag">games</span>
-        </li>
-
-        <li class="todo-item no">
-          <span class="todo-box"></span>
-          <span class="todo-text">
-            golf orbit
-            <span class="todo-note">the game is domain locked</span>
-          </span>
-          <span class="todo-tag">games</span>
-        </li>
-
-      </ul>
-    </section>
-
-  </div>
-</div><!-- /#tab-todo -->
-
 <script>
   /* ---------- Credits Modal ---------- */
   (function() {
@@ -2950,6 +2754,24 @@
 
   attachGameFilter('gameSearch', 'gameGrid', 'gameNoResults');
   attachGameFilter('seleniteSearch', 'seleniteGrid', 'seleniteNoResults');
+</script>
+
+<script>
+  /* ---------- Truffled proxy box ---------- */
+  (function() {
+    const input = document.getElementById('urlInput');
+    const btn = document.getElementById('goButton');
+    function go() {
+      const url = input.value.trim();
+      if (url) {
+        window.open('https://truffled.cv/studying/frame/?mode=preview&url=' + encodeURIComponent(url), '_blank');
+      } else {
+        alert('Please paste a URL first.');
+      }
+    }
+    btn.addEventListener('click', go);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  })();
 </script>
 
 <script>
